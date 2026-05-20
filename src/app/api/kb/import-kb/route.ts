@@ -20,20 +20,39 @@ export async function POST(req: NextRequest) {
     allEntries = allEntries.filter((k: any) => k.clientId !== targetClientId);
   }
 
-  const newEntries = entries.map((e: any) => ({
-    id: randomUUID(),
-    question: e.question,
-    alt_questions: e.alt_questions || "",
-    answer: e.answer,
-    category: e.category || "",
-    keywords: e.keywords || "",
-    priority: e.priority ?? 5,
-    related_tags: e.related_tags || "",
-    icon: e.icon || "",
-    clientId: targetClientId,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }));
+  const newEntries = entries.map((e: any) => {
+    // CETIM format (qs[], resp, short_resp, cat, kw[], related_tags[])
+    const isCetim = Array.isArray(e.qs);
+    const question = isCetim ? e.qs[0] : e.question;
+    const altQuestions = isCetim
+      ? (e.qs.slice(1).join(" || ") || "")
+      : (e.alt_questions || "");
+    const answer = isCetim
+      ? [e.short_resp, e.resp].filter(Boolean).join("\n\n")
+      : e.answer;
+    const category = isCetim ? (e.cat || "") : (e.category || "");
+    const keywords = isCetim
+      ? (Array.isArray(e.kw) ? e.kw.join(", ") : "")
+      : (e.keywords || "");
+    const relatedTags = isCetim
+      ? (Array.isArray(e.related_tags) ? e.related_tags.join(", ") : "")
+      : (e.related_tags || "");
+
+    return {
+      id: randomUUID(),
+      question,
+      alt_questions: altQuestions,
+      answer,
+      category,
+      keywords,
+      priority: e.priority ?? 5,
+      related_tags: relatedTags,
+      icon: e.icon || "",
+      clientId: targetClientId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  });
 
   await db.write("kb_entries", [...allEntries, ...newEntries]);
   return NextResponse.json({ imported: newEntries.length });
