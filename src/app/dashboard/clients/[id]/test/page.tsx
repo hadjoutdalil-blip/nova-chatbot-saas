@@ -1,8 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
+function WidgetPreview({ slug }: { slug: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = document.createElement("script");
+    el.src = `/api/widget/${slug}/embed`;
+    el.async = true;
+    ref.current?.appendChild(el);
+    return () => { el.remove(); };
+  }, [slug]);
+
+  return <div ref={ref} />;
+}
 
 export default function ClientTestPage() {
   const { id } = useParams<{ id: string }>();
@@ -160,9 +174,9 @@ export default function ClientTestPage() {
             <span className="font-medium">Widget prévisualisation :</span> Le widget apparaît en bas à droite.
           </p>
           <div className="bg-gray-50 rounded-xl p-4 text-center text-gray-400 text-xs">
-            <p>Script injecté : <code className="text-purple-600">/api/widget/{slug}/embed.js</code></p>
+            <p>Script injecté : <code className="text-purple-600">{`/api/widget/${slug}/embed`}</code></p>
           </div>
-          {slug && <script src={`/api/widget/${slug}/embed.js`} />}
+          {slug && <WidgetPreview slug={slug} />}
         </div>
       </div>
     </div>
