@@ -26,7 +26,7 @@ db.write("clients", [
 db.write("users", [
   {
     id: userId,
-    email: "admin@cetim.dz",
+    email: "admin@nova.dz",
     password: bcrypt.hashSync("admin123", 10),
     name: "Admin CETIM",
     role: "admin",

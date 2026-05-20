@@ -1,0 +1,13 @@
+[
+  {
+    "id": "7246a9fd-3141-4119-897e-137b35ed873d",
+    "welcomeTitle": "Bienvenue chez CETIM",
+    "welcomeSub": "Je combine une base de connaissances et une IA.",
+    "showBrand": true,
+    "position": "right",
+    "marginBottom": 20,
+    "marginRight": 20,
+    "avatarIcon": "robot",
+    "clientId": "41f88ebb-7a2b-4931-a743-29bdb7547a2d"
+  }
+]

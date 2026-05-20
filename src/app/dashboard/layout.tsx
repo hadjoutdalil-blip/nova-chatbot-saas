@@ -23,13 +23,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const p = getPayload();
-    if (!p) { router.push("/"); return; }
+    if (!p) { router.push("/login"); return; }
     setPayload(p);
   }, [router]);
 
   function handleLogout() {
     localStorage.removeItem("token");
-    router.push("/");
+    router.push("/login");
   }
 
   if (!payload) return null;
@@ -40,6 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <h2 className="text-lg font-bold mb-8">Nova SaaS</h2>
         <div className="flex flex-col gap-2 flex-1">
           <Link href="/dashboard" className="px-3 py-2 rounded-lg hover:bg-gray-100">Dashboard</Link>
+          <Link href="/dashboard/clients" className="px-3 py-2 rounded-lg hover:bg-gray-100">Clients</Link>
           <Link href="/dashboard/kb" className="px-3 py-2 rounded-lg hover:bg-gray-100">Base de connaissances</Link>
           <Link href="/dashboard/widget" className="px-3 py-2 rounded-lg hover:bg-gray-100">Widget</Link>
           <Link href="/dashboard/analytics" className="px-3 py-2 rounded-lg hover:bg-gray-100">Statistiques</Link>
