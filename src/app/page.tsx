@@ -20,12 +20,13 @@ export default function LandingPage() {
 
       <section className="max-w-7xl mx-auto px-6 pt-24 pb-20 text-center">
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-gray-900 max-w-4xl mx-auto leading-tight">
-          Un chatbot IA intelligent pour{" "}
-          <span className="bg-gradient-to-r from-purple-600 to-indigo-500 bg-clip-text text-transparent">chaque client</span>
+          Vendez des chatbots IA à vos clients{" "}
+          <span className="bg-gradient-to-r from-purple-600 to-indigo-500 bg-clip-text text-transparent">sans développer</span>
         </h1>
         <p className="mt-6 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-          Nova Chatbot est une solution SaaS multi-tenant qui combine base de connaissances et IA générative
-          pour offrir un support client instantané et personnalisé.
+          Nova Chatbot est une plateforme SaaS multi-tenant qui vous permet de créer, gérer et déployer
+          des chatbots intelligents pour vos clients. Chaque client reçoit son propre widget et son
+          panneau d&apos;administration — le tout depuis une seule interface.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link href="/login" className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold text-lg hover:bg-purple-700 shadow-lg shadow-purple-200 transition">
@@ -37,43 +38,95 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="border-t border-gray-100 py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="bg-gray-50 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-10">
+            <div className="flex-1">
+              <p className="text-purple-600 font-semibold text-sm tracking-wide uppercase">Cas client</p>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">CETIM Algérie</h2>
+              <p className="text-gray-500 mt-4 leading-relaxed">
+                CETIM Algérie utilise Nova Chatbot pour offrir un support client instantané sur son site.
+                Le chatbot répond aux questions techniques grâce à sa base de connaissances, et
+                transmet les demandes complexes à l&apos;équipe. Résultat : un taux de réponse
+                immédiat de 70 % et une satisfaction client en hausse.
+              </p>
+              <div className="flex gap-8 mt-6">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">70 %</p>
+                  <p className="text-sm text-gray-400">Réponses instantanées</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">24/7</p>
+                  <p className="text-sm text-gray-400">Disponibilité</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">1</p>
+                  <p className="text-sm text-gray-400">Ligne de code</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 w-full max-w-sm">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">C</div>
+                <div>
+                  <p className="font-semibold text-sm">CETIM Algérie</p>
+                  <p className="text-xs text-gray-400">Support client</p>
+                </div>
+                <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">En ligne</span>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-gray-50 rounded-2xl rounded-bl-sm p-3 text-sm text-gray-700 max-w-[85%]">
+                  Bonjour, comment puis-je vous aider ?
+                </div>
+                <div className="bg-purple-600 text-white rounded-2xl rounded-br-sm p-3 text-sm max-w-[85%] ml-auto">
+                  Quels sont les délais de livraison pour l&apos;Algérie ?
+                </div>
+                <div className="bg-gray-50 rounded-2xl rounded-bl-sm p-3 text-sm text-gray-700 max-w-[85%]">
+                  Les délais sont de 5 à 7 jours ouvrés. Souhaitez-vous suivre votre commande ?
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="features" className="border-t border-gray-100 bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Tout ce dont vous avez besoin</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Ce que vous vendez à vos clients</h2>
           <p className="text-gray-500 text-center mb-14 max-w-xl mx-auto">
-            Une plateforme complète pour déployer et gérer des chatbots intelligents pour vos clients.
+            Une solution clé en main que vous pouvez revendre à vos clients sans développement.
           </p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                icon: "👥",
-                title: "Multi-tenant",
-                desc: "Gérez des centaines de clients depuis une seule interface. Chaque client a son propre chatbot, sa base de connaissances et sa configuration.",
+                icon: "🛠️",
+                title: "Administration complète",
+                desc: "Chaque client a son propre panneau d'administration pour gérer sa base de connaissances, personnaliser son widget et suivre ses conversations.",
               },
               {
-                icon: "🧠",
-                title: "Base de connaissances",
-                desc: "Créez et gérez une base de connaissances par client. Le chatbot répond instantanément aux questions fréquentes avec précision.",
-              },
-              {
-                icon: "⚡",
-                title: "IA générative",
-                desc: "Propulsé par Groq et les modèles Llama. L'IA comprend le contexte et répond intelligemment quand la KB ne suffit pas.",
+                icon: "💬",
+                title: "Widget intelligent",
+                desc: "Un widget JavaScript à intégrer en une ligne de code. Base de connaissances + IA générative pour répondre automatiquement aux visiteurs.",
               },
               {
                 icon: "🎨",
-                title: "Widget personnalisable",
-                desc: "Un widget JavaScript à intégrer en une ligne de code. Personnalisez les couleurs, la position et les messages de bienvenue.",
+                title: "Marque blanche",
+                desc: "Personnalisez les couleurs, le logo, les messages et la position du widget. Le chatbot porte l'identité de votre client.",
+              },
+              {
+                icon: "🧠",
+                title: "IA + base de connaissances",
+                desc: "Le chatbot pioche d'abord dans la base de connaissances du client. Si aucune réponse n'est trouvée, l'IA prend le relais intelligemment.",
               },
               {
                 icon: "📊",
-                title: "Analytiques",
-                desc: "Suivez les conversations, le taux de réponse de la KB et l'engagement utilisateur en temps réel.",
+                title: "Tableau de bord analytics",
+                desc: "Suivez les conversations, le taux de réponses automatiques, et l'engagement des visiteurs pour chaque client.",
               },
               {
                 icon: "🔌",
-                title: "Intégration simple",
-                desc: "Un script à copier-coller dans votre site. Aucune installation complexe, aucun serveur à gérer.",
+                title: "Intégration instantanée",
+                desc: "Un script à copier-coller dans le site de votre client. Aucune installation serveur, aucun développeur nécessaire.",
               },
             ].map((f, i) => (
               <div key={i} className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition">
@@ -90,13 +143,13 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Comment ça marche</h2>
           <p className="text-gray-500 text-center mb-14 max-w-xl mx-auto">
-            Trois étapes pour déployer un chatbot intelligent chez vos clients.
+            Créez un compte, ajoutez un client, intégrez le widget. C&apos;est tout.
           </p>
           <div className="grid md:grid-cols-3 gap-12">
             {[
-              { n: "1", title: "Créez un client", desc: "Ajoutez un client, configurez son modèle IA et sa clé API. Tout se fait depuis votre tableau de bord." },
-              { n: "2", title: "Remplissez la KB", desc: "Ajoutez des paires question-réponse dans la base de connaissances. Le chatbot y répondra automatiquement." },
-              { n: "3", title: "Intégrez le widget", desc: "Copiez le script généré et collez-le sur le site de votre client. Le chatbot est opérationnel immédiatement." },
+              { n: "1", title: "Ajoutez un client", desc: "Créez un client dans votre tableau de bord. Configurez son modèle IA, sa couleur et son logo en quelques clics." },
+              { n: "2", title: "Remplissez sa base de connaissances", desc: "Ajoutez les questions et réponses fréquentes de votre client. Le chatbot y répondra automatiquement, 24h/24." },
+              { n: "3", title: "Intégrez le widget sur son site", desc: "Copiez le script généré et collez-le sur le site de votre client. Le chatbot est opérationnel immédiatement." },
             ].map((s, i) => (
               <div key={i} className="text-center">
                 <div className="w-14 h-14 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-2xl font-bold mx-auto mb-6">{s.n}</div>
@@ -108,14 +161,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-purple-600 py-20">
+      <section className="bg-gradient-to-br from-purple-600 to-indigo-600 py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Prêt à transformer votre support client ?</h2>
-          <p className="text-purple-200 mb-10 text-lg">
-            Rejoignez les entreprises qui font confiance à Nova Chatbot.
+          <h2 className="text-3xl font-bold text-white mb-4">Prêt à proposer Nova Chatbot à vos clients ?</h2>
+          <p className="text-purple-200 mb-2 text-lg">
+            Créez votre compte gratuitement et commencez à déployer des chatbots intelligents en minutes.
+          </p>
+          <p className="text-purple-300 text-sm mb-10">
+            Aucune carte bancaire requise. Accès à toutes les fonctionnalités pendant 14 jours.
           </p>
           <Link href="/login" className="inline-block bg-white text-purple-600 px-10 py-4 rounded-xl font-bold text-lg hover:bg-purple-50 shadow-xl transition">
-            Commencer gratuitement
+            Créer mon compte gratuit
           </Link>
         </div>
       </section>
