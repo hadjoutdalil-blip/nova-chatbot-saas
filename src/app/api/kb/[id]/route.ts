@@ -7,7 +7,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const entries = db.read<any>("kb_entries");
+  const entries = await db.read<any>("kb_entries");
   const idx = entries.findIndex((k) => k.id === id && (k.clientId === user.clientId || user.role === "admin"));
   if (idx === -1) return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
 
@@ -20,7 +20,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     updatedAt: new Date().toISOString(),
   };
 
-  db.write("kb_entries", entries);
+  await db.write("kb_entries", entries);
   return NextResponse.json(entries[idx]);
 }
 
@@ -29,11 +29,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  let entries = db.read<any>("kb_entries");
+  let entries = await db.read<any>("kb_entries");
   const idx = entries.findIndex((k) => k.id === id && (k.clientId === user.clientId || user.role === "admin"));
   if (idx === -1) return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
 
   entries = entries.filter((k) => k.id !== id);
-  db.write("kb_entries", entries);
+  await db.write("kb_entries", entries);
   return NextResponse.json({ message: "Entrée supprimée" });
 }

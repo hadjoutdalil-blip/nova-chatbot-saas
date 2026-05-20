@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const clientId = getTargetClientId(req, user);
-  const entries = db.read<any>("kb_entries").filter((k) => k.clientId === clientId);
+  const allEntries = await db.read<any>("kb_entries");
+  const entries = allEntries.filter((k) => k.clientId === clientId);
   return NextResponse.json(entries);
 }
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
 
-  const entries = db.read<any>("kb_entries");
+  const entries = await db.read<any>("kb_entries");
   const entry = {
     id: randomUUID(),
     question: body.question,
@@ -43,6 +44,6 @@ export async function POST(req: NextRequest) {
   };
 
   entries.push(entry);
-  db.write("kb_entries", entries);
+  await db.write("kb_entries", entries);
   return NextResponse.json(entry, { status: 201 });
 }

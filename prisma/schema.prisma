@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Client {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  plan         String   @default("custom")
+  subdomain    String?
+  logo         String   @default("")
+  primaryColor String   @default("#7c3aed")
+  apiKey       String   @default("")
+  aiModel      String   @default("llama-3.1-8b-instant")
+  aiProvider   String   @default("groq")
+  kbThreshold  Int      @default(60)
+  relanceActive Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users         User[]
+  widgetConfigs WidgetConfig[]
+  kbEntries     KBEntry[]
+  conversations Conversation[]
+}
+
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  name     String
+  role     String @default("client")
+  clientId String
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model WidgetConfig {
+  id           String @id @default(uuid())
+  welcomeTitle String @default("Bienvenue !")
+  welcomeSub   String @default("")
+  showBrand    Boolean @default(true)
+  position     String @default("right")
+  marginBottom Int    @default(20)
+  marginRight  Int    @default(20)
+  avatarIcon   String @default("robot")
+  clientId     String
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model KBEntry {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  category  String   @default("")
+  keywords  String   @default("")
+  clientId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  messages  String   @default("[]")
+  clientId  String
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}

@@ -24,10 +24,12 @@ export function verifyToken(token: string): { userId: string; clientId: string; 
   }
 }
 
-export function findUserByEmail(email: string) {
-  return db.read<any>("users").find((u) => u.email === email) || null;
+export async function findUserByEmail(email: string) {
+  const users = await db.read<any>("users");
+  return users.find((u) => u.email === email) || null;
 }
 
-export function findClientBySlug(slug: string) {
-  return db.read<any>("clients").find((c) => c.slug === slug) || null;
+export async function findClientBySlug(slug: string) {
+  const clients = await db.read<any>("clients");
+  return clients.find((c) => c.slug === slug) || null;
 }

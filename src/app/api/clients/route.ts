@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const clients = db.read<any>("clients");
+  const clients = await db.read<any>("clients");
   return NextResponse.json(clients);
 }
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nom et slug requis" }, { status: 400 });
   }
 
-  const clients = db.read<any>("clients");
+  const clients = await db.read<any>("clients");
   if (clients.find((c) => c.slug === body.slug)) {
     return NextResponse.json({ error: "Ce slug est déjà utilisé" }, { status: 409 });
   }
@@ -46,11 +46,11 @@ export async function POST(req: NextRequest) {
   };
 
   clients.push(client);
-  db.write("clients", clients);
+  await db.write("clients", clients);
 
   const templates = PLAN_KB_TEMPLATES[plan];
   if (templates && templates.length > 0) {
-    const entries = db.read<any>("kb_entries");
+    const entries = await db.read<any>("kb_entries");
     const newEntries = templates.map((t) => ({
       id: randomUUID(),
       question: t.question,
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));
-    db.write("kb_entries", [...entries, ...newEntries]);
+    await db.write("kb_entries", [...entries, ...newEntries]);
   }
 
   return NextResponse.json(client, { status: 201 });

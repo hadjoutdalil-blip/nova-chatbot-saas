@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
-  const configs = db.read<any>("widget_configs");
+  const configs = await db.read<any>("widget_configs");
 
   const config = {
     id: randomUUID(),
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   };
 
   configs.push(config);
-  db.write("widget_configs", configs);
+  await db.write("widget_configs", configs);
   return NextResponse.json(config, { status: 201 });
 }
 
@@ -41,7 +41,7 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json();
   const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
-  const configs = db.read<any>("widget_configs");
+  const configs = await db.read<any>("widget_configs");
   const idx = configs.findIndex((w) => w.clientId === clientId);
 
   if (idx === -1) {
@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
       clientId,
     };
     configs.push(config);
-    db.write("widget_configs", configs);
+    await db.write("widget_configs", configs);
     return NextResponse.json(config);
   }
 
@@ -73,6 +73,6 @@ export async function PUT(req: NextRequest) {
     avatarIcon: body.avatarIcon ?? configs[idx].avatarIcon,
   };
 
-  db.write("widget_configs", configs);
+  await db.write("widget_configs", configs);
   return NextResponse.json(configs[idx]);
 }
