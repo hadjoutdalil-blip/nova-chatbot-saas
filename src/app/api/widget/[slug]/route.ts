@@ -19,11 +19,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     name: client.name,
     logo: client.logo,
     primaryColor: client.primaryColor,
-    apiKey: client.apiKey,
-    aiModel: client.aiModel,
-    aiProvider: client.aiProvider,
     kbThreshold: client.kbThreshold,
     relanceActive: client.relanceActive,
+    siteContext: client.siteContext,
+    relanceText: client.relanceText,
     widgetConfig,
     kb: kbEntries.map((k: any) => ({ question: k.question, answer: k.answer, category: k.category, keywords: k.keywords })),
   });

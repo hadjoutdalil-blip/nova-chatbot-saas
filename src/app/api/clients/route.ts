@@ -28,6 +28,12 @@ export async function POST(req: NextRequest) {
 
   const plan = body.plan || "custom";
 
+  const configs = await db.read<any>("global_configs");
+  const def = (key: string, fallback: string) => {
+    const row = configs.find((c: any) => c.key === key);
+    return row?.value ?? fallback;
+  };
+
   const client = {
     id: randomUUID(),
     name: body.name,
@@ -37,10 +43,12 @@ export async function POST(req: NextRequest) {
     logo: body.logo || "",
     primaryColor: body.primaryColor || "#7c3aed",
     apiKey: body.apiKey || "",
-    aiModel: body.aiModel || "llama-3.1-8b-instant",
-    aiProvider: body.aiProvider || "groq",
-    kbThreshold: body.kbThreshold ?? 60,
-    relanceActive: body.relanceActive ?? true,
+    aiModel: body.aiModel || def("defaultAiModel", "llama-3.1-8b-instant"),
+    aiProvider: body.aiProvider || def("defaultAiProvider", "groq"),
+    kbThreshold: body.kbThreshold ?? +def("defaultKbThreshold", "60"),
+    relanceActive: body.relanceActive ?? def("defaultRelanceActive", "true") === "true",
+    siteContext: body.siteContext || "",
+    relanceText: body.relanceText || "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

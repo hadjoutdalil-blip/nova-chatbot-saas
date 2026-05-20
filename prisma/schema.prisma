@@ -19,6 +19,8 @@ model Client {
   aiProvider   String   @default("groq")
   kbThreshold  Int      @default(60)
   relanceActive Boolean @default(true)
+  siteContext  String   @default("")
+  relanceText  String   @default("")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -54,16 +56,26 @@ model WidgetConfig {
 }
 
 model KBEntry {
-  id        String   @id @default(uuid())
-  question  String
-  answer    String
-  category  String   @default("")
-  keywords  String   @default("")
-  clientId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  question      String
+  alt_questions String   @default("")
+  answer        String
+  category      String   @default("")
+  keywords      String   @default("")
+  priority      Int      @default(5)
+  related_tags  String   @default("")
+  icon          String   @default("")
+  clientId      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model GlobalConfig {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
 }
 
 model Conversation {

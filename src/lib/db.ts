@@ -19,6 +19,7 @@ function getDelegate(collection: string) {
     widget_configs: "widgetConfig",
     kb_entries: "kBEntry",
     conversations: "conversation",
+    global_configs: "globalConfig",
   };
   const key = map[collection];
   if (!key) throw new Error(`Unknown collection: ${collection}`);

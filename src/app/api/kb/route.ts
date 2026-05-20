@@ -35,9 +35,13 @@ export async function POST(req: NextRequest) {
   const entry = {
     id: randomUUID(),
     question: body.question,
+    alt_questions: body.alt_questions || "",
     answer: body.answer,
     category: body.category || "",
     keywords: body.keywords || "",
+    priority: body.priority ?? 5,
+    related_tags: body.related_tags || "",
+    icon: body.icon || "",
     clientId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
