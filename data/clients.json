@@ -3,6 +3,7 @@
     "id": "41f88ebb-7a2b-4931-a743-29bdb7547a2d",
     "name": "CETIM Algérie",
     "slug": "cetim",
+    "plan": "support",
     "subdomain": "cetim",
     "logo": "",
     "primaryColor": "#7c3aed",

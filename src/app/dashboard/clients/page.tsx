@@ -7,11 +7,26 @@ interface Client {
   id: string;
   name: string;
   slug: string;
+  plan: string;
   primaryColor: string;
   aiProvider: string;
   aiModel: string;
   createdAt: string;
 }
+
+const PLAN_LABELS: Record<string, string> = {
+  ecommerce: "E-commerce",
+  support: "Support Client",
+  realestate: "Immobilier",
+  custom: "Sur Mesure",
+};
+
+const PLAN_COLORS: Record<string, string> = {
+  ecommerce: "bg-purple-100 text-purple-700",
+  support: "bg-indigo-100 text-indigo-700",
+  realestate: "bg-blue-100 text-blue-700",
+  custom: "bg-gray-100 text-gray-600",
+};
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -55,6 +70,7 @@ export default function ClientsPage() {
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium text-gray-600">Nom</th>
+              <th className="px-4 py-3 font-medium text-gray-600">Pack</th>
               <th className="px-4 py-3 font-medium text-gray-600">Slug</th>
               <th className="px-4 py-3 font-medium text-gray-600">IA</th>
               <th className="px-4 py-3 font-medium text-gray-600">Créé le</th>
@@ -68,6 +84,11 @@ export default function ClientsPage() {
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: c.primaryColor }} />
                   {c.name}
                 </td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${PLAN_COLORS[c.plan] || PLAN_COLORS.custom}`}>
+                    {PLAN_LABELS[c.plan] || c.plan}
+                  </span>
+                </td>
                 <td className="px-4 py-3 font-mono text-xs">{c.slug}</td>
                 <td className="px-4 py-3 text-gray-500">{c.aiProvider} / {c.aiModel}</td>
                 <td className="px-4 py-3 text-gray-500">{new Date(c.createdAt).toLocaleDateString()}</td>
@@ -78,7 +99,7 @@ export default function ClientsPage() {
               </tr>
             ))}
             {clients.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Aucun client</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Aucun client</td></tr>
             )}
           </tbody>
         </table>

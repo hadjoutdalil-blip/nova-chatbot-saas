@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+const PLANS = [
+  { id: "ecommerce", name: "Chatbot E-commerce", price: "$299/mois" },
+  { id: "support", name: "Chatbot Support Client", price: "$399/mois" },
+  { id: "realestate", name: "Chatbot Immobilier", price: "$499/mois" },
+  { id: "custom", name: "Sur Mesure", price: "Devis" },
+];
+
 export default function EditClientPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -40,6 +47,16 @@ export default function EditClientPage() {
       <h1 className="text-2xl font-bold mb-6">Modifier le client</h1>
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 max-w-lg space-y-4">
         {error && <p className="text-red-500 text-sm">{error}</p>}
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Pack</label>
+          <select value={form.plan || "custom"} onChange={(e) => setForm({ ...form, plan: e.target.value })} className="w-full border rounded-lg px-3 py-2">
+            {PLANS.map((p) => (
+              <option key={p.id} value={p.id}>{p.name} ({p.price})</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Nom</label>
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border rounded-lg px-3 py-2" required />

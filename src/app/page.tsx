@@ -1,5 +1,81 @@
 import Link from "next/link";
 
+const PLANS = [
+  {
+    id: "ecommerce",
+    name: "Chatbot E-commerce",
+    price: 299,
+    period: "/mois",
+    description: "Boostez vos ventes et automatisez le support client de votre boutique en ligne.",
+    features: [
+      "Questions sur les produits et le stock",
+      "Suivi de commande et livraison",
+      "Retours et remboursements",
+      "Recommandations produits",
+      "Catalogue jusqu'à 500 produits",
+      "Disponible en 48h",
+    ],
+    color: "purple",
+  },
+  {
+    id: "support",
+    name: "Chatbot Support Client",
+    price: 399,
+    period: "/mois",
+    description: "Automatisez votre service client avec une base de connaissances intelligente.",
+    features: [
+      "FAQ et base de connaissances illimitée",
+      "Création de tickets automatique",
+      "Transfert vers un humain si nécessaire",
+      "Horaires et disponibilité",
+      "Processus et procédures",
+      "Disponible en 72h",
+    ],
+    color: "indigo",
+    popular: true,
+  },
+  {
+    id: "realestate",
+    name: "Chatbot Immobilier",
+    price: 499,
+    period: "/mois",
+    description: "Qualifiez vos leads et répondez aux questions de vos prospects 24h/24.",
+    features: [
+      "Recherche de biens par critères",
+      "Visites et disponibilités",
+      "Simulation de crédit",
+      "Documents et procédures",
+      "Qualification des leads",
+      "Disponible en 72h",
+    ],
+    color: "blue",
+  },
+  {
+    id: "custom",
+    name: "Sur Mesure",
+    price: null,
+    period: "",
+    description: "Un chatbot adapté à votre secteur d'activité spécifique.",
+    features: [
+      "Analyse de vos besoins",
+      "Base de connaissances personnalisée",
+      "Workflows et scénarios avancés",
+      "Formation de l'IA sur vos données",
+      "Intégration API sur mesure",
+      "Livraison sous 5 à 7 jours",
+    ],
+    color: "gray",
+    badge: "Nous contacter",
+  },
+];
+
+const colorMap: Record<string, { bg: string; text: string; ring: string; dark: string; light: string }> = {
+  purple: { bg: "bg-purple-600", text: "text-purple-600", ring: "ring-purple-500", dark: "hover:bg-purple-700", light: "bg-purple-50" },
+  indigo: { bg: "bg-indigo-600", text: "text-indigo-600", ring: "ring-indigo-500", dark: "hover:bg-indigo-700", light: "bg-indigo-50" },
+  blue: { bg: "bg-blue-600", text: "text-blue-600", ring: "ring-blue-500", dark: "hover:bg-blue-700", light: "bg-blue-50" },
+  gray: { bg: "bg-gray-700", text: "text-gray-600", ring: "ring-gray-500", dark: "hover:bg-gray-800", light: "bg-gray-100" },
+};
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
@@ -29,12 +105,61 @@ export default function LandingPage() {
           panneau d&apos;administration — le tout depuis une seule interface.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
-          <Link href="/login" className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold text-lg hover:bg-purple-700 shadow-lg shadow-purple-200 transition">
-            Démarrer l&apos;essai gratuit
+          <Link href="#pricing" className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold text-lg hover:bg-purple-700 shadow-lg shadow-purple-200 transition">
+            Voir les offres
           </Link>
           <a href="#features" className="border border-gray-300 text-gray-700 px-8 py-3 rounded-xl font-semibold text-lg hover:bg-gray-50 transition">
             En savoir plus
           </a>
+        </div>
+      </section>
+
+      <section id="pricing" className="border-t border-gray-100 py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Des packs prêts à l&apos;emploi</h2>
+          <p className="text-gray-500 text-center mb-14 max-w-xl mx-auto">
+            Choisissez le pack adapté à votre client. Nous livrons le chatbot clé en main en 48 à 72h.
+          </p>
+          <div className="grid md:grid-cols-4 gap-6">
+            {PLANS.map((plan) => {
+              const c = colorMap[plan.color];
+              return (
+                <div key={plan.id} className={`relative rounded-2xl border p-6 flex flex-col bg-white ${plan.popular ? "ring-2 ring-purple-500 shadow-lg" : "shadow-sm"}`}>
+                  {plan.popular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-semibold px-4 py-1 rounded-full">
+                      Populaire
+                    </span>
+                  )}
+                  <h3 className="font-bold text-lg mb-1">{plan.name}</h3>
+                  <p className="text-sm text-gray-500 mb-4 min-h-[40px]">{plan.description}</p>
+                  <div className="mb-6">
+                    {plan.price !== null ? (
+                      <>
+                        <span className="text-3xl font-bold">{plan.price}$</span>
+                        <span className="text-gray-400 text-sm">{plan.period}</span>
+                      </>
+                    ) : (
+                      <span className="text-xl font-semibold text-gray-400">{plan.badge}</span>
+                    )}
+                  </div>
+                  <ul className="space-y-3 mb-8 flex-1">
+                    {plan.features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                        <svg className="w-4 h-4 mt-0.5 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/login"
+                    className={`w-full text-center py-2.5 rounded-xl font-semibold text-sm text-white ${c.bg} ${c.dark} transition`}
+                  >
+                    {plan.price !== null ? "Commencer" : "Nous contacter"}
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -98,36 +223,12 @@ export default function LandingPage() {
           </p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              {
-                icon: "🛠️",
-                title: "Administration complète",
-                desc: "Chaque client a son propre panneau d'administration pour gérer sa base de connaissances, personnaliser son widget et suivre ses conversations.",
-              },
-              {
-                icon: "💬",
-                title: "Widget intelligent",
-                desc: "Un widget JavaScript à intégrer en une ligne de code. Base de connaissances + IA générative pour répondre automatiquement aux visiteurs.",
-              },
-              {
-                icon: "🎨",
-                title: "Marque blanche",
-                desc: "Personnalisez les couleurs, le logo, les messages et la position du widget. Le chatbot porte l'identité de votre client.",
-              },
-              {
-                icon: "🧠",
-                title: "IA + base de connaissances",
-                desc: "Le chatbot pioche d'abord dans la base de connaissances du client. Si aucune réponse n'est trouvée, l'IA prend le relais intelligemment.",
-              },
-              {
-                icon: "📊",
-                title: "Tableau de bord analytics",
-                desc: "Suivez les conversations, le taux de réponses automatiques, et l'engagement des visiteurs pour chaque client.",
-              },
-              {
-                icon: "🔌",
-                title: "Intégration instantanée",
-                desc: "Un script à copier-coller dans le site de votre client. Aucune installation serveur, aucun développeur nécessaire.",
-              },
+              { icon: "🛠️", title: "Administration complète", desc: "Chaque client a son propre panneau d'administration pour gérer sa base de connaissances, personnaliser son widget et suivre ses conversations." },
+              { icon: "💬", title: "Widget intelligent", desc: "Un widget JavaScript à intégrer en une ligne de code. Base de connaissances + IA générative pour répondre automatiquement aux visiteurs." },
+              { icon: "🎨", title: "Marque blanche", desc: "Personnalisez les couleurs, le logo, les messages et la position du widget. Le chatbot porte l'identité de votre client." },
+              { icon: "🧠", title: "IA + base de connaissances", desc: "Le chatbot pioche d'abord dans la base de connaissances du client. Si aucune réponse n'est trouvée, l'IA prend le relais intelligemment." },
+              { icon: "📊", title: "Tableau de bord analytics", desc: "Suivez les conversations, le taux de réponses automatiques, et l'engagement des visiteurs pour chaque client." },
+              { icon: "🔌", title: "Intégration instantanée", desc: "Un script à copier-coller dans le site de votre client. Aucune installation serveur, aucun développeur nécessaire." },
             ].map((f, i) => (
               <div key={i} className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition">
                 <div className="text-3xl mb-4">{f.icon}</div>
