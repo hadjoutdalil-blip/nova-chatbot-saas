@@ -3,11 +3,19 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 
+function getTargetClientId(req: NextRequest, user: { userId: string; clientId: string; role: string }): string {
+  const url = new URL(req.url);
+  const param = url.searchParams.get("clientId");
+  if (param && user.role === "admin") return param;
+  return user.clientId;
+}
+
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const body = await req.json();
+  const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
   const configs = db.read<any>("widget_configs");
 
   const config = {
@@ -19,7 +27,7 @@ export async function POST(req: NextRequest) {
     marginBottom: body.marginBottom ?? 20,
     marginRight: body.marginRight ?? 20,
     avatarIcon: body.avatarIcon || "robot",
-    clientId: user.clientId,
+    clientId,
   };
 
   configs.push(config);
@@ -32,9 +40,27 @@ export async function PUT(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const body = await req.json();
+  const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
   const configs = db.read<any>("widget_configs");
-  const idx = configs.findIndex((w) => w.clientId === user.clientId);
-  if (idx === -1) return NextResponse.json({ error: "Configuration introuvable" }, { status: 404 });
+  const idx = configs.findIndex((w) => w.clientId === clientId);
+
+  if (idx === -1) {
+    if (user.role !== "admin") return NextResponse.json({ error: "Configuration introuvable" }, { status: 404 });
+    const config = {
+      id: randomUUID(),
+      welcomeTitle: body.welcomeTitle || "Bienvenue !",
+      welcomeSub: body.welcomeSub || "",
+      showBrand: body.showBrand ?? true,
+      position: body.position || "right",
+      marginBottom: body.marginBottom ?? 20,
+      marginRight: body.marginRight ?? 20,
+      avatarIcon: body.avatarIcon || "robot",
+      clientId,
+    };
+    configs.push(config);
+    db.write("widget_configs", configs);
+    return NextResponse.json(config);
+  }
 
   configs[idx] = {
     ...configs[idx],

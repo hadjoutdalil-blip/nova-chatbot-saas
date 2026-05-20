@@ -92,9 +92,14 @@ export default function ClientsPage() {
                 <td className="px-4 py-3 font-mono text-xs">{c.slug}</td>
                 <td className="px-4 py-3 text-gray-500">{c.aiProvider} / {c.aiModel}</td>
                 <td className="px-4 py-3 text-gray-500">{new Date(c.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3 flex gap-2">
-                  <button onClick={() => router.push(`/dashboard/clients/${c.id}`)} className="text-purple-600 hover:underline text-xs">Modifier</button>
-                  <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:underline text-xs">Supprimer</button>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1.5 flex-wrap">
+                    <button onClick={() => router.push(`/dashboard/clients/${c.id}`)} className="text-purple-600 hover:bg-purple-50 px-2 py-1 rounded text-xs font-medium">Modifier</button>
+                    <button onClick={() => router.push(`/dashboard/clients/${c.id}/kb`)} className="text-gray-600 hover:bg-gray-50 px-2 py-1 rounded text-xs">KB</button>
+                    <button onClick={() => router.push(`/dashboard/clients/${c.id}/widget`)} className="text-gray-600 hover:bg-gray-50 px-2 py-1 rounded text-xs">Widget</button>
+                    <button onClick={() => router.push(`/dashboard/clients/${c.id}/test`)} className="text-gray-600 hover:bg-gray-50 px-2 py-1 rounded text-xs">Tester</button>
+                    <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-xs">Suppr.</button>
+                  </div>
                 </td>
               </tr>
             ))}

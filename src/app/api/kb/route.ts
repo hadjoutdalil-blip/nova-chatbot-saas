@@ -3,11 +3,19 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 
+function getTargetClientId(req: NextRequest, user: { userId: string; clientId: string; role: string }): string {
+  const url = new URL(req.url);
+  const param = url.searchParams.get("clientId");
+  if (param && user.role === "admin") return param;
+  return user.clientId;
+}
+
 export async function GET(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const entries = db.read<any>("kb_entries").filter((k) => k.clientId === user.clientId);
+  const clientId = getTargetClientId(req, user);
+  const entries = db.read<any>("kb_entries").filter((k) => k.clientId === clientId);
   return NextResponse.json(entries);
 }
 
@@ -20,6 +28,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Question et réponse requis" }, { status: 400 });
   }
 
+  const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
+
   const entries = db.read<any>("kb_entries");
   const entry = {
     id: randomUUID(),
@@ -27,7 +37,7 @@ export async function POST(req: NextRequest) {
     answer: body.answer,
     category: body.category || "",
     keywords: body.keywords || "",
-    clientId: user.clientId,
+    clientId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

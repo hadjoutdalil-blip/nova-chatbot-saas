@@ -8,7 +8,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const entries = db.read<any>("kb_entries");
-  const idx = entries.findIndex((k) => k.id === id && k.clientId === user.clientId);
+  const idx = entries.findIndex((k) => k.id === id && (k.clientId === user.clientId || user.role === "admin"));
   if (idx === -1) return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
 
   const body = await req.json();
@@ -16,7 +16,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     ...entries[idx],
     ...body,
     id,
-    clientId: user.clientId,
+    clientId: entries[idx].clientId,
     updatedAt: new Date().toISOString(),
   };
 
@@ -30,7 +30,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params;
   let entries = db.read<any>("kb_entries");
-  const idx = entries.findIndex((k) => k.id === id && k.clientId === user.clientId);
+  const idx = entries.findIndex((k) => k.id === id && (k.clientId === user.clientId || user.role === "admin"));
   if (idx === -1) return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
 
   entries = entries.filter((k) => k.id !== id);

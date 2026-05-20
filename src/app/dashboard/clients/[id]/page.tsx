@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 const PLANS = [
   { id: "ecommerce", name: "Chatbot E-commerce", price: "$299/mois" },
@@ -44,7 +45,15 @@ export default function EditClientPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Modifier le client</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold">{form.name}</h1>
+      </div>
+      <div className="flex gap-2 mb-6">
+        <span className="text-sm px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 font-medium">Modifier</span>
+        <Link href={`/dashboard/clients/${id}/kb`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Base connaissances</Link>
+        <Link href={`/dashboard/clients/${id}/widget`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Widget</Link>
+        <Link href={`/dashboard/clients/${id}/test`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Tester</Link>
+      </div>
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 max-w-lg space-y-4">
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
