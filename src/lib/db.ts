@@ -1,12 +1,26 @@
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
-const DB_PATH = path.join(process.cwd(), "data", "app.db");
+function getDbPath(): string {
+  const src = path.join(process.cwd(), "data", "app.db");
+  if (!process.env.VERCEL) return src;
+
+  const dest = path.join("/tmp", "app.db");
+  if (!fs.existsSync(dest) && fs.existsSync(src)) {
+    fs.copyFileSync(src, dest);
+  }
+  return dest;
+}
+
+const DB_PATH = getDbPath();
 
 let _db: Database.Database | null = null;
 
 function getDb(): Database.Database {
   if (!_db) {
+    const dir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     _db = new Database(DB_PATH);
     _db.pragma("journal_mode = WAL");
     _db.pragma("foreign_keys = ON");
