@@ -24,7 +24,7 @@ export default function LoginPage() {
       return;
     }
     localStorage.setItem("token", data.token);
-    router.push("/dashboard");
+    router.push(data.user.role === "admin" ? "/dashboard" : "/app");
   }
 
   return (

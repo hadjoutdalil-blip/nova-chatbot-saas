@@ -3,8 +3,16 @@
     "id": "9ef0b42b-71f3-46b5-9ccd-2f9a80a0eb8f",
     "email": "admin@nova.dz",
     "password": "$2b$10$hxT3Q.wJwDtmsZ4amnSV2uhXgyxWURBZ9JkU/mSkNKr/hpypCOURy",
-    "name": "Admin CETIM",
+    "name": "Admin Nova",
     "role": "admin",
+    "clientId": "41f88ebb-7a2b-4931-a743-29bdb7547a2d"
+  },
+  {
+    "id": "b1a2c3d4-e5f6-7890-abcd-ef1234567890",
+    "email": "client@cetim.dz",
+    "password": "$2b$10$opMMsxLzkp700vXpXPh3AOg.tRnaXTTsT5aixlXDNanpowuv2Unr.",
+    "name": "Client CETIM",
+    "role": "client",
     "clientId": "41f88ebb-7a2b-4931-a743-29bdb7547a2d"
   }
 ]
