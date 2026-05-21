@@ -145,6 +145,12 @@ RÈGLES :
 - Si la question mérite OUI/NON, commence par "**Oui,**" ou "**Non,**".${relance}`;
 }
 
+const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+
+export async function OPTIONS() {
+  return NextResponse.json(null, { headers: corsHeaders });
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -152,12 +158,12 @@ export async function POST(
   const { slug } = await params;
   const client = await findClientBySlug(slug);
   if (!client) {
-    return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
   }
 
   const { message, history, aiMode } = await req.json();
   if (!message || typeof message !== "string") {
-    return NextResponse.json({ error: "Message requis" }, { status: 400 });
+    return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
 
   const allEntries = await db.read<any>("kb_entries");
@@ -181,7 +187,7 @@ export async function POST(
       source: "kb",
       score,
       suggestions: findRelated(match, KB, 3),
-    });
+    }, { headers: corsHeaders });
   }
 
   const useAI = aiMode === true && client.apiKey;
@@ -194,7 +200,7 @@ export async function POST(
       source: match?.answer ? "kb" : "fallback",
       score,
       suggestions: match ? findRelated(match, KB, 3) : [],
-    });
+    }, { headers: corsHeaders });
   }
 
   /* Mode IA */
@@ -257,7 +263,7 @@ export async function POST(
       clientName: client.name,
       score,
       suggestions: match ? findRelated(match, KB, 3) : [],
-    });
+    }, { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] AI exception:", err);
     return NextResponse.json({
@@ -266,6 +272,6 @@ export async function POST(
       source: match?.answer ? "kb" : "fallback",
       score,
       suggestions: match ? findRelated(match, KB, 3) : [],
-    });
+    }, { headers: corsHeaders });
   }
 }
