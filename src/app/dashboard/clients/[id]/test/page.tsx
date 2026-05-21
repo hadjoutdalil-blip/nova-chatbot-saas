@@ -62,27 +62,28 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
   return (
     <div className="flex flex-col h-full" style={{ fontFamily: "system-ui,-apple-system,sans-serif" }}>
       {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, color: "#fff", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-        <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,.18)", border: "2px solid rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, position: "relative" }}
+      <div style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, color: "#fff", padding: "16px 18px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0, boxShadow: "0 2px 16px rgba(0,0,0,.08)" }}>
+        <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,.2)", border: "2px solid rgba(255,255,255,.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, position: "relative" }}
           className={aiMode ? "ai-avatar" : ""}>
-          {logo ? <img src={logo} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} /> : <BotDot size={17} />}
+          {logo ? <img src={logo} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} /> : <BotDot size={24} />}
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{name}</div>
-          <div style={{ fontSize: 11, opacity: 0.85 }}>Assistant virtuel</div>
+          <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3 }}>{name}</div>
+          <div style={{ fontSize: 11.5, opacity: 0.9 }}>Assistant virtuel</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>
           <button
             onClick={() => setAiMode(!aiMode)}
             style={{
-              width: 34, height: 34, borderRadius: 8,
+              width: 36, height: 36, borderRadius: 10,
               background: aiMode ? "rgba(168,85,247,.4)" : "rgba(255,255,255,.1)",
               border: "none", color: "#fff", fontSize: 14, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s",
+              display: "flex", alignItems: "center", justifyContent: "center", transition: "all .18s",
+              boxShadow: aiMode ? "0 0 12px rgba(168,85,247,.3)" : "none",
             }}
             title={aiMode ? "Mode IA actif" : "Mode IA désactivé"}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.4 2.1-1 2.8V12l-3 3-3-3V8.8A4 4 0 0 1 12 2z" />
               <path d="M8 14v3l4 4 4-4v-3" />
             </svg>
@@ -91,9 +92,9 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
       </div>
 
       {/* Status bar */}
-      <div style={{ padding: "7px 14px", fontSize: 11, color: "#6b7280", borderBottom: "1px solid #e5e7eb", background: "#fcfcfe", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexShrink: 0 }}>
+      <div style={{ padding: "8px 16px", fontSize: 11.5, color: "#64748b", borderBottom: "1px solid #eef2f6", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexShrink: 0 }}>
         {aiMode && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "linear-gradient(90deg,#7c3aed,#9333ea)", color: "#fff", padding: "2px 9px", borderRadius: 12, fontSize: 10, fontWeight: 600 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "linear-gradient(90deg,#7c3aed,#9333ea)", color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: ".3px", boxShadow: "0 2px 8px rgba(124,58,237,.25)" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 10, height: 10 }}>
               <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.4 2.1-1 2.8V12l-3 3-3-3V8.8A4 4 0 0 1 12 2z" />
               <path d="M8 14v3l4 4 4-4v-3" />
@@ -101,44 +102,45 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
             IA Active
           </span>
         )}
-        <span style={{ color: aiMode ? "#6b7280" : "#6b7280" }}>Base de connaissances</span>
+        <span style={{ color: "#64748b" }}>Base de connaissances</span>
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "18px 16px", display: "flex", flexDirection: "column", gap: 12, background: "#f4f7fb" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px", display: "flex", flexDirection: "column", gap: 14, background: "linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%)" }}>
         {messages.map((m, i) => (
           m.role === "user" ? (
             <div key={i} style={{ maxWidth: "84%", alignSelf: "flex-end", animation: "nr .28s ease" }}>
               <div style={{
                 background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
-                color: "#fff", padding: "12px 15px", borderRadius: "18px 18px 4px 18px",
-                fontSize: 13.5, lineHeight: 1.6, boxShadow: `0 3px 10px ${primaryColor}33`,
+                color: "#fff", padding: "12px 16px", borderRadius: "20px 20px 4px 20px",
+                fontSize: 14, lineHeight: 1.65, boxShadow: `0 3px 12px ${primaryColor}33`,
               }}>{m.text}</div>
             </div>
           ) : (
-            <div key={i} style={{ display: "flex", gap: 9, maxWidth: "92%", animation: "nl .28s ease" }}>
+            <div key={i} style={{ display: "flex", gap: 10, maxWidth: "92%", animation: "nl .28s ease" }}>
               <div style={{
-                width: 32, height: 32, borderRadius: "50%",
+                width: 34, height: 34, borderRadius: "50%",
                 background: aiMode || m.source === "ai" ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
+                boxShadow: aiMode || m.source === "ai" ? "0 2px 8px rgba(124,58,237,.2)" : "0 2px 6px rgba(0,0,0,.08)",
               }}>
-                <BotDot size={13} />
+                <BotDot size={20} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  background: "#fff", border: "1px solid #e5e7eb", padding: "12px 15px",
-                  borderRadius: "18px 18px 18px 4px", fontSize: 13.5, lineHeight: 1.72,
-                  color: "#0d1b2a", boxShadow: "0 1px 6px rgba(0,0,0,.05)",
+                  background: "#fff", border: "1px solid #eef2f6", padding: "14px 16px",
+                  borderRadius: "20px 20px 20px 4px", fontSize: 14, lineHeight: 1.7,
+                  color: "#0d1b2a", boxShadow: "0 2px 8px rgba(0,0,0,.04)",
                   borderLeft: aiMode || m.source === "ai" ? "3px solid #7c3aed" : "none",
-                  backgroundImage: aiMode || m.source === "ai" ? "linear-gradient(135deg,#fff,#f5f3ff)" : "none",
+                  backgroundImage: aiMode || m.source === "ai" ? "linear-gradient(135deg,#fff,#f8f6ff)" : "none",
                 }}>
                   {m.text}
                 </div>
                 {m.source && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                     {m.source === "kb" && m.score != null && (
                       <span style={{
-                        fontSize: 10.5, fontWeight: 600, padding: "1px 6px", borderRadius: 4, lineHeight: 1.4,
+                        fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 5, lineHeight: 1.4,
                         ...(scoreClass(m.score) === "green" ? { background: "#d1fae5", color: "#065f46" } :
                             scoreClass(m.score) === "orange" ? { background: "#fef3c7", color: "#92400e" } :
                             { background: "#fee2e2", color: "#991b1b" })
@@ -146,7 +148,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                         ✓ {m.score}%
                       </span>
                     )}
-                    <span style={{ fontSize: 10.5, color: m.source === "ai" ? "#7c3aed" : "#6b7280", fontWeight: m.source === "ai" ? 500 : 400 }}>
+                    <span style={{ fontSize: 11, color: m.source === "ai" ? "#7c3aed" : "#64748b", fontWeight: m.source === "ai" ? 600 : 400, fontStyle: m.source === "ai" ? "normal" : "italic" }}>
                       {m.source === "kb" ? "Base de connaissances" : m.source === "ai" ? (m.provider ? `Propulsé par ${m.provider}` : "IA") : "Fallback"}
                     </span>
                   </div>
@@ -156,21 +158,22 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
           )
         ))}
         {loading && (
-          <div style={{ display: "flex", gap: 9, maxWidth: "92%", animation: "nl .2s ease" }}>
+          <div style={{ display: "flex", gap: 10, maxWidth: "92%", animation: "nl .2s ease" }}>
             <div style={{
-              width: 32, height: 32, borderRadius: "50%",
+              width: 34, height: 34, borderRadius: "50%",
               background: aiMode ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
+              boxShadow: aiMode ? "0 2px 8px rgba(124,58,237,.2)" : "0 2px 6px rgba(0,0,0,.08)",
             }}>
-              <BotDot size={13} />
+              <BotDot size={20} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "14px 16px", borderRadius: "18px 18px 18px 4px" }}>
-                <div style={{ fontSize: 11, color: "#7c3aed", marginBottom: 6 }}>Réflexion en cours</div>
-                <div style={{ display: "flex", gap: 5 }}>
+              <div style={{ background: "#fff", border: "1px solid #eef2f6", padding: "16px 18px", borderRadius: "20px 20px 20px 4px", boxShadow: "0 2px 8px rgba(0,0,0,.04)" }}>
+                <div style={{ fontSize: 11.5, color: "#7c3aed", fontWeight: 600, marginBottom: 7 }}>Réflexion en cours</div>
+                <div style={{ display: "flex", gap: 6 }}>
                   {[0, 1, 2].map((j) => (
                     <span key={j} style={{
-                      width: 7, height: 7, borderRadius: "50%", background: "#d1d5db",
+                      width: 8, height: 8, borderRadius: "50%", background: "#cbd5e1",
                       animation: "nb .8s infinite ease-in-out",
                       animationDelay: `${j * 0.16}s`,
                     }} />
@@ -184,12 +187,12 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
       </div>
 
       {/* Input */}
-      <div style={{ borderTop: "1px solid #e5e7eb", padding: 14, background: "#fff", flexShrink: 0 }}>
+      <div style={{ borderTop: "1px solid #eef2f6", padding: "12px 14px 16px", background: "#fff", flexShrink: 0 }}>
         <div style={{
-          display: "flex", alignItems: "flex-end", gap: 9,
-          background: "#f4f7fb", border: "2px solid #e5e7eb",
-          borderRadius: 18, padding: "5px 5px 5px 14px",
-          transition: "all .2s",
+          display: "flex", alignItems: "flex-end", gap: 10,
+          background: "#f8fafc", border: "2px solid #e2e8f0",
+          borderRadius: 20, padding: "4px 4px 4px 16px",
+          transition: "all .25s",
         }}
           className={`chat-input-wrap ${aiMode ? "ai-focus" : ""}`}
         >
@@ -198,27 +201,27 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
             onChange={(e) => {
               setInput(e.target.value);
               e.target.style.height = "auto";
-              e.target.style.height = Math.min(e.target.scrollHeight, 90) + "px";
+              e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
             }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
             placeholder="Posez votre question..."
             disabled={loading}
             rows={1}
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 14, background: "transparent", color: "#0d1b2a", resize: "none", minHeight: 38, maxHeight: 96, fontFamily: "inherit", lineHeight: 1.5, padding: "7px 0" }}
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 14.5, background: "transparent", color: "#0d1b2a", resize: "none", minHeight: 40, maxHeight: 100, fontFamily: "inherit", lineHeight: 1.5, padding: "8px 0" }}
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={loading || !input.trim()}
             style={{
-              width: 38, height: 38, borderRadius: 12, border: "none",
+              width: 40, height: 40, borderRadius: 14, border: "none",
               background: aiMode ? "#7c3aed" : primaryColor,
               color: "#fff", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0, opacity: loading || !input.trim() ? 0.45 : 1,
-              transition: "all .14s",
+              transition: "all .18s",
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
@@ -230,6 +233,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
         .chat-input-wrap:focus-within {
           border-color: ${aiMode ? "#7c3aed" : primaryColor} !important;
           box-shadow: 0 0 0 4px ${aiMode ? "rgba(124,58,237,.18)" : `${primaryColor}15`} !important;
+          background: #fff !important;
         }
         .ai-avatar::after {
           content: '';
