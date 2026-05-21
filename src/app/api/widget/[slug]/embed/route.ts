@@ -231,10 +231,10 @@ function renderMarkdown(t){
   s=s.replace(/^### (.+)$/gm,"<h3>$1</h3>");
   s=s.replace(/^## (.+)$/gm,"<h2>$1</h2>");
   s=s.replace(/^# (.+)$/gm,"<h1>$1</h1>");
-  s=s.replace(/^[-*]\s+(.+)$/gm,"<li>$1</li>");
+  s=s.replace(/^[-*]\\s+(.+)$/gm,"<li>$1</li>");
   s=s.replace(/(<li>.*<\\/li>(\\n|$))+/g,function(m){return"<ul>"+m+"</ul>"});
-  s=s.replace(/^\d+\.\s+(.+)$/gm,"<li>$1</li>");
-  s=s.replace(/\n{2,}/g,"</p><p>").replace(/\n/g,"<br>");
+  s=s.replace(/^\\d+\\.\\s+(.+)$/gm,"<li>$1</li>");
+  s=s.replace(/\\n{2,}/g,"</p><p>").replace(/\\n/g,"<br>");
   if(!/^<[hup]/.test(s)) s="<p>"+s+"</p>";
   return s;
 }
