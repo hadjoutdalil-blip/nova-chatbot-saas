@@ -59,13 +59,34 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
     </svg>
   );
 
+  const [online, setOnline] = useState(true);
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    const go = () => setOnline(true);
+    const goff = () => setOnline(false);
+    window.addEventListener("online", go);
+    window.addEventListener("offline", goff);
+    return () => { window.removeEventListener("online", go); window.removeEventListener("offline", goff); };
+  }, []);
+
+  function isValidUrl(s: string | undefined | null): boolean {
+    return !!s && (s.startsWith("http://") || s.startsWith("https://") || s.startsWith("/"));
+  }
+  function renderMarkdown(t: string): string {
+    let s = t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    s = s.replace(/\n/g, "<br>");
+    return s;
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ fontFamily: "system-ui,-apple-system,sans-serif" }}>
       {/* Header */}
       <div style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, color: "#fff", padding: "16px 18px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0, boxShadow: "0 2px 16px rgba(0,0,0,.08)" }}>
         <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,.2)", border: "2px solid rgba(255,255,255,.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, position: "relative" }}
           className={aiMode ? "ai-avatar" : ""}>
-          {logo ? <img src={logo} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} /> : <BotDot size={24} />}
+          {isValidUrl(logo) ? <img src={logo} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} /> : <BotDot size={24} />}
         </div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3 }}>{name}</div>
@@ -103,6 +124,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
           </span>
         )}
         <span style={{ color: "#64748b" }}>Base de connaissances</span>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", display: "inline-block", flexShrink: 0, marginLeft: "auto", background: online ? "#16a34a" : "#dc2626" }} title={online ? "Connecté" : "Hors ligne"} />
       </div>
 
       {/* Messages */}
@@ -136,7 +158,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                   borderLeft: aiMode || m.source === "ai" ? "3px solid #7c3aed" : "none",
                   backgroundImage: aiMode || m.source === "ai" ? "linear-gradient(135deg,#fff,#f8f6ff)" : "none",
                 }}>
-                  {m.text}
+                  <span dangerouslySetInnerHTML={{ __html: renderMarkdown(m.text) }} />
                 </div>
                 {m.source && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>

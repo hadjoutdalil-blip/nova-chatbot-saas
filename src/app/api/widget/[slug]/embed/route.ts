@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const KQ_JSON = JSON.stringify(
     kbEntries.flatMap((k: any) => {
       const qs = [k.question];
-      if (k.alt_questions) qs.push(...k.alt_questions.split(",").map((s: string) => s.trim()).filter(Boolean));
+      if (k.alt_questions) qs.push(...k.alt_questions.split(/[,|]+/).map((s: string) => s.trim()).filter(Boolean));
       return qs;
     })
   );
@@ -191,8 +191,18 @@ var ICONS={
   robot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/></svg>'
 };
 
+/* Helpers */
+function isValidUrl(s){return s&&(s.startsWith("http://")||s.startsWith("https://")||s.startsWith("/"))}
+function renderMarkdown(t){
+  t=escHtml(t);
+  t=t.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+  t=t.replace(/\*(.+?)\*/g,"<em>$1</em>");
+  t=t.replace(/\n/g,"<br>");
+  return t;
+}
+var isLoading=false;
 /* HTML */
-var avatarHtml=e.logo?'<img src="'+e.logo+'" />':ICONS.robot;
+var avatarHtml=isValidUrl(e.logo)?'<img src="'+e.logo+'" />':ICONS.robot;
 
 /* floating button */
 var btn=document.createElement("button");
@@ -201,7 +211,7 @@ document.body.appendChild(btn);
 
 /* welcome message */
 var welcomeIcoArr=["\\ud83d\\udcac","\\ud83d\\udd0d","\\ud83c\\udf1f","\\ud83d\\udca1"];
-var welcomeIcon=e.logo?'<img src="'+e.logo+'" />':ICONS.robot;
+var welcomeIcon=isValidUrl(e.logo)?'<img src="'+e.logo+'" />':ICONS.robot;
 var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon+'</div><div class="nw-title">'+e.welcomeTitle+'</div><div class="nw-sub">'+e.welcomeSub+'</div>';
 if(WC.length>0){
   welcomeHtml+='<div class="nw-grid">';
@@ -217,6 +227,16 @@ var card=document.createElement("div");
 card.className="nova-widget nc";card.id="nc";
 card.innerHTML='<div class="nh"><div class="na" id="na-av">'+avatarHtml+'</div><div><h3>'+e.name+'</h3><p>'+e.welcomeSub+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode IA">'+ICONS.brain+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span id="na-sk" style="color:#6b7280">Base de connaissances</span></div><div class="nm" id="nm">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1"></textarea><button id="ns'+(aiMode?" ai-mode":"")+'">'+ICONS.send+'</button></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
 document.body.appendChild(card);
+
+/* Connection status */
+var cs=document.createElement("span");
+cs.id="na-cs";
+cs.style.cssText="width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;margin-left:auto";
+function updateConn(){cs.style.background=navigator.onLine?"#16a34a":"#dc2626";cs.title=navigator.onLine?"Connect\u00e9":"Hors ligne"}
+updateConn();
+window.addEventListener("online",updateConn);
+window.addEventListener("offline",updateConn);
+document.getElementById("na-pw").appendChild(cs);
 
 /* auto-resize textarea */
 document.getElementById("ni").oninput=function(){
@@ -256,7 +276,7 @@ function addMsg(text,role,source,provider,clientName,score){
     }else if(source==="fallback"){
       sourceHtml='<div class="nft"><span class="nsrc">Fallback</span></div>';
     }
-    row.innerHTML='<div class="nba'+aiCls+'">'+ICONS.robot+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+escHtml(text)+'</div>'+sourceHtml+'</div>';
+    row.innerHTML='<div class="nba'+aiCls+'">'+ICONS.robot+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+'</div>';
   }
   box.appendChild(row);
   box.scrollTop=box.scrollHeight;
@@ -316,7 +336,9 @@ document.getElementById("ni").onblur=function(){setTimeout(function(){nac.classL
 
 /* Send message */
 function sendMessage(text){
-  if(!text.trim()) return;
+  if(!text.trim()||isLoading) return;
+  isLoading=true;
+  document.getElementById("ns").disabled=true;
   nac.classList.remove("o");selIdx=-1;
   chatHistory.push({role:"user",content:text});
   addMsg(text,"user");
@@ -328,6 +350,8 @@ function sendMessage(text){
   xhr.setRequestHeader("Content-Type","application/json");
   xhr.onload=function(){
     hideTyping();
+    isLoading=false;
+    document.getElementById("ns").disabled=false;
     try{
       var resp=JSON.parse(xhr.responseText);
       addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score);
@@ -340,6 +364,8 @@ function sendMessage(text){
   };
   xhr.onerror=function(){
     hideTyping();
+    isLoading=false;
+    document.getElementById("ns").disabled=false;
     addMsg("Erreur r\u00e9seau. Veuillez r\u00e9essayer.","bot","fallback");
   };
   xhr.send(JSON.stringify({message:text,history:chatHistory.slice(0,-1),aiMode:aiMode}));
@@ -361,7 +387,7 @@ document.getElementById("na-reset").onclick=function(){
   if(!confirm("R\u00e9initialiser la conversation ?")) return;
   chatHistory=[];
   var box=document.getElementById("nm");
-  var welcomeIcon2=e.logo?'<img src="'+e.logo+'" />':ICONS.robot;
+  var welcomeIcon2=isValidUrl(e.logo)?'<img src="'+e.logo+'" />':ICONS.robot;
   var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon2+'</div><div class="nw-title">'+e.welcomeTitle+'</div><div class="nw-sub">'+e.welcomeSub+'</div>';
   if(WC.length>0){
     welcomeHtml+='<div class="nw-grid">';
