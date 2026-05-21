@@ -92,6 +92,7 @@ C+=".nh{background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"d
 C+=".nh h3{margin:0;font-size:14px;font-weight:700;line-height:1.3;color:#fff}";
 C+=".nh p{margin:0;font-size:11px;opacity:.85;color:#fff}";
 C+=".na{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;position:relative}";
+C+=".na svg{width:22px;height:22px}";
 C+=".na::after{content:'';position:absolute;bottom:2px;right:2px;width:11px;height:11px;background:#16a34a;border-radius:50%;border:2px solid "+e.primaryColor+"}";
 C+=".na.ai-mode{background:linear-gradient(135deg,#7c3aed,#9333ea)}";
 C+=".na.ai-mode::after{background:#a855f7;border-color:#7c3aed;animation:na-pulse 2s infinite}";
@@ -117,6 +118,7 @@ C+=".nmsg.u .nmsg-bbl{background:linear-gradient(135deg,"+e.primaryColor+","+e.p
 /* bot message row */
 C+=".nmsg.b{display:flex;gap:9px;max-width:92%;animation:nl .28s ease}";
 C+=".nba{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+",#4a90d9);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;margin-top:2px}";
+C+=".nba svg{width:18px;height:18px}";
 C+=".nba.ai{background:linear-gradient(135deg,#7c3aed,#9333ea)}";
 C+=".nmsg-bot{flex:1;min-width:0}";
 C+=".nmsg-bbl{background:#fff;border:1px solid #e5e7eb;padding:12px 15px;border-radius:18px 18px 18px 4px;font-size:13.5px;line-height:1.72;color:#0d1b2a;box-shadow:0 1px 6px rgba(0,0,0,.05)}";
@@ -128,7 +130,8 @@ C+=".nsrc{font-size:10.5px;color:#6b7280;line-height:1.4;font-style:italic}";
 C+=".nsrc.ai{color:#7c3aed;font-weight:500;font-style:normal}";
 /* welcome */
 C+=".nw{text-align:center;padding:14px 8px}";
-C+=".nw-icon{width:56px;height:56px;background:linear-gradient(135deg,"+e.primaryColor+",#00b4cc);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;color:#fff;box-shadow:0 6px 20px "+e.primaryColor+"44;overflow:hidden}";
+C+=".nw-icon{width:56px;height:56px;background:linear-gradient(135deg,"+e.primaryColor+",#00b4cc);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:#fff;box-shadow:0 6px 20px "+e.primaryColor+"44;overflow:hidden}";
+C+=".nw-icon svg{width:30px;height:30px}";
 C+=".nw-icon img{width:40px;height:40px;border-radius:50%;object-fit:cover}";
 C+=".nw-title{font-size:15px;font-weight:800;color:#0d1b2a;margin-bottom:6px}";
 C+=".nw-sub{font-size:12.5px;color:#6b7280;line-height:1.7;margin-bottom:16px}";
@@ -179,7 +182,7 @@ var ICONS={
   minimize:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="10" y1="14" x2="3" y2="21"/></svg>',
   reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
   close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  robot:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="9"/></svg>'
+  robot:'<svg viewBox="0 0 24 24" fill="#fff" stroke="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9"/></svg>'
 };
 
 /* HTML */
