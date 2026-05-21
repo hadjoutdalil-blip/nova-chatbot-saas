@@ -65,6 +65,7 @@ function toggleAI(){
 /* CSS */
 var t=document.createElement("style");
 var C="";
+var op=e.position==="right"?"left":"right";
 C+=".nova-widget *{box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}";
 C+="@keyframes nf{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}";
 C+="@keyframes nr{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}";
@@ -73,18 +74,18 @@ C+="@keyframes nb{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)
 C+="@keyframes na-pulse{0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,.7)}50%{box-shadow:0 0 0 5px rgba(168,85,247,0)}}";
 C+="@keyframes nfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}";
 /* button */
-C+=".nb{position:fixed;bottom:"+e.marginBottom+"px;"+e.position+":"+e.marginRight+"px;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);border:none;cursor:pointer;box-shadow:0 8px 32px "+e.primaryColor+"55;z-index:999999;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative}";
+C+=".nb{position:fixed;bottom:"+e.marginBottom+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);border:none;cursor:pointer;box-shadow:0 8px 32px "+e.primaryColor+"55;z-index:999999;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative}";
 C+=".nb:hover{transform:scale(1.08) translateY(-2px);box-shadow:0 10px 36px "+e.primaryColor+"66}";
 C+=".nb svg{width:24px;height:24px;color:#fff;transition:transform .3s}";
 C+=".nb.o{opacity:0;pointer-events:none;transform:scale(.75)}";
 C+=".nb-notif{position:absolute;top:-1px;right:-1px;width:20px;height:20px;background:#dc2626;border-radius:50%;border:3px solid #fff;display:none;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff}";
 /* card */
-C+=".nc{position:fixed;bottom:"+(e.marginBottom+76)+"px;"+e.position+":"+e.marginRight+"px;width:420px;max-width:calc(100vw - 32px);height:600px;max-height:calc(100vh - 120px);background:#fff;border-radius:24px;box-shadow:0 16px 48px rgba(0,0,0,.18);z-index:999998;display:none;flex-direction:column;overflow:hidden;animation:nf .32s cubic-bezier(.4,0,.2,1);transform-origin:bottom right}";
+C+=".nc{position:fixed;bottom:"+(e.marginBottom+76)+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:420px;max-width:calc(100vw - 32px);height:600px;max-height:calc(100vh - 120px);background:#fff;border-radius:24px;box-shadow:0 16px 48px rgba(0,0,0,.18);z-index:999998;display:none;flex-direction:column;overflow:hidden;animation:nf .32s cubic-bezier(.4,0,.2,1);transform-origin:bottom "+e.position+"}";
 C+=".nc.o{display:flex}";
-C+="@media(max-width:500px){.nc{bottom:0;"+e.position+":0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}}";
+C+="@media(max-width:500px){.nc{bottom:0;"+op+":auto;"+e.position+":0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}}";
 /* maximized */
-C+=".nc.max{bottom:16px;"+e.position+":16px;width:820px;max-width:calc(100vw - 32px);height:740px;max-height:calc(100vh - 40px);border-radius:24px}";
-C+="@media(max-width:860px){.nc.max{bottom:0;"+e.position+":0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}}";
+C+=".nc.max{bottom:16px;"+op+":auto;"+e.position+":16px;width:820px;max-width:calc(100vw - 32px);height:740px;max-height:calc(100vh - 40px);border-radius:24px}";
+C+="@media(max-width:860px){.nc.max{bottom:0;"+op+":auto;"+e.position+":0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}}";
 /* header */
 C+=".nh{background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative}";
 C+=".nh h3{margin:0;font-size:14px;font-weight:700;line-height:1.3;color:#fff}";
