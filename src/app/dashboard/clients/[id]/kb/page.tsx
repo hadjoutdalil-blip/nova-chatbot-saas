@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import KBModal from "@/components/admin/KBModal";
 
 interface KBEntry {
   id: string;
@@ -16,20 +17,17 @@ interface KBEntry {
   icon: string;
 }
 
-const ICONS = ["💬", "📦", "🚚", "💰", "🔧", "📞", "🏠", "📋", "⭐", "🔒", "📅", "🎯", "📝", "🛡️", "⚡", "💡", "📎", "🔔"];
-
 export default function ClientKBPage() {
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<any>(null);
   const [entries, setEntries] = useState<KBEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ question: "", alt_questions: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "" });
-  const [editing, setEditing] = useState<string | null>(null);
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("");
-  const [altInput, setAltInput] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<KBEntry | null>(null);
   const [importing, setImporting] = useState(false);
+  const [error, setError] = useState("");
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -61,55 +59,34 @@ export default function ClientKBPage() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  function addAltQuestion() {
-    const tag = altInput.trim();
-    if (!tag) return;
-    const existing = form.alt_questions ? form.alt_questions.split(",").map((s) => s.trim()) : [];
-    if (existing.includes(tag)) return;
-    existing.push(tag);
-    setForm({ ...form, alt_questions: existing.join(", ") });
-    setAltInput("");
-  }
-
-  function removeAltQuestion(idx: number) {
-    const arr = form.alt_questions ? form.alt_questions.split(",").map((s) => s.trim()) : [];
-    arr.splice(idx, 1);
-    setForm({ ...form, alt_questions: arr.join(", ") });
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    const url = editing ? `/api/kb/${editing}` : "/api/kb";
-    const method = editing ? "PUT" : "POST";
+  async function handleSave(data: any) {
+    const t = token();
+    const url = editingEntry ? `/api/kb/${editingEntry.id}` : "/api/kb";
+    const method = editingEntry ? "PUT" : "POST";
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-      body: JSON.stringify(editing ? form : { ...form, clientId: id }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify(editingEntry ? data : { ...data, clientId: id }),
     });
-    if (!res.ok) { const d = await res.json(); setError(d.error); return; }
-    setForm({ question: "", alt_questions: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "" });
-    setEditing(null);
-    setAltInput("");
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+    setEditingEntry(null);
     load();
   }
 
-  function handleEdit(e: KBEntry) {
-    setForm({ question: e.question, alt_questions: e.alt_questions || "", answer: e.answer, category: e.category, keywords: e.keywords, priority: e.priority ?? 5, related_tags: e.related_tags || "", icon: e.icon || "" });
-    setEditing(e.id);
+  function openEdit(e: KBEntry) {
+    setEditingEntry(e);
+    setModalOpen(true);
+  }
+
+  function openAdd() {
+    setEditingEntry(null);
+    setModalOpen(true);
   }
 
   async function handleDelete(kid: string) {
     if (!confirm("Supprimer cette entrée ?")) return;
     await fetch(`/api/kb/${kid}`, { method: "DELETE", headers: { Authorization: `Bearer ${token()}` } });
     load();
-  }
-
-  function handleCancel() {
-    setForm({ question: "", alt_questions: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "" });
-    setEditing(null);
-    setError("");
-    setAltInput("");
   }
 
   function handleExport() {
@@ -122,14 +99,14 @@ export default function ClientKBPage() {
     setImporting(true);
     try {
       const text = await file.text();
-      const entries = JSON.parse(text);
-      if (!Array.isArray(entries)) throw new Error("Format invalide");
-      const res = await fetch("/api/kb/import-kb", {
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error("Format invalide");
+      await fetch("/api/kb/import-kb", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ clientId: id, entries, replace: true }),
+        body: JSON.stringify({ clientId: id, entries: parsed, replace: true }),
       });
-      if (res.ok) load();
+      load();
     } catch { setError("Erreur d'import"); }
     setImporting(false);
     e.target.value = "";
@@ -138,108 +115,37 @@ export default function ClientKBPage() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/dashboard/clients" className="text-gray-400 hover:text-gray-600 text-sm">&larr; Clients</Link>
+        <Link href={`/dashboard/clients/${id}`} className="text-gray-400 hover:text-gray-600 text-sm">&larr; {client?.name || "Client"}</Link>
         <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold">{client?.name || "..."}</h1>
-      </div>
-
-      <div className="flex gap-2 mb-6">
-        <Link href={`/dashboard/clients/${id}`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Modifier</Link>
-        <Link href={`/dashboard/clients/${id}/kb`} className="text-sm px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 font-medium">Base connaissances</Link>
-        <Link href={`/dashboard/clients/${id}/widget`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Widget</Link>
-        <Link href={`/dashboard/clients/${id}/test`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Tester</Link>
+        <h1 className="text-2xl font-bold">Base de connaissances</h1>
       </div>
 
       <p className="text-gray-500 mb-6">Gérez la base de connaissances de {client?.name}.</p>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 mb-6 max-w-2xl space-y-4">
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <h2 className="font-semibold text-lg">{editing ? "Modifier l'entrée" : "Nouvelle entrée"}</h2>
+      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
-        <div className="grid grid-cols-[1fr_auto] gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Question principale</label>
-            <input value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className="w-full border rounded-lg px-3 py-2" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Icône</label>
-            <select value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="w-20 border rounded-lg px-2 py-2">
-              <option value="">—</option>
-              {ICONS.map((ic) => <option key={ic} value={ic}>{ic}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Questions alternatives (variantes)</label>
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {form.alt_questions ? form.alt_questions.split(",").map((q, i) => (
-              <span key={i} className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full">
-                {q.trim()}
-                <button type="button" onClick={() => removeAltQuestion(i)} className="text-purple-400 hover:text-red-500">&times;</button>
-              </span>
-            )) : null}
-          </div>
-          <div className="flex gap-2">
-            <input value={altInput} onChange={(e) => setAltInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addAltQuestion(); } }} placeholder="Variante de question..." className="flex-1 border rounded-lg px-3 py-2 text-sm" />
-            <button type="button" onClick={addAltQuestion} className="text-sm text-purple-600 hover:text-purple-800 font-medium">+ Ajouter</button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Réponse</label>
-          <textarea value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} rows={4} className="w-full border rounded-lg px-3 py-2" required />
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Catégorie</label>
-            <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} list="cats" className="w-full border rounded-lg px-3 py-2" />
-            <datalist id="cats">{categories.map((c) => <option key={c} value={c} />)}</datalist>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Mots-clés</label>
-            <input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} placeholder="séparés par des virgules" className="w-full border rounded-lg px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Priorité ({form.priority})</label>
-            <input type="range" min={1} max={10} value={form.priority} onChange={(e) => setForm({ ...form, priority: +e.target.value })} className="w-full" />
-            <div className="flex justify-between text-xs text-gray-400"><span>1</span><span>10</span></div>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Tags associés</label>
-          <input value={form.related_tags} onChange={(e) => setForm({ ...form, related_tags: e.target.value })} placeholder="séparés par des virgules" className="w-full border rounded-lg px-3 py-2" />
-        </div>
-
-        <div className="flex gap-3">
-          <button type="submit" className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700">
-            {editing ? "Enregistrer" : "Ajouter"}
-          </button>
-          {editing && <button type="button" onClick={handleCancel} className="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>}
-        </div>
-      </form>
-
-      {entries.length > 0 && (
-        <div className="flex gap-3 mb-4 items-start">
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher dans la KB..." className="flex-1 border rounded-lg px-3 py-2 text-sm" />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-3 flex-1">
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher..." className="flex-1 border rounded-lg px-3 py-2 text-sm max-w-xs" />
           <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
             <option value="">Toutes catégories</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button type="button" onClick={handleExport} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter</button>
+          <button onClick={handleExport} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter</button>
           <label className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50 cursor-pointer">
             {importing ? "Import..." : "Importer"}
             <input type="file" accept=".json" className="hidden" onChange={handleImport} disabled={importing} />
           </label>
         </div>
-      )}
+        <button onClick={openAdd} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 shrink-0">+ Ajouter</button>
+      </div>
 
       {loading ? (
         <p className="text-gray-500">Chargement...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-gray-400 text-center py-8 bg-white rounded-xl">{entries.length === 0 ? "Aucune entrée pour ce client." : "Aucun résultat."}</p>
+        <p className="text-gray-400 text-center py-8 bg-white rounded-xl">
+          {entries.length === 0 ? "Aucune entrée pour ce client." : "Aucun résultat."}
+        </p>
       ) : (
         <div className="space-y-3">
           {filtered.map((e) => (
@@ -263,7 +169,7 @@ export default function ClientKBPage() {
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4 shrink-0">
-                  <button onClick={() => handleEdit(e)} className="text-purple-600 hover:underline text-xs">Modifier</button>
+                  <button onClick={() => openEdit(e)} className="text-purple-600 hover:underline text-xs">Modifier</button>
                   <button onClick={() => handleDelete(e.id)} className="text-red-500 hover:underline text-xs">Supprimer</button>
                 </div>
               </div>
@@ -271,6 +177,23 @@ export default function ClientKBPage() {
           ))}
         </div>
       )}
+
+      <KBModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditingEntry(null); }}
+        onSave={handleSave}
+        initialData={editingEntry ? {
+          question: editingEntry.question,
+          alt_questions: editingEntry.alt_questions || "",
+          answer: editingEntry.answer,
+          category: editingEntry.category,
+          keywords: editingEntry.keywords,
+          priority: editingEntry.priority ?? 5,
+          related_tags: editingEntry.related_tags || "",
+          icon: editingEntry.icon || "",
+        } : null}
+        categories={categories}
+      />
     </div>
   );
 }
