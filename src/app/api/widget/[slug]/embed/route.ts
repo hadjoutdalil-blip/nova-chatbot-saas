@@ -78,7 +78,8 @@ C+=".nb{position:fixed;bottom:"+e.marginBottom+"px;"+op+":auto;"+e.position+":"+
 C+=".nb:hover{transform:scale(1.08) translateY(-2px);box-shadow:0 10px 36px "+e.primaryColor+"66}";
 C+=".nb svg{width:24px;height:24px;color:#fff;transition:transform .3s}";
 C+=".nb.o{opacity:0;pointer-events:none;transform:scale(.75)}";
-C+=".nb-notif{position:absolute;top:-1px;right:-1px;width:20px;height:20px;background:#dc2626;border-radius:50%;border:3px solid #fff;display:none;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff}";
+C+=".nb-notif{position:absolute;top:-1px;right:-1px;width:20px;height:20px;background:#dc2626;border-radius:50%;border:3px solid #fff;display:none;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff;animation:npulse 2s infinite}";
+C+="@keyframes npulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.7)}50%{box-shadow:0 0 0 7px rgba(220,38,38,0)}}";
 /* card */
 C+=".nc{position:fixed;bottom:"+(e.marginBottom+76)+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:420px;max-width:calc(100vw - 32px);height:600px;max-height:calc(100vh - 120px);background:#fff;border-radius:24px;box-shadow:0 16px 48px rgba(0,0,0,.18);z-index:999998;display:none;flex-direction:column;overflow:hidden;animation:nf .32s cubic-bezier(.4,0,.2,1);transform-origin:bottom "+e.position+"}";
 C+=".nc.o{display:flex}";
@@ -123,8 +124,8 @@ C+=".nmsg-bbl.ai-enhanced{border-left:3px solid #7c3aed;background:linear-gradie
 C+=".nft{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}";
 C+=".nsc{font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:4px;line-height:1.4}";
 C+=".nsc.green{background:#d1fae5;color:#065f46}.nsc.orange{background:#fef3c7;color:#92400e}.nsc.red{background:#fee2e2;color:#991b1b}";
-C+=".nsrc{font-size:10.5px;color:#6b7280;line-height:1.4}";
-C+=".nsrc.ai{color:#7c3aed;font-weight:500}";
+C+=".nsrc{font-size:10.5px;color:#6b7280;line-height:1.4;font-style:italic}";
+C+=".nsrc.ai{color:#7c3aed;font-weight:500;font-style:normal}";
 /* welcome */
 C+=".nw{text-align:center;padding:14px 8px}";
 C+=".nw-icon{width:56px;height:56px;background:linear-gradient(135deg,"+e.primaryColor+",#00b4cc);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;color:#fff;box-shadow:0 6px 20px "+e.primaryColor+"44}";
@@ -184,7 +185,7 @@ var avatarHtml=e.logo?'<img src="'+e.logo+'" />':ICONS.robot;
 
 /* floating button */
 var btn=document.createElement("button");
-btn.className="nb";btn.id="nb";btn.innerHTML=ICONS.chat+'<span class="nb-notif" id="nb-notif"></span>';
+btn.className="nova-widget nb";btn.id="nb";btn.innerHTML=ICONS.chat+'<span class="nb-notif" id="nb-notif"></span>';
 document.body.appendChild(btn);
 
 /* welcome message */
@@ -200,7 +201,7 @@ welcomeHtml+="</div>";
 
 /* chat card */
 var card=document.createElement("div");
-card.className="nc";card.id="nc";
+card.className="nova-widget nc";card.id="nc";
 card.innerHTML='<div class="nh"><div class="na" id="na-av">'+avatarHtml+'</div><div><h3>'+e.name+'</h3><p>'+e.welcomeSub+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode IA">'+ICONS.brain+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button></div></div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span id="na-sk" style="color:#6b7280">Base de connaissances</span></div><div class="nm" id="nm">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1"></textarea><button id="ns'+(aiMode?" ai-mode":"")+'">'+ICONS.send+'</button></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
 document.body.appendChild(card);
 
@@ -216,6 +217,10 @@ var nwChips=card.querySelectorAll(".nw-chip");
 for(var wi=0;wi<nwChips.length;wi++){
   nwChips[wi].onclick=function(){sendMessage(this.textContent.trim());};
 }
+
+/* Show notification badge initially */
+var notif=document.getElementById("nb-notif");
+if(notif)notif.style.display="flex";
 
 /* Message Helpers */
 var chatHistory=[];
@@ -366,6 +371,8 @@ document.getElementById("na-ai").onclick=toggleAI;
 document.getElementById("nb").onclick=function(){
   var c=document.getElementById("nc"),b=document.getElementById("nb");
   c.classList.toggle("o");b.classList.toggle("o");
+  var notif=document.getElementById("nb-notif");
+  if(notif)notif.style.display="none";
   if(c.classList.contains("o")){document.getElementById("ni").focus();}else{nac.classList.remove("o");selIdx=-1;}
 };
 document.getElementById("ns").onclick=function(){sendMessage(document.getElementById("ni").value)};
