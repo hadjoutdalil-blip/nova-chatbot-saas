@@ -57,8 +57,10 @@ model WidgetConfig {
 
 model KBEntry {
   id            String   @id @default(uuid())
+  tag           String   @default("")
   question      String
   alt_questions String   @default("")
+  short_resp    String   @default("")
   answer        String
   category      String   @default("")
   keywords      String   @default("")

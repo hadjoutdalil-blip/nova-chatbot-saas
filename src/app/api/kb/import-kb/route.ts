@@ -23,13 +23,13 @@ export async function POST(req: NextRequest) {
   const newEntries = entries.map((e: any) => {
     // CETIM format (qs[], resp, short_resp, cat, kw[], related_tags[])
     const isCetim = Array.isArray(e.qs);
+    const tag = isCetim ? (e.tag || "") : (e.tag || "");
     const question = isCetim ? e.qs[0] : e.question;
     const altQuestions = isCetim
       ? (e.qs.slice(1).join(" || ") || "")
       : (e.alt_questions || "");
-    const answer = isCetim
-      ? [e.short_resp, e.resp].filter(Boolean).join("\n\n")
-      : e.answer;
+    const shortResp = isCetim ? (e.short_resp || "") : (e.short_resp || "");
+    const answer = isCetim ? (e.resp || "") : e.answer;
     const category = isCetim ? (e.cat || "") : (e.category || "");
     const keywords = isCetim
       ? (Array.isArray(e.kw) ? e.kw.join(", ") : "")
@@ -40,8 +40,10 @@ export async function POST(req: NextRequest) {
 
     return {
       id: randomUUID(),
+      tag,
       question,
       alt_questions: altQuestions,
+      short_resp: shortResp,
       answer,
       category,
       keywords,

@@ -34,8 +34,10 @@ export async function POST(req: NextRequest) {
   const entries = await db.read<any>("kb_entries");
   const entry = {
     id: randomUUID(),
+    tag: body.tag || "",
     question: body.question,
     alt_questions: body.alt_questions || "",
+    short_resp: body.short_resp || "",
     answer: body.answer,
     category: body.category || "",
     keywords: body.keywords || "",

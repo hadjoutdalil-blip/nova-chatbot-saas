@@ -13,8 +13,10 @@ export async function GET(req: NextRequest) {
   const entries = allEntries
     .filter((k: any) => k.clientId === clientId)
     .map((k: any) => ({
+      tag: k.tag || "",
       question: k.question,
       alt_questions: k.alt_questions || "",
+      short_resp: k.short_resp || "",
       answer: k.answer,
       category: k.category || "",
       keywords: k.keywords || "",

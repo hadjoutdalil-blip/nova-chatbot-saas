@@ -5,8 +5,10 @@ import { useState, useEffect } from "react";
 const ICONS = ["💬", "📦", "🚚", "💰", "🔧", "📞", "🏠", "📋", "⭐", "🔒", "📅", "🎯", "📝", "🛡️", "⚡", "💡", "📎", "🔔"];
 
 interface FormData {
+  tag?: string;
   question: string;
   alt_questions: string;
+  short_resp: string;
   answer: string;
   category: string;
   keywords: string;
@@ -26,7 +28,7 @@ interface KBModalProps {
 
 export default function KBModal({ open, onClose, onSave, initialData, categories, title }: KBModalProps) {
   const [form, setForm] = useState<FormData>({
-    question: "", alt_questions: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "",
+    tag: "", question: "", alt_questions: "", short_resp: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "",
   });
   const [altInput, setAltInput] = useState("");
   const [error, setError] = useState("");
@@ -37,7 +39,7 @@ export default function KBModal({ open, onClose, onSave, initialData, categories
       if (initialData) {
         setForm(initialData);
       } else {
-        setForm({ question: "", alt_questions: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "" });
+        setForm({ tag: "", question: "", alt_questions: "", short_resp: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "" });
       }
       setError("");
       setAltInput("");
@@ -87,14 +89,19 @@ export default function KBModal({ open, onClose, onSave, initialData, categories
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <div className="grid grid-cols-[1fr_auto] gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Question principale</label>
+            <input value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className="w-full border rounded-lg px-3 py-2" required />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Question principale</label>
-              <input value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className="w-full border rounded-lg px-3 py-2" required />
+              <label className="block text-sm font-medium mb-1">Tag (identifiant unique)</label>
+              <input value={form.tag || ""} onChange={(e) => setForm({ ...form, tag: e.target.value })} placeholder="ex: presentation" className="w-full border rounded-lg px-3 py-2" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Icône</label>
-              <select value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="w-20 border rounded-lg px-2 py-2">
+              <select value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="w-full border rounded-lg px-3 py-2">
                 <option value="">—</option>
                 {ICONS.map((ic) => <option key={ic} value={ic}>{ic}</option>)}
               </select>
@@ -118,7 +125,12 @@ export default function KBModal({ open, onClose, onSave, initialData, categories
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Réponse</label>
+            <label className="block text-sm font-medium mb-1">Réponse courte</label>
+            <input value={form.short_resp} onChange={(e) => setForm({ ...form, short_resp: e.target.value })} placeholder="Résumé en une phrase" className="w-full border rounded-lg px-3 py-2" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Réponse détaillée</label>
             <textarea value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} rows={5} className="w-full border rounded-lg px-3 py-2" required />
           </div>
 

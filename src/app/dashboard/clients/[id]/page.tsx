@@ -18,8 +18,10 @@ const PROVIDERS = [
 
 interface KBEntry {
   id: string;
+  tag?: string;
   question: string;
   alt_questions: string;
+  short_resp?: string;
   answer: string;
   category: string;
   keywords: string;
@@ -410,6 +412,7 @@ export default function EditClientPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium truncate">{e.icon && <span className="mr-1">{e.icon}</span>}{e.question}</h3>
+                      {e.short_resp && <p className="text-xs text-gray-400 mt-0.5">{e.short_resp}</p>}
                       <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">{e.answer}</p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {e.category && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{e.category}</span>}
@@ -440,8 +443,10 @@ export default function EditClientPage() {
             onClose={() => { setModalOpen(false); setEditingEntry(null); }}
             onSave={handleKbSave}
             initialData={editingEntry ? {
+              tag: editingEntry.tag || "",
               question: editingEntry.question,
               alt_questions: editingEntry.alt_questions || "",
+              short_resp: editingEntry.short_resp || "",
               answer: editingEntry.answer,
               category: editingEntry.category,
               keywords: editingEntry.keywords,
