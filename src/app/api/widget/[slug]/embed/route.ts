@@ -103,7 +103,7 @@ C+=".n-off.show{display:block}";
 C+=".nh{background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);padding:16px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;box-shadow:0 2px 16px rgba(0,0,0,.08)}";
 C+=".nh h3{margin:0;font-size:15px;font-weight:700;line-height:1.3;color:#fff;letter-spacing:-.2px}";
 C+=".nh p{margin:0;font-size:11.5px;opacity:.9;color:#fff}";
-C+=".na{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;position:relative;overflow:hidden}";
+C+=".na{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;flex-shrink:0;position:relative;overflow:hidden}";
 C+=".na svg{width:24px;height:24px}";
 C+=".na::after{content:'';position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:#16a34a;border-radius:50%;border:2.5px solid "+e.primaryColor+";box-shadow:0 0 4px rgba(22,163,74,.4)}";
 C+=".na.ai-mode{background:linear-gradient(135deg,#7c3aed,#9333ea)}";
@@ -249,7 +249,6 @@ function buildAvatarImg(){
   var img=document.createElement("img");
   img.src=e.logo;
   img.style.cssText="width:100%;height:100%;object-fit:cover;border-radius:50%";
-  img.onerror=function(){this.replaceWith(this.alt="")};
   return img.outerHTML;
 }
 function updateCharCounter(){
@@ -293,6 +292,12 @@ card.setAttribute("aria-label","Chatbot");
 card.setAttribute("aria-modal","true");
 card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode IA">'+ICONS.brain+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span id="na-sk" style="color:#6b7280">Base de connaissances</span></div><div class="nm" id="nm" role="log" aria-live="polite">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
 document.body.appendChild(card);
+
+/* Logo onerror fallback */
+(function(){
+  var imgs=document.querySelectorAll("#na-av img, .nw-icon img");
+  for(var ii=0;ii<imgs.length;ii++)imgs[ii].onerror=function(){this.outerHTML=ICONS.robot};
+})();
 
 /* Connection status */
 var cs=document.createElement("span");
@@ -501,6 +506,8 @@ document.getElementById("na-reset").onclick=function(){
   }
   welcomeHtml+="</div>";
   box.innerHTML=welcomeHtml;
+  var wimgs=box.querySelectorAll(".nw-icon img");
+  for(var wi2=0;wi2<wimgs.length;wi2++)wimgs[wi2].onerror=function(){this.outerHTML=ICONS.robot};
   document.querySelectorAll("#nm .nw-chip").forEach(function(el){
     el.addEventListener("click",function(){sendMessage((this.dataset.q||this.textContent).trim())});
     el.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();sendMessage((this.dataset.q||this.textContent).trim())}});
