@@ -54,8 +54,8 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
   }
 
   const BotDot = ({ size = 13 }: { size?: number }) => (
-    <svg viewBox="0 0 24 24" fill="#fff" stroke="none" xmlns="http://www.w3.org/2000/svg" style={{ width: size, height: size }}>
-      <circle cx="12" cy="12" r="9" />
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ width: size, height: size }}>
+      <circle cx="12" cy="12" r="9" fill="#fff" />
     </svg>
   );
 
@@ -114,6 +114,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                 background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
                 color: "#fff", padding: "12px 16px", borderRadius: "20px 20px 4px 20px",
                 fontSize: 14, lineHeight: 1.65, boxShadow: `0 3px 12px ${primaryColor}33`,
+                whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}>{m.text}</div>
             </div>
           ) : (
@@ -131,6 +132,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                   background: "#fff", border: "1px solid #eef2f6", padding: "14px 16px",
                   borderRadius: "20px 20px 20px 4px", fontSize: 14, lineHeight: 1.7,
                   color: "#0d1b2a", boxShadow: "0 2px 8px rgba(0,0,0,.04)",
+                  whiteSpace: "pre-wrap", wordBreak: "break-word",
                   borderLeft: aiMode || m.source === "ai" ? "3px solid #7c3aed" : "none",
                   backgroundImage: aiMode || m.source === "ai" ? "linear-gradient(135deg,#fff,#f8f6ff)" : "none",
                 }}>
