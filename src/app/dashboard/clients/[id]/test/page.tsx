@@ -53,9 +53,9 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
     return score > 70 ? "green" : score > 40 ? "orange" : "red";
   }
 
-  const SparkleIcon = ({ size = 13 }: { size?: number }) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: size, height: size }}>
-      <path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z" />
+  const BotDot = ({ size = 13 }: { size?: number }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ width: size, height: size }}>
+      <circle cx="12" cy="12" r="9" />
     </svg>
   );
 
@@ -65,7 +65,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
       <div style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, color: "#fff", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,.18)", border: "2px solid rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, position: "relative" }}
           className={aiMode ? "ai-avatar" : ""}>
-          {logo ? <img src={logo} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} /> : <SparkleIcon size={17} />}
+          {logo ? <img src={logo} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} /> : <BotDot size={17} />}
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{name}</div>
@@ -122,7 +122,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                 background: aiMode || m.source === "ai" ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
               }}>
-                <SparkleIcon size={13} />
+                <BotDot size={13} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
@@ -162,7 +162,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
               background: aiMode ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
             }}>
-              <SparkleIcon size={13} />
+              <BotDot size={13} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "14px 16px", borderRadius: "18px 18px 18px 4px" }}>
