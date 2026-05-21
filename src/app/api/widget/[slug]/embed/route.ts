@@ -74,7 +74,7 @@ C+="@keyframes nb{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)
 C+="@keyframes na-pulse{0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,.7)}50%{box-shadow:0 0 0 5px rgba(168,85,247,0)}}";
 C+="@keyframes nfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}";
 /* button */
-C+=".nb{position:fixed;bottom:"+e.marginBottom+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);border:none;cursor:pointer;box-shadow:0 8px 32px "+e.primaryColor+"55;z-index:999999;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative}";
+C+=".nb{position:fixed;bottom:"+e.marginBottom+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);border:none;cursor:pointer;box-shadow:0 8px 32px "+e.primaryColor+"55;z-index:999999;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(.4,0,.2,1)}";
 C+=".nb:hover{transform:scale(1.08) translateY(-2px);box-shadow:0 10px 36px "+e.primaryColor+"66}";
 C+=".nb svg{width:24px;height:24px;color:#fff;transition:transform .3s}";
 C+=".nb.o{opacity:0;pointer-events:none;transform:scale(.75)}";
