@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Mail, Lock, X } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -54,7 +55,7 @@ export default function LoginPage() {
 
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 mb-4 flex items-center gap-2">
-              <span className="text-red-500 text-sm">✕</span>
+              <X size={14} className="text-red-500 shrink-0" />
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
@@ -63,7 +64,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">📧</span>
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="email"
                   value={email}
@@ -78,7 +79,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔑</span>
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="password"
                   value={password}

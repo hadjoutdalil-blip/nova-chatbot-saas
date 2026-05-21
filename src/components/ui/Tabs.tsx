@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 type Tab = {
   id: string;
   label: string;
-  icon?: string;
+  icon?: React.ReactNode;
   count?: number;
 };
 
@@ -41,7 +41,7 @@ export default function Tabs({ tabs, active, onChange }: TabsProps) {
               isActive ? "text-purple-700" : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {tab.icon && <span className="text-base">{tab.icon}</span>}
+            {tab.icon && <span className="w-4 h-4">{tab.icon}</span>}
             {tab.label}
             {tab.count !== undefined && (
               <span

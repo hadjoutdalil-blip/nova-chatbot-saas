@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Tabs, Button, Card, Input, Badge } from "@/components/ui";
+import {
+  Building2, Brain, BarChart3, BookOpen, MessageCircle, FlaskConical,
+  Download, Plus, Search, FileText, Inbox, Edit3, Trash2,
+} from "lucide-react";
+import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
 
 const PLANS = [
@@ -32,12 +36,12 @@ interface KBEntry {
 }
 
 const TABS = [
-  { id: "general", label: "Général", icon: "🏢" },
-  { id: "ai", label: "IA", icon: "🤖" },
-  { id: "stats", label: "Stats", icon: "📊" },
-  { id: "kb", label: "Base de connaissances", icon: "📚" },
-  { id: "widget", label: "Widget", icon: "💬" },
-  { id: "test", label: "Test", icon: "🧪" },
+  { id: "general", label: "Général", icon: <Building2 size={16} /> },
+  { id: "ai", label: "IA", icon: <Brain size={16} /> },
+  { id: "stats", label: "Stats", icon: <BarChart3 size={16} /> },
+  { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
+  { id: "widget", label: "Widget", icon: <MessageCircle size={16} /> },
+  { id: "test", label: "Test", icon: <FlaskConical size={16} /> },
 ];
 
 export default function EditClientPage() {
@@ -261,7 +265,7 @@ export default function EditClientPage() {
           <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
             <Card>
               <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
-                <span className="text-lg">🏢</span>
+                <Building2 size={18} className="text-purple-600" />
                 <h2 className="font-semibold text-gray-900">Informations générales</h2>
               </div>
               <div className="space-y-4">
@@ -291,7 +295,7 @@ export default function EditClientPage() {
 
             <Card>
               <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
-                <span className="text-lg">📝</span>
+                <FileText size={18} className="text-purple-600" />
                 <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
               </div>
               <div className="space-y-4">
@@ -339,7 +343,7 @@ export default function EditClientPage() {
           <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
             <Card>
               <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
-                <span className="text-lg">🤖</span>
+                <Brain size={18} className="text-purple-600" />
                 <h2 className="font-semibold text-gray-900">Configuration IA</h2>
               </div>
               <div className="space-y-4">
@@ -428,19 +432,9 @@ export default function EditClientPage() {
         {/* ── Stats ── */}
         {tab === "stats" && (
           <div className="grid grid-cols-3 gap-5">
-            {[
-              { label: "Entrées KB", value: stats.entries, icon: "📚", color: "from-purple-500 to-purple-400" },
-              { label: "Catégories", value: stats.categories, icon: "🏷️", color: "from-blue-500 to-blue-400" },
-              { label: "Priorité moyenne", value: stats.avgPriority, icon: "📊", color: "from-emerald-500 to-emerald-400" },
-            ].map((s) => (
-              <Card key={s.label} hover>
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-lg shadow-sm mb-3`}>
-                  {s.icon}
-                </div>
-                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                <p className="text-sm text-gray-400 mt-0.5">{s.label}</p>
-              </Card>
-            ))}
+            <StatCard label="Entrées KB" value={stats.entries} icon={BookOpen} color="from-purple-500 to-purple-400" />
+            <StatCard label="Catégories" value={stats.categories} icon={BarChart3} color="from-blue-500 to-blue-400" />
+            <StatCard label="Priorité moyenne" value={stats.avgPriority} icon={BarChart3} color="from-emerald-500 to-emerald-400" />
           </div>
         )}
 
@@ -450,7 +444,7 @@ export default function EditClientPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex gap-3 flex-1">
                 <div className="relative flex-1 max-w-xs">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     value={kbSearch}
                     onChange={(e) => setKbSearch(e.target.value)}
@@ -466,7 +460,10 @@ export default function EditClientPage() {
                   <option value="">Toutes catégories</option>
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <Button variant="secondary" onClick={handleExport}>Exporter</Button>
+                <Button variant="secondary" onClick={handleExport}>
+                  <Download size={14} />
+                  Exporter
+                </Button>
                 <label className="cursor-pointer">
                   <span className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 text-sm rounded-xl">
                     {kbImporting ? "Import..." : "Importer"}
@@ -475,7 +472,7 @@ export default function EditClientPage() {
                 </label>
               </div>
               <Button onClick={openAdd}>
-                <span className="text-base">+</span>
+                <Plus size={16} />
                 Ajouter
               </Button>
             </div>
@@ -483,7 +480,7 @@ export default function EditClientPage() {
             {filtered.length === 0 ? (
               <Card padding="lg" className="text-center">
                 <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">{entries.length === 0 ? "📭" : "🔍"}</span>
+                  {entries.length === 0 ? <Inbox size={24} className="text-gray-400" /> : <Search size={24} className="text-gray-400" />}
                 </div>
                 <p className="text-gray-400 text-sm">
                   {entries.length === 0 ? "Aucune entrée pour ce client." : "Aucun résultat."}
@@ -518,8 +515,14 @@ export default function EditClientPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(e)}>Modifier</Button>
-                        <Button variant="danger" size="sm" onClick={() => handleKbDelete(e.id)}>Supprimer</Button>
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(e)}>
+                          <Edit3 size={12} />
+                          Modifier
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => handleKbDelete(e.id)}>
+                          <Trash2 size={12} />
+                          Supprimer
+                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -554,7 +557,7 @@ export default function EditClientPage() {
             {form.slug && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60 rounded-xl p-5 mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">🔌</span>
+                  <MessageCircle size={18} />
                   <p className="text-sm font-semibold text-green-800">Code d'intégration</p>
                 </div>
                 <code className="text-xs bg-white/80 px-3 py-2 rounded-lg border border-green-100 block break-all select-all font-mono">{`<script src="${typeof window !== "undefined" ? window.location.origin : ""}/api/widget/${form.slug}/embed"></script>`}</code>
@@ -565,7 +568,7 @@ export default function EditClientPage() {
               {widgetLoaded && widgetForm ? (
                 <form onSubmit={handleWidgetSave} className="space-y-4">
                   <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
-                    <span className="text-lg">💬</span>
+                    <MessageCircle size={18} className="text-purple-600" />
                     <h2 className="font-semibold text-gray-900">Configuration du widget</h2>
                   </div>
                   <Input
@@ -642,7 +645,7 @@ export default function EditClientPage() {
           <div className="max-w-2xl">
             <Card>
               <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
-                <span className="text-lg">🧪</span>
+                <FlaskConical size={18} className="text-purple-600" />
                 <h2 className="font-semibold text-gray-900">Tester le chatbot</h2>
               </div>
               <p className="text-gray-500 text-sm mb-5 leading-relaxed">

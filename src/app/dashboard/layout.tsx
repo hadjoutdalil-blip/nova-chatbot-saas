@@ -3,14 +3,23 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  MessageCircle,
+  BarChart3,
+  Settings,
+  LogOut,
+} from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/dashboard/clients", label: "Clients", icon: "👥" },
-  { href: "/dashboard/kb", label: "Base de connaissances", icon: "📚" },
-  { href: "/dashboard/widget", label: "Widget", icon: "💬" },
-  { href: "/dashboard/analytics", label: "Statistiques", icon: "📈" },
-  { href: "/dashboard/settings", label: "Paramètres", icon: "⚙️" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/clients", label: "Clients", icon: Users },
+  { href: "/dashboard/kb", label: "Base de connaissances", icon: BookOpen },
+  { href: "/dashboard/widget", label: "Widget", icon: MessageCircle },
+  { href: "/dashboard/analytics", label: "Statistiques", icon: BarChart3 },
+  { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 
 function getPayload(): { userId: string; clientId: string; role: string } | null {
@@ -59,6 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex-1 p-3 space-y-0.5">
           {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
             return (
               <Link
@@ -70,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                <span className="text-base">{item.icon}</span>
+                <Icon size={18} />
                 {item.label}
               </Link>
             );
@@ -82,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
           >
-            <span className="text-base">🚪</span>
+            <LogOut size={18} />
             Déconnexion
           </button>
         </div>
