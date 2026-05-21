@@ -29,7 +29,12 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
   async function sendMessage(text: string) {
-    if (!text.trim()) return;
+    if (!text.trim() || !navigator.onLine) {
+      if (!navigator.onLine) {
+        setMessages((prev) => [...prev, { text: "Vous êtes hors ligne. Veuillez vérifier votre connexion.", role: "bot", source: "fallback" }]);
+      }
+      return;
+    }
     setMessages((prev) => [...prev, { text, role: "user" }]);
     setInput("");
     setLoading(true);
@@ -39,6 +44,16 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, history, aiMode }),
       });
+      if (res.status === 429) {
+        setMessages((prev) => [...prev, { text: "Trop de requêtes. Veuillez patienter quelques secondes.", role: "bot", source: "fallback" }]);
+        setLoading(false);
+        return;
+      }
+      if (res.status >= 500) {
+        setMessages((prev) => [...prev, { text: "Service temporairement indisponible. Veuillez réessayer.", role: "bot", source: "fallback" }]);
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       setMessages((prev) => [...prev, { text: data.response, role: "bot", source: data.source, score: data.score, provider: data.provider }]);
       setHistory((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: data.response }].slice(-20));
@@ -60,6 +75,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
   );
 
   const [online, setOnline] = useState(true);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   useEffect(() => {
     setOnline(navigator.onLine);
     const go = () => setOnline(true);
@@ -73,12 +89,34 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
     return !!s && (s.startsWith("http://") || s.startsWith("https://") || s.startsWith("/"));
   }
   function renderMarkdown(t: string): string {
+    if (!t) return "";
     let s = t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     s = s.replace(/\*(.+?)\*/g, "<em>$1</em>");
-    s = s.replace(/\n/g, "<br>");
+    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s = s.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+    s = s.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+    s = s.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+    s = s.replace(/^[-*]\s+(.+)$/gm, "<li>$1</li>");
+    s = s.replace(/(<li>.*<\/li>(\n|$))+/g, (m) => "<ul>" + m + "</ul>");
+    s = s.replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>");
+    s = s.replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>");
+    if (!/^<[hup]/.test(s)) s = "<p>" + s + "</p>";
     return s;
   }
+
+  function formatTime(): string {
+    const d = new Date();
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+
+  const CopyIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10, display: "inline-block", verticalAlign: "middle", marginRight: 3 }}>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
 
   return (
     <div className="flex flex-col h-full" style={{ fontFamily: "system-ui,-apple-system,sans-serif" }}>
@@ -127,6 +165,11 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
         <span style={{ width: 8, height: 8, borderRadius: "50%", display: "inline-block", flexShrink: 0, marginLeft: "auto", background: online ? "#16a34a" : "#dc2626" }} title={online ? "Connecté" : "Hors ligne"} />
       </div>
 
+      {/* Offline banner */}
+      <div style={{ display: online ? "none" : "block", background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 600, textAlign: "center", padding: "5px 12px", borderBottom: "1px solid #fde68a", flexShrink: 0 }}>
+        ⚠️ Connexion perdue — vos messages seront envoyés dès la reconnexion
+      </div>
+
       {/* Messages */}
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px", display: "flex", flexDirection: "column", gap: 14, background: "linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%)" }}>
         {messages.map((m, i) => (
@@ -137,7 +180,8 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                 color: "#fff", padding: "12px 16px", borderRadius: "20px 20px 4px 20px",
                 fontSize: 14, lineHeight: 1.65, boxShadow: `0 3px 12px ${primaryColor}33`,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
-              }}>{m.text}</div>
+              }}><span dangerouslySetInnerHTML={{ __html: renderMarkdown(m.text) }} /></div>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, textAlign: "right" }}>{formatTime()}</div>
             </div>
           ) : (
             <div key={i} style={{ display: "flex", gap: 10, maxWidth: "92%", animation: "nl .28s ease" }}>
@@ -175,8 +219,26 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                     <span style={{ fontSize: 11, color: m.source === "ai" ? "#7c3aed" : "#64748b", fontWeight: m.source === "ai" ? 600 : 400, fontStyle: m.source === "ai" ? "normal" : "italic" }}>
                       {m.source === "kb" ? "Base de connaissances" : m.source === "ai" ? (m.provider ? `Propulsé par ${m.provider}` : "IA") : "Fallback"}
                     </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(m.text);
+                        setCopiedId(`copied-${i}`);
+                        setTimeout(() => setCopiedId(null), 1500);
+                      }}
+                      style={{
+                        background: "none", border: "1px solid #e2e8f0", borderRadius: 6,
+                        padding: "2px 7px", fontSize: 10, color: copiedId === `copied-${i}` ? "#16a34a" : "#94a3b8",
+                        cursor: "pointer", marginLeft: "auto",
+                        borderColor: copiedId === `copied-${i}` ? "#d1fae5" : "#e2e8f0",
+                        transition: "all .15s",
+                      }}
+                      title="Copier la réponse"
+                    >
+                      <CopyIcon />{copiedId === `copied-${i}` ? "Copié !" : "Copier"}
+                    </button>
                   </div>
                 )}
+                <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{formatTime()}</div>
               </div>
             </div>
           )
@@ -250,6 +312,9 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           </button>
+        </div>
+        <div style={{ fontSize: 11, color: input.length > 400 ? (input.length >= 500 ? "#ef4444" : "#f59e0b") : "#94a3b8", textAlign: "right", padding: "2px 6px 0" }}>
+          {input.length > 400 ? `${input.length}/500` : ""}
         </div>
       </div>
 
