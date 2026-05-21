@@ -24,6 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const welcomeTitle = (widgetConfig?.welcomeTitle || "Bienvenue !").replace(/"/g, '\\"');
   const welcomeSub = (widgetConfig?.welcomeSub || "").replace(/"/g, '\\"');
   const showBrand = widgetConfig?.showBrand === true;
+  const avatarIcon = widgetConfig?.avatarIcon || "robot";
 
   const KQ_JSON = JSON.stringify(
     kbEntries.flatMap((k: any) => {
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const WC_JSON = JSON.stringify(kbEntries.slice(0, 4).map((k: any) => k.question));
 
   const script = `(function(){
-var e={chatUrl:"${escapeJs(chatUrl)}",name:"${escapeJs(name)}",logo:"${escapeJs(logo)}",primaryColor:"${escapeJs(primaryColor)}",position:"${escapeJs(pos)}",marginBottom:${mb},marginRight:${mr},welcomeTitle:"${escapeJs(welcomeTitle)}",welcomeSub:"${escapeJs(welcomeSub)}",showBrand:${showBrand},maxMessageLength:500,maxHistoryLength:20};
+var e={chatUrl:"${escapeJs(chatUrl)}",name:"${escapeJs(name)}",logo:"${escapeJs(logo)}",primaryColor:"${escapeJs(primaryColor)}",position:"${escapeJs(pos)}",marginBottom:${mb},marginRight:${mr},welcomeTitle:"${escapeJs(welcomeTitle)}",welcomeSub:"${escapeJs(welcomeSub)}",showBrand:${showBrand},avatarIcon:"${avatarIcon}",maxMessageLength:500,maxHistoryLength:20};
 
 var KQ=${KQ_JSON};
 var WC=${WC_JSON};
@@ -218,6 +219,17 @@ var ICONS={
   copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
 };
 
+/* Avatar icons */
+var AVATARS={
+  robot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/></svg>',
+  bot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1.5" fill="currentColor"/><circle cx="15" cy="13" r="1.5" fill="currentColor"/><path d="M8 17a4 4 0 0 0 8 0"/></svg>',
+  sparkle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 15,9 22,12 15,15 12,22 9,15 2,12 9,9"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  headset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="2" y="14" width="4" height="6" rx="1"/><rect x="18" y="14" width="4" height="6" rx="1"/></svg>'
+};
+function getAvatar(){return AVATARS[e.avatarIcon]||AVATARS.robot}
+
 /* Helpers */
 function isValidUrl(s){return s&&(s.startsWith("http://")||s.startsWith("https://")||s.startsWith("/"))}
 function formatTime(){var d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
@@ -245,7 +257,7 @@ function escAttr(s){
   return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 function buildAvatarImg(){
-  if(!e.logo) return ICONS.robot;
+  if(!e.logo) return getAvatar();
   var img=document.createElement("img");
   img.src=e.logo;
   img.style.cssText="width:100%;height:100%;object-fit:cover;border-radius:50%";
@@ -296,7 +308,7 @@ document.body.appendChild(card);
 /* Logo onerror fallback */
 (function(){
   var imgs=document.querySelectorAll("#na-av img, .nw-icon img");
-  for(var ii=0;ii<imgs.length;ii++)imgs[ii].onerror=function(){this.outerHTML=ICONS.robot};
+  for(var ii=0;ii<imgs.length;ii++)imgs[ii].onerror=function(){this.outerHTML=getAvatar()};
 })();
 
 /* Connection status */
@@ -352,7 +364,7 @@ function addMsg(text,role,source,provider,clientName,score){
     }else{
       sourceHtml='<div class="nft"><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }
-    row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+ICONS.robot+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+'<div class="nts">'+time+'</div></div>';
+    row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+'<div class="nts">'+time+'</div></div>';
     setTimeout(function(){
       var cb=document.getElementById(copyId);
       if(cb)cb.onclick=function(){
@@ -387,7 +399,7 @@ function showTyping(){
   var box=document.getElementById("nm");
   if(document.getElementById("nty")) return;
   var d=document.createElement("div");d.className="nty";d.id="nty";d.setAttribute("aria-label","En train de r\u00e9pondre...");
-  d.innerHTML='<div class="nba'+(aiMode?" ai":"")+'" aria-hidden="true">'+ICONS.robot+'</div><div class="nmsg-bot"><div class="nty-bbl"><div class="nty-label">R\u00e9flexion en cours\u2026</div><div class="nty-dots" aria-hidden="true"><span></span><span></span><span></span></div></div></div>';
+  d.innerHTML='<div class="nba'+(aiMode?" ai":"")+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="nty-bbl"><div class="nty-label">R\u00e9flexion en cours\u2026</div><div class="nty-dots" aria-hidden="true"><span></span><span></span><span></span></div></div></div>';
   box.appendChild(d);box.scrollTop=box.scrollHeight;
 }
 function hideTyping(){var d=document.getElementById("nty");if(d)d.remove();}
@@ -507,7 +519,7 @@ document.getElementById("na-reset").onclick=function(){
   welcomeHtml+="</div>";
   box.innerHTML=welcomeHtml;
   var wimgs=box.querySelectorAll(".nw-icon img");
-  for(var wi2=0;wi2<wimgs.length;wi2++)wimgs[wi2].onerror=function(){this.outerHTML=ICONS.robot};
+  for(var wi2=0;wi2<wimgs.length;wi2++)wimgs[wi2].onerror=function(){this.outerHTML=getAvatar()};
   document.querySelectorAll("#nm .nw-chip").forEach(function(el){
     el.addEventListener("click",function(){sendMessage((this.dataset.q||this.textContent).trim())});
     el.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();sendMessage((this.dataset.q||this.textContent).trim())}});
