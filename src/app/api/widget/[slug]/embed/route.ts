@@ -224,8 +224,8 @@ function formatTime(){var d=new Date();return String(d.getHours()).padStart(2,"0
 function renderMarkdown(t){
   if(!t)return"";
   var s=String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  s=s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
-  s=s.replace(/\*(.+?)\*/g,"<em>$1</em>");
+  s=s.replace(/\\*\\*(.+?)\\*\\*/g,"<strong>$1</strong>");
+  s=s.replace(/\\*(.+?)\\*/g,"<em>$1</em>");
   s=s.replace(/\`([^\`]+)\`/g,"<code>$1</code>");
   s=s.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\)]+\\))/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
   s=s.replace(/^### (.+)$/gm,"<h3>$1</h3>");
