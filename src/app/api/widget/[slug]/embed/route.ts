@@ -128,7 +128,8 @@ C+=".nsrc{font-size:10.5px;color:#6b7280;line-height:1.4;font-style:italic}";
 C+=".nsrc.ai{color:#7c3aed;font-weight:500;font-style:normal}";
 /* welcome */
 C+=".nw{text-align:center;padding:14px 8px}";
-C+=".nw-icon{width:56px;height:56px;background:linear-gradient(135deg,"+e.primaryColor+",#00b4cc);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;color:#fff;box-shadow:0 6px 20px "+e.primaryColor+"44}";
+C+=".nw-icon{width:56px;height:56px;background:linear-gradient(135deg,"+e.primaryColor+",#00b4cc);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;color:#fff;box-shadow:0 6px 20px "+e.primaryColor+"44;overflow:hidden}";
+C+=".nw-icon img{width:40px;height:40px;border-radius:50%;object-fit:cover}";
 C+=".nw-title{font-size:15px;font-weight:800;color:#0d1b2a;margin-bottom:6px}";
 C+=".nw-sub{font-size:12.5px;color:#6b7280;line-height:1.7;margin-bottom:16px}";
 C+=".nw-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:0}";
@@ -178,7 +179,7 @@ var ICONS={
   minimize:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="10" y1="14" x2="3" y2="21"/></svg>',
   reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
   close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  robot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>'
+  robot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg>'
 };
 
 /* HTML */
@@ -190,7 +191,8 @@ btn.className="nova-widget nb";btn.id="nb";btn.innerHTML=ICONS.chat+'<span class
 document.body.appendChild(btn);
 
 /* welcome message */
-var welcomeHtml='<div class="nw"><div class="nw-icon">'+ICONS.robot+'</div><div class="nw-title">'+e.welcomeTitle+'</div><div class="nw-sub">'+e.welcomeSub+'</div>';
+var welcomeIcon=e.logo?'<img src="'+e.logo+'" />':ICONS.robot;
+var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon+'</div><div class="nw-title">'+e.welcomeTitle+'</div><div class="nw-sub">'+e.welcomeSub+'</div>';
 if(WC.length>0){
   welcomeHtml+='<div class="nw-grid">';
   for(var wi=0;wi<Math.min(WC.length,4);wi++){
@@ -349,7 +351,8 @@ document.getElementById("na-reset").onclick=function(){
   if(!confirm("R\u00e9initialiser la conversation ?")) return;
   chatHistory=[];
   var box=document.getElementById("nm");
-  var welcomeHtml='<div class="nw"><div class="nw-icon">'+ICONS.robot+'</div><div class="nw-title">'+e.welcomeTitle+'</div><div class="nw-sub">'+e.welcomeSub+'</div>';
+  var welcomeIcon2=e.logo?'<img src="'+e.logo+'" />':ICONS.robot;
+  var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon2+'</div><div class="nw-title">'+e.welcomeTitle+'</div><div class="nw-sub">'+e.welcomeSub+'</div>';
   if(WC.length>0){
     welcomeHtml+='<div class="nw-grid">';
     for(var wi=0;wi<Math.min(WC.length,4);wi++){
