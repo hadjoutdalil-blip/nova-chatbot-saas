@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Tabs, Button, Card, Input, Badge } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
 
 const PLANS = [
@@ -31,12 +32,12 @@ interface KBEntry {
 }
 
 const TABS = [
-  { id: "general", label: "Général" },
-  { id: "ai", label: "IA" },
-  { id: "stats", label: "Stats" },
-  { id: "kb", label: "Base de connaissances" },
-  { id: "widget", label: "Widget" },
-  { id: "test", label: "Test" },
+  { id: "general", label: "Général", icon: "🏢" },
+  { id: "ai", label: "IA", icon: "🤖" },
+  { id: "stats", label: "Stats", icon: "📊" },
+  { id: "kb", label: "Base de connaissances", icon: "📚" },
+  { id: "widget", label: "Widget", icon: "💬" },
+  { id: "test", label: "Test", icon: "🧪" },
 ];
 
 export default function EditClientPage() {
@@ -89,6 +90,12 @@ export default function EditClientPage() {
     return out;
   }, [entries, kbSearch, kbCatFilter]);
 
+  const stats = useMemo(() => ({
+    entries: entries.length,
+    categories: categories.length,
+    avgPriority: entries.length > 0 ? (entries.reduce((a, e) => a + (e.priority ?? 5), 0) / entries.length).toFixed(1) : "-",
+  }), [entries, categories]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -124,11 +131,8 @@ export default function EditClientPage() {
       body: JSON.stringify({ text }),
     });
     const data = await res.json();
-    if (res.ok) {
-      setForm({ ...form, siteContext: data.siteContext });
-    } else {
-      setError("Erreur lors de l'import");
-    }
+    if (res.ok) setForm({ ...form, siteContext: data.siteContext });
+    else setError("Erreur lors de l'import");
     setImporting(false);
     e.target.value = "";
   }
@@ -175,12 +179,13 @@ export default function EditClientPage() {
       const text = await file.text();
       const parsed = JSON.parse(text);
       if (!Array.isArray(parsed)) throw new Error("Format invalide");
-      await fetch("/api/kb/import-kb", {
+      const replace = entries.length > 0 && confirm(`${parsed.length} entrées trouvées. Remplacer toute la base (${entries.length} entrées existantes) ? "Annuler" = ajouter.`);
+      const res = await fetch("/api/kb/import-kb", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ clientId: id, entries: parsed, replace: true }),
+        body: JSON.stringify({ clientId: id, entries: parsed, replace }),
       });
-      await loadKb();
+      if (res.ok) await loadKb();
     } catch { setError("Erreur d'import"); }
     setKbImporting(false);
     e.target.value = "";
@@ -190,18 +195,15 @@ export default function EditClientPage() {
     if (!form?.slug) return;
     const res = await fetch(`/api/widget/${form.slug}`, { cache: "no-store" });
     const data = await res.json();
-    if (data.widgetConfig) {
-      setWidgetForm(data.widgetConfig);
-    } else {
-      setWidgetForm({
-        welcomeTitle: "Bienvenue !",
-        welcomeSub: "Comment puis-je vous aider ?",
-        showBrand: true,
-        position: "right",
-        marginBottom: 20,
-        marginRight: 20,
-      });
-    }
+    if (data.widgetConfig) setWidgetForm(data.widgetConfig);
+    else setWidgetForm({
+      welcomeTitle: "Bienvenue !",
+      welcomeSub: "Comment puis-je vous aider ?",
+      showBrand: true,
+      position: "right",
+      marginBottom: 20,
+      marginRight: 20,
+    });
     setWidgetLoaded(true);
   }
 
@@ -212,8 +214,7 @@ export default function EditClientPage() {
   async function handleWidgetSave(e: React.FormEvent) {
     e.preventDefault();
     const t = token();
-    const hasConfig = widgetForm?.id != null;
-    const method = hasConfig ? "PUT" : "POST";
+    const method = widgetForm?.id != null ? "PUT" : "POST";
     await fetch("/api/widget", {
       method,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
@@ -225,341 +226,474 @@ export default function EditClientPage() {
 
   const models = PROVIDERS.find((p) => p.id === form?.aiProvider)?.models || PROVIDERS[0].models;
 
-  if (!form) return <p className="text-gray-500">Chargement...</p>;
+  if (!form) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center animate-fadeIn">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center mx-auto mb-3">
+          <span className="text-xl animate-spin">⏳</span>
+        </div>
+        <p className="text-gray-400 text-sm">Chargement...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div>
+    <div className="animate-fadeIn">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{form.name}</h1>
-          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">{form.plan}</span>
+          <h1 className="text-2xl font-bold text-gray-900">{form.name}</h1>
+          <Badge variant="purple">{form.plan}</Badge>
         </div>
       </div>
 
-      <div className="flex gap-1 mb-6 border-b overflow-x-auto">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`text-sm px-4 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
-              tab === t.id ? "border-purple-600 text-purple-700" : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
-      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-
-      {/* ── General ── */}
-      {tab === "general" && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 max-w-2xl space-y-6">
-          <h2 className="font-semibold text-lg border-b pb-2">Informations générales</h2>
-          <div>
-            <label className="block text-sm font-medium mb-1">Pack</label>
-            <select value={form.plan || "custom"} onChange={(e) => setForm({ ...form, plan: e.target.value })} className="w-full border rounded-lg px-3 py-2">
-              {PLANS.map((p) => (<option key={p.id} value={p.id}>{p.name} ({p.price})</option>))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Nom</label>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border rounded-lg px-3 py-2" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Slug</label>
-              <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="w-full border rounded-lg px-3 py-2" required />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Logo (URL)</label>
-              <input value={form.logo || ""} onChange={(e) => setForm({ ...form, logo: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Couleur primaire</label>
-              <input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="w-full h-10 rounded-lg border cursor-pointer" />
-            </div>
-          </div>
-
-          <h2 className="font-semibold text-lg border-b pb-2">Contexte entreprise</h2>
-          <div>
-            <label className="block text-sm font-medium mb-1">Contexte du site</label>
-            <textarea value={form.siteContext || ""} onChange={(e) => setForm({ ...form, siteContext: e.target.value })} rows={4} className="w-full border rounded-lg px-3 py-2" placeholder="Décrivez l'activité de l'entreprise, ses services, son public cible..." />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Importer un fichier de contexte</label>
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-purple-300 transition cursor-pointer" onClick={() => document.getElementById("ctx-file")?.click()}>
-              {importing ? (
-                <p className="text-sm text-gray-500">Import en cours...</p>
-              ) : (
-                <>
-                  <p className="text-sm text-gray-500 mb-1">Glissez ou cliquez pour importer</p>
-                  <p className="text-xs text-gray-400">.txt, .docx ou .pdf</p>
-                </>
-              )}
-              <input id="ctx-file" type="file" accept=".txt,.docx,.pdf" className="hidden" onChange={handleFileImport} />
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700">Enregistrer</button>
-          </div>
-        </form>
-      )}
-
-      {/* ── AI Config ── */}
-      {tab === "ai" && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 max-w-2xl space-y-6">
-          <h2 className="font-semibold text-lg border-b pb-2">Configuration IA</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Fournisseur</label>
-              <select value={form.aiProvider} onChange={(e) => setForm({ ...form, aiProvider: e.target.value, aiModel: "" })} className="w-full border rounded-lg px-3 py-2">
-                {PROVIDERS.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Modèle</label>
-              <select value={form.aiModel} onChange={(e) => setForm({ ...form, aiModel: e.target.value })} className="w-full border rounded-lg px-3 py-2">
-                <option value="">— Sélectionner —</option>
-                {models.map((m) => (<option key={m} value={m}>{m}</option>))}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Clé API</label>
-            <div className="flex gap-2">
-              <input value={form.apiKey} onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }} type="password" className="flex-1 border rounded-lg px-3 py-2" />
-              <button type="button" onClick={testKey} disabled={keyTest.loading || !form.apiKey} className="text-sm px-4 py-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50">
-                {keyTest.loading ? "Test..." : "Tester"}
-              </button>
-            </div>
-            {keyTest.valid === true && <p className="text-green-600 text-xs mt-1">✓ Clé valide ({form.aiProvider})</p>}
-            {keyTest.valid === false && <p className="text-red-500 text-xs mt-1">✗ {keyTest.error}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Seuil de confiance KB : {form.kbThreshold ?? 60}%</label>
-            <input type="range" min={10} max={100} value={form.kbThreshold ?? 60} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full" />
-            <div className="flex justify-between text-xs text-gray-400"><span>10%</span><span>100%</span></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Relance IA</label>
-              <select value={form.relanceActive ? "true" : "false"} onChange={(e) => setForm({ ...form, relanceActive: e.target.value === "true" })} className="w-full border rounded-lg px-3 py-2">
-                <option value="true">Active</option>
-                <option value="false">Désactivée</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Texte de relance personnalisé (optionnel)</label>
-            <textarea value={form.relanceText || ""} onChange={(e) => setForm({ ...form, relanceText: e.target.value })} rows={2} className="w-full border rounded-lg px-3 py-2" placeholder="Exemple : Souhaitez-vous que je vous donne plus de détails sur ce sujet ?" />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700">Enregistrer</button>
-          </div>
-        </form>
-      )}
-
-      {/* ── Stats ── */}
-      {tab === "stats" && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <p className="text-sm text-gray-500">Entrées KB</p>
-            <p className="text-3xl font-bold">{entries.length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <p className="text-sm text-gray-500">Catégories</p>
-            <p className="text-3xl font-bold">{categories.length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <p className="text-sm text-gray-500">Priorité moyenne</p>
-            <p className="text-3xl font-bold">
-              {entries.length > 0 ? (entries.reduce((a, e) => a + (e.priority ?? 5), 0) / entries.length).toFixed(1) : "-"}
-            </p>
-          </div>
+      {error && (
+        <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 mt-4 flex items-center gap-2">
+          <span className="text-red-500 text-sm">✕</span>
+          <p className="text-red-600 text-sm">{error}</p>
         </div>
       )}
 
-      {/* ── KB ── */}
-      {tab === "kb" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-3 flex-1">
-              <input value={kbSearch} onChange={(e) => setKbSearch(e.target.value)} placeholder="Rechercher..." className="flex-1 border rounded-lg px-3 py-2 text-sm max-w-xs" />
-              <select value={kbCatFilter} onChange={(e) => setKbCatFilter(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
-                <option value="">Toutes catégories</option>
-                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <button onClick={handleExport} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter</button>
-              <label className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50 cursor-pointer">
-                {kbImporting ? "Import..." : "Importer"}
-                <input type="file" accept=".json" className="hidden" onChange={handleKbImport} disabled={kbImporting} />
-              </label>
-            </div>
-            <button onClick={openAdd} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 shrink-0">+ Ajouter</button>
-          </div>
-
-          {filtered.length === 0 ? (
-            <p className="text-gray-400 text-center py-8 bg-white rounded-xl">
-              {entries.length === 0 ? "Aucune entrée pour ce client." : "Aucun résultat."}
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((e) => (
-                <div key={e.id} className="bg-white rounded-xl shadow-sm p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{e.icon && <span className="mr-1">{e.icon}</span>}{e.question}</h3>
-                      {e.short_resp && <p className="text-xs text-gray-400 mt-0.5">{e.short_resp}</p>}
-                      <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">{e.answer}</p>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {e.category && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{e.category}</span>}
-                        {e.keywords && <span className="text-xs bg-purple-50 px-2 py-1 rounded-full text-purple-600">{e.keywords}</span>}
-                        <span className={`text-xs px-2 py-1 rounded-full ${(e.priority ?? 5) >= 7 ? "bg-red-50 text-red-600" : (e.priority ?? 5) >= 4 ? "bg-yellow-50 text-yellow-700" : "bg-gray-50 text-gray-500"}`}>
-                          P{e.priority ?? 5}
-                        </span>
-                        {e.alt_questions && (
-                          <span className="text-xs bg-blue-50 px-2 py-1 rounded-full text-blue-600" title={e.alt_questions}>
-                            +{e.alt_questions.split(",").length} var.
-                          </span>
-                        )}
-                        {e.related_tags && <span className="text-xs bg-green-50 px-2 py-1 rounded-full text-green-600">{e.related_tags}</span>}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-4 shrink-0">
-                      <button onClick={() => openEdit(e)} className="text-purple-600 hover:underline text-xs">Modifier</button>
-                      <button onClick={() => handleKbDelete(e.id)} className="text-red-500 hover:underline text-xs">Supprimer</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <KBModal
-            open={modalOpen}
-            onClose={() => { setModalOpen(false); setEditingEntry(null); }}
-            onSave={handleKbSave}
-            initialData={editingEntry ? {
-              tag: editingEntry.tag || "",
-              question: editingEntry.question,
-              alt_questions: editingEntry.alt_questions || "",
-              short_resp: editingEntry.short_resp || "",
-              answer: editingEntry.answer,
-              category: editingEntry.category,
-              keywords: editingEntry.keywords,
-              priority: editingEntry.priority ?? 5,
-              related_tags: editingEntry.related_tags || "",
-              icon: editingEntry.icon || "",
-            } : null}
-            categories={categories}
-          />
-        </div>
-      )}
-
-      {/* ── Widget ── */}
-      {tab === "widget" && (
-        <div className="max-w-lg">
-          {form.slug && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-              <p className="text-sm font-medium text-green-800 mb-2">Code d'intégration</p>
-              <code className="text-xs bg-white px-3 py-2 rounded border block break-all select-all">{`<script src="${typeof window !== "undefined" ? window.location.origin : ""}/api/widget/${form.slug}/embed"></script>`}</code>
-            </div>
-          )}
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            {widgetLoaded && widgetForm ? (
-              <form onSubmit={handleWidgetSave} className="space-y-4">
-                <h2 className="font-semibold text-lg border-b pb-2">Configuration du widget</h2>
+      <div className="mt-6">
+        {/* ── General ── */}
+        {tab === "general" && (
+          <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+            <Card>
+              <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
+                <span className="text-lg">🏢</span>
+                <h2 className="font-semibold text-gray-900">Informations générales</h2>
+              </div>
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Titre de bienvenue</label>
-                  <input value={widgetForm.welcomeTitle} onChange={(e) => setWidgetForm({ ...widgetForm, welcomeTitle: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Sous-titre</label>
-                  <input value={widgetForm.welcomeSub} onChange={(e) => setWidgetForm({ ...widgetForm, welcomeSub: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Pack</label>
+                  <select
+                    value={form.plan || "custom"}
+                    onChange={(e) => setForm({ ...form, plan: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                  >
+                    {PLANS.map((p) => (<option key={p.id} value={p.id}>{p.name} ({p.price})</option>))}
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  <Input label="Nom" id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                  <Input label="Slug" id="slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="Logo (URL)" id="logo" value={form.logo || ""} onChange={(e) => setForm({ ...form, logo: e.target.value })} />
                   <div>
-                    <label className="block text-sm font-medium mb-1">Position</label>
-                    <select value={widgetForm.position} onChange={(e) => setWidgetForm({ ...widgetForm, position: e.target.value })} className="w-full border rounded-lg px-3 py-2">
-                      <option value="right">Droite</option>
-                      <option value="left">Gauche</option>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Couleur primaire</label>
+                    <input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="w-full h-10 rounded-xl border border-gray-200 cursor-pointer bg-white" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
+                <span className="text-lg">📝</span>
+                <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Contexte du site</label>
+                  <textarea
+                    value={form.siteContext || ""}
+                    onChange={(e) => setForm({ ...form, siteContext: e.target.value })}
+                    rows={4}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    placeholder="Décrivez l'activité de l'entreprise, ses services, son public cible..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Importer un fichier de contexte</label>
+                  <div
+                    className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-purple-300 hover:bg-purple-50/30 transition-all duration-150 cursor-pointer group"
+                    onClick={() => document.getElementById("ctx-file")?.click()}
+                  >
+                    {importing ? (
+                      <p className="text-sm text-gray-500">Import en cours...</p>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-50 transition-colors">
+                          <span className="text-lg">📄</span>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-0.5">Glissez ou cliquez pour importer</p>
+                        <p className="text-xs text-gray-400">.txt, .docx ou .pdf</p>
+                      </>
+                    )}
+                    <input id="ctx-file" type="file" accept=".txt,.docx,.pdf" className="hidden" onChange={handleFileImport} />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex gap-3">
+              <Button type="submit">Enregistrer</Button>
+            </div>
+          </form>
+        )}
+
+        {/* ── AI Config ── */}
+        {tab === "ai" && (
+          <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+            <Card>
+              <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
+                <span className="text-lg">🤖</span>
+                <h2 className="font-semibold text-gray-900">Configuration IA</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Fournisseur</label>
+                    <select
+                      value={form.aiProvider}
+                      onChange={(e) => setForm({ ...form, aiProvider: e.target.value, aiModel: "" })}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    >
+                      {PROVIDERS.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Marge bas (px)</label>
-                    <input type="number" value={widgetForm.marginBottom} onChange={(e) => setWidgetForm({ ...widgetForm, marginBottom: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Modèle</label>
+                    <select
+                      value={form.aiModel}
+                      onChange={(e) => setForm({ ...form, aiModel: e.target.value })}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    >
+                      <option value="">— Sélectionner —</option>
+                      {models.map((m) => (<option key={m} value={m}>{m}</option>))}
+                    </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Marge {widgetForm.position === "right" ? "droite" : "gauche"} (px)</label>
-                    <input type="number" value={widgetForm.marginRight} onChange={(e) => setWidgetForm({ ...widgetForm, marginRight: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Clé API</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={form.apiKey}
+                      onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }}
+                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    />
+                    <Button variant="secondary" type="button" onClick={testKey} disabled={keyTest.loading || !form.apiKey}>
+                      {keyTest.loading ? "Test..." : "Tester"}
+                    </Button>
                   </div>
+                  {keyTest.valid === true && <p className="text-green-600 text-xs mt-1.5">✓ Clé valide ({form.aiProvider})</p>}
+                  {keyTest.valid === false && <p className="text-red-500 text-xs mt-1.5">✗ {keyTest.error}</p>}
                 </div>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={widgetForm.showBrand} onChange={(e) => setWidgetForm({ ...widgetForm, showBrand: e.target.checked })} className="rounded" />
-                  <span className="text-sm">Afficher "Propulsé par Nova"</span>
-                </label>
-                <div className="flex gap-3 pt-2">
-                  <button type="submit" className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700">Enregistrer</button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Seuil de confiance KB : <span className="text-purple-600 font-semibold">{form.kbThreshold ?? 60}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    value={form.kbThreshold ?? 60}
+                    onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })}
+                    className="w-full accent-purple-600"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1"><span>10%</span><span>100%</span></div>
                 </div>
-              </form>
-            ) : (
-              <p className="text-gray-500 text-sm">Chargement...</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Test ── */}
-      {tab === "test" && (
-        <div>
-          <div className="bg-white rounded-xl shadow-sm p-6 max-w-2xl">
-            <h2 className="font-semibold text-lg mb-4">Tester le chatbot</h2>
-            <p className="text-gray-600 text-sm mb-4">Accédez à la page de test complète avec un aperçu réaliste du chatbot sur une landing page générique.</p>
-            <div className="flex gap-3">
-              <a
-                href={`/dashboard/clients/${id}/test`}
-                className="bg-purple-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-700 inline-block"
-              >
-                Ouvrir la page de test
-              </a>
-              {form.slug && (
-                <a
-                  href={`/api/widget/${form.slug}/embed`}
-                  target="_blank"
-                  className="border px-6 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 inline-block"
-                >
-                  Voir le script embed
-                </a>
-              )}
-            </div>
-
-            <div className="mt-6 border-t pt-6">
-              <h3 className="font-medium text-sm mb-3">Aperçu rapide</h3>
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border">
-                <div className="flex items-center gap-3 mb-4">
-                  {form.logo ? (
-                    <img src={form.logo} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-lg">🤖</div>
-                  )}
-                  <div>
-                    <p className="font-semibold text-sm">{form.name}</p>
-                    <p className="text-xs text-gray-500">Assistant virtuel</p>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Relance IA</label>
+                  <select
+                    value={form.relanceActive ? "true" : "false"}
+                    onChange={(e) => setForm({ ...form, relanceActive: e.target.value === "true" })}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Désactivée</option>
+                  </select>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">Le chatbot apparaît en bas à droite sur le site de {form.name}.</p>
-                <p className="text-xs text-gray-400">Endpoint : <code className="text-purple-600">/api/chat/{form.slug}</code></p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Texte de relance personnalisé (optionnel)</label>
+                  <textarea
+                    value={form.relanceText || ""}
+                    onChange={(e) => setForm({ ...form, relanceText: e.target.value })}
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    placeholder="Exemple : Souhaitez-vous que je vous donne plus de détails sur ce sujet ?"
+                  />
+                </div>
               </div>
+            </Card>
+            <div className="flex gap-3">
+              <Button type="submit">Enregistrer</Button>
             </div>
+          </form>
+        )}
+
+        {/* ── Stats ── */}
+        {tab === "stats" && (
+          <div className="grid grid-cols-3 gap-5">
+            {[
+              { label: "Entrées KB", value: stats.entries, icon: "📚", color: "from-purple-500 to-purple-400" },
+              { label: "Catégories", value: stats.categories, icon: "🏷️", color: "from-blue-500 to-blue-400" },
+              { label: "Priorité moyenne", value: stats.avgPriority, icon: "📊", color: "from-emerald-500 to-emerald-400" },
+            ].map((s) => (
+              <Card key={s.label} hover>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-lg shadow-sm mb-3`}>
+                  {s.icon}
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+                <p className="text-sm text-gray-400 mt-0.5">{s.label}</p>
+              </Card>
+            ))}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ── KB ── */}
+        {tab === "kb" && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex gap-3 flex-1">
+                <div className="relative flex-1 max-w-xs">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                  <input
+                    value={kbSearch}
+                    onChange={(e) => setKbSearch(e.target.value)}
+                    placeholder="Rechercher..."
+                    className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                  />
+                </div>
+                <select
+                  value={kbCatFilter}
+                  onChange={(e) => setKbCatFilter(e.target.value)}
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                >
+                  <option value="">Toutes catégories</option>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <Button variant="secondary" onClick={handleExport}>Exporter</Button>
+                <label className="cursor-pointer">
+                  <span className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 text-sm rounded-xl">
+                    {kbImporting ? "Import..." : "Importer"}
+                  </span>
+                  <input type="file" accept=".json" className="hidden" onChange={handleKbImport} disabled={kbImporting} />
+                </label>
+              </div>
+              <Button onClick={openAdd}>
+                <span className="text-base">+</span>
+                Ajouter
+              </Button>
+            </div>
+
+            {filtered.length === 0 ? (
+              <Card padding="lg" className="text-center">
+                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                  <span className="text-xl">{entries.length === 0 ? "📭" : "🔍"}</span>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  {entries.length === 0 ? "Aucune entrée pour ce client." : "Aucun résultat."}
+                </p>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {filtered.map((e) => (
+                  <Card key={e.id} padding="sm" hover>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {e.icon && <span className="mr-1.5">{e.icon}</span>}
+                          {e.question}
+                        </h3>
+                        {e.short_resp && (
+                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{e.short_resp}</p>
+                        )}
+                        <p className="text-sm text-gray-500 mt-1.5 whitespace-pre-wrap line-clamp-2 leading-relaxed">{e.answer}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {e.category && <Badge>{e.category}</Badge>}
+                          {e.keywords && <Badge variant="purple">{e.keywords}</Badge>}
+                          <Badge variant={(e.priority ?? 5) >= 7 ? "red" : (e.priority ?? 5) >= 4 ? "yellow" : "default"}>
+                            P{e.priority ?? 5}
+                          </Badge>
+                          {e.alt_questions && (
+                            <Badge variant="blue" title={e.alt_questions}>
+                              +{e.alt_questions.split("||").length} var.
+                            </Badge>
+                          )}
+                          {e.related_tags && <Badge variant="green">{e.related_tags}</Badge>}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(e)}>Modifier</Button>
+                        <Button variant="danger" size="sm" onClick={() => handleKbDelete(e.id)}>Supprimer</Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <KBModal
+              open={modalOpen}
+              onClose={() => { setModalOpen(false); setEditingEntry(null); }}
+              onSave={handleKbSave}
+              initialData={editingEntry ? {
+                tag: editingEntry.tag || "",
+                question: editingEntry.question,
+                alt_questions: editingEntry.alt_questions || "",
+                short_resp: editingEntry.short_resp || "",
+                answer: editingEntry.answer,
+                category: editingEntry.category,
+                keywords: editingEntry.keywords,
+                priority: editingEntry.priority ?? 5,
+                related_tags: editingEntry.related_tags || "",
+                icon: editingEntry.icon || "",
+              } : null}
+              categories={categories}
+            />
+          </div>
+        )}
+
+        {/* ── Widget ── */}
+        {tab === "widget" && (
+          <div className="max-w-lg">
+            {form.slug && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60 rounded-xl p-5 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🔌</span>
+                  <p className="text-sm font-semibold text-green-800">Code d'intégration</p>
+                </div>
+                <code className="text-xs bg-white/80 px-3 py-2 rounded-lg border border-green-100 block break-all select-all font-mono">{`<script src="${typeof window !== "undefined" ? window.location.origin : ""}/api/widget/${form.slug}/embed"></script>`}</code>
+              </div>
+            )}
+
+            <Card>
+              {widgetLoaded && widgetForm ? (
+                <form onSubmit={handleWidgetSave} className="space-y-4">
+                  <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
+                    <span className="text-lg">💬</span>
+                    <h2 className="font-semibold text-gray-900">Configuration du widget</h2>
+                  </div>
+                  <Input
+                    label="Titre de bienvenue"
+                    id="welcomeTitle"
+                    value={widgetForm.welcomeTitle}
+                    onChange={(e) => setWidgetForm({ ...widgetForm, welcomeTitle: e.target.value })}
+                  />
+                  <Input
+                    label="Sous-titre"
+                    id="welcomeSub"
+                    value={widgetForm.welcomeSub}
+                    onChange={(e) => setWidgetForm({ ...widgetForm, welcomeSub: e.target.value })}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Position</label>
+                      <select
+                        value={widgetForm.position}
+                        onChange={(e) => setWidgetForm({ ...widgetForm, position: e.target.value })}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                      >
+                        <option value="right">Droite</option>
+                        <option value="left">Gauche</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Marge bas (px)</label>
+                      <input
+                        type="number"
+                        value={widgetForm.marginBottom}
+                        onChange={(e) => setWidgetForm({ ...widgetForm, marginBottom: +e.target.value })}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Marge {widgetForm.position === "right" ? "droite" : "gauche"} (px)
+                      </label>
+                      <input
+                        type="number"
+                        value={widgetForm.marginRight}
+                        onChange={(e) => setWidgetForm({ ...widgetForm, marginRight: +e.target.value })}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                      />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2.5 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={widgetForm.showBrand}
+                      onChange={(e) => setWidgetForm({ ...widgetForm, showBrand: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Afficher &quot;Propulsé par Nova&quot;</span>
+                  </label>
+                  <div className="flex gap-3 pt-2">
+                    <Button type="submit">Enregistrer</Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-400 text-sm">Chargement...</p>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* ── Test ── */}
+        {tab === "test" && (
+          <div className="max-w-2xl">
+            <Card>
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                <span className="text-lg">🧪</span>
+                <h2 className="font-semibold text-gray-900">Tester le chatbot</h2>
+              </div>
+              <p className="text-gray-500 text-sm mb-5 leading-relaxed">
+                Accédez à la page de test complète avec un aperçu réaliste du chatbot sur une landing page générique.
+              </p>
+              <div className="flex gap-3">
+                <a
+                  href={`/dashboard/clients/${id}/test`}
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-purple-600 text-white shadow-sm hover:bg-purple-700 active:bg-purple-800 px-6 py-2.5 text-sm rounded-xl"
+                >
+                  Ouvrir la page de test
+                </a>
+                {form.slug && (
+                  <a
+                    href={`/api/widget/${form.slug}/embed`}
+                    target="_blank"
+                    className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50 active:bg-gray-100 px-6 py-2.5 text-sm rounded-xl"
+                  >
+                    Voir le script embed
+                  </a>
+                )}
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <h3 className="font-medium text-sm text-gray-700 mb-4">Aperçu rapide</h3>
+                <div className="bg-gradient-to-br from-purple-50/80 via-white to-blue-50/80 rounded-xl p-6 border border-gray-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    {form.logo ? (
+                      <img src={form.logo} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center shadow-sm">
+                        <span className="text-lg">🤖</span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-sm text-gray-900">{form.name}</p>
+                      <p className="text-xs text-gray-400">Assistant virtuel</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Le chatbot apparaît en bas à {widgetForm?.position === "left" ? "gauche" : "droite"} sur le site de {form.name}.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Endpoint : <code className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-mono">/api/chat/{form.slug}</code>
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

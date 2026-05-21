@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8f9fc;
+  --foreground: #0f172a;
+  --primary: #7c3aed;
+  --primary-light: #8b5cf6;
+  --primary-dark: #6d28d9;
+  --primary-bg: #f5f3ff;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --muted: #64748b;
 }
 
 @theme inline {
@@ -10,17 +17,66 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-bg: var(--primary-bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+  --shadow-elevated: 0 8px 24px -4px rgb(0 0 0 / 0.08), 0 2px 6px 0 rgb(0 0 0 / 0.04);
+  --shadow-dialog: 0 20px 60px -12px rgb(0 0 0 / 0.15);
+  --animate-fadeIn: fadeIn 0.3s ease-out;
+  --animate-slideInRight: slideInRight 0.3s ease-out;
+  --animate-scaleIn: scaleIn 0.2s ease-out;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b1120;
+    --foreground: #f1f5f9;
+    --primary: #a78bfa;
+    --primary-light: #c4b5fd;
+    --primary-dark: #8b5cf6;
+    --primary-bg: #1e1b4b;
+    --surface: #131c31;
+    --border: #1e293b;
+    --muted: #94a3b8;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--primary);
+  color: white;
 }

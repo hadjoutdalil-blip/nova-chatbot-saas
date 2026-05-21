@@ -1,17 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { verifyToken } from "@/lib/auth";
+
+const NAV_ITEMS = [
+  { href: "/dashboard", label: "Dashboard", icon: "📊" },
+  { href: "/dashboard/clients", label: "Clients", icon: "👥" },
+  { href: "/dashboard/kb", label: "Base de connaissances", icon: "📚" },
+  { href: "/dashboard/widget", label: "Widget", icon: "💬" },
+  { href: "/dashboard/analytics", label: "Statistiques", icon: "📈" },
+  { href: "/dashboard/settings", label: "Paramètres", icon: "⚙️" },
+];
 
 function getPayload(): { userId: string; clientId: string; role: string } | null {
   if (typeof window === "undefined") return null;
   const token = localStorage.getItem("token");
   if (!token) return null;
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload;
+    return JSON.parse(atob(token.split(".")[1]));
   } catch {
     return null;
   }
@@ -19,6 +26,7 @@ function getPayload(): { userId: string; clientId: string; role: string } | null
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [payload, setPayload] = useState<any>(null);
 
   useEffect(() => {
@@ -36,19 +44,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <nav className="w-64 bg-white border-r p-6 flex flex-col">
-        <h2 className="text-lg font-bold mb-8">Nova SaaS</h2>
-        <div className="flex flex-col gap-2 flex-1">
-          <Link href="/dashboard" className="px-3 py-2 rounded-lg hover:bg-gray-100">Dashboard</Link>
-          <Link href="/dashboard/clients" className="px-3 py-2 rounded-lg hover:bg-gray-100">Clients</Link>
-          <Link href="/dashboard/kb" className="px-3 py-2 rounded-lg hover:bg-gray-100">Base de connaissances</Link>
-          <Link href="/dashboard/widget" className="px-3 py-2 rounded-lg hover:bg-gray-100">Widget</Link>
-          <Link href="/dashboard/analytics" className="px-3 py-2 rounded-lg hover:bg-gray-100">Statistiques</Link>
-          <Link href="/dashboard/settings" className="px-3 py-2 rounded-lg hover:bg-gray-100">Paramètres</Link>
+      <nav className="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
+        <div className="p-5 border-b border-gray-50">
+          <Link href="/dashboard" className="flex items-center gap-2.5 no-underline">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-400 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+              N
+            </div>
+            <div>
+              <p className="font-bold text-sm text-gray-900">Nova SaaS</p>
+              <p className="text-[10px] text-gray-400 font-medium">Administration</p>
+            </div>
+          </Link>
         </div>
-        <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-500 text-left">Déconnexion</button>
+
+        <div className="flex-1 p-3 space-y-0.5">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 no-underline ${
+                  isActive
+                    ? "bg-purple-50 text-purple-700 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <span className="text-base">{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="p-3 border-t border-gray-50">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
+          >
+            <span className="text-base">🚪</span>
+            Déconnexion
+          </button>
+        </div>
       </nav>
-      <main className="flex-1 p-8">{children}</main>
+
+      <main className="flex-1 p-8 overflow-auto animate-fadeIn">{children}</main>
     </div>
   );
 }

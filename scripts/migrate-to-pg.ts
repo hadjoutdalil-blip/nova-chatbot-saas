@@ -3,10 +3,10 @@ import path from "path";
 import Database from "better-sqlite3";
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeonHttp } from "@prisma/adapter-neon";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
 const connectionString = process.env.DATABASE_URL!;
-  const adapter = new PrismaNeonHttp(connectionString, {});
+const adapter = new PrismaNeon({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 const SQLITE_PATH = path.join(process.cwd(), "data", "app.db");

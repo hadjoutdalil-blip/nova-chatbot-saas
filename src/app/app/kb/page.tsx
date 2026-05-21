@@ -115,10 +115,11 @@ export default function AppKBPage() {
       const text = await file.text();
       const entries = JSON.parse(text);
       if (!Array.isArray(entries)) throw new Error("Format invalide");
+      const replace = entries.length > 0 && confirm(`${entries.length} entrées trouvées. Remplacer toute la base (${entries.length} existantes) ? "Annuler" = ajouter.`);
       const res = await fetch("/api/kb/import-kb", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ entries, replace: true }),
+        body: JSON.stringify({ entries, replace }),
       });
       if (res.ok) load();
     } catch { setError("Erreur d'import"); }

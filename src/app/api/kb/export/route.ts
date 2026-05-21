@@ -14,15 +14,17 @@ export async function GET(req: NextRequest) {
     .filter((k: any) => k.clientId === clientId)
     .map((k: any) => ({
       tag: k.tag || "",
-      question: k.question,
-      alt_questions: k.alt_questions || "",
-      short_resp: k.short_resp || "",
-      answer: k.answer,
-      category: k.category || "",
-      keywords: k.keywords || "",
-      priority: k.priority ?? 5,
-      related_tags: k.related_tags || "",
       icon: k.icon || "",
+      cat: k.category || "",
+      priority: k.priority ?? 5,
+      related_tags: (k.related_tags || "").split(",").map((s: string) => s.trim()).filter(Boolean),
+      qs: [
+        k.question,
+        ...(k.alt_questions || "").split(" || ").map((s: string) => s.trim()).filter(Boolean),
+      ].filter(Boolean),
+      kw: (k.keywords || "").split(",").map((s: string) => s.trim()).filter(Boolean),
+      short_resp: k.short_resp || "",
+      resp: k.answer,
     }));
 
   return new NextResponse(JSON.stringify(entries, null, 2), {
