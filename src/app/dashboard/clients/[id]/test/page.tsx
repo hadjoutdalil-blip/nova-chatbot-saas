@@ -48,37 +48,41 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
     setLoading(false);
   }
 
-  function scoreColor(score?: number) {
+  function scoreClass(score?: number) {
     if (score == null) return "";
     return score > 70 ? "green" : score > 40 ? "orange" : "red";
   }
 
-  function scoreLabel(score?: number) {
-    if (score == null) return "";
-    return score > 70 ? "green" : score > 40 ? "orange" : "red";
-  }
+  const RobotIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
+      <rect x="3" y="11" width="18" height="10" rx="2" />
+      <circle cx="12" cy="5" r="2" />
+      <path d="M12 7v4" />
+      <line x1="8" y1="16" x2="8" y2="16" />
+      <line x1="16" y1="16" x2="16" y2="16" />
+    </svg>
+  );
 
   return (
     <div className="flex flex-col h-full" style={{ fontFamily: "system-ui,-apple-system,sans-serif" }}>
       {/* Header */}
-      <div style={{ background: primaryColor, color: "#fff", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>
-          {logo ? <img src={logo} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover" }} /> : "🤖"}
+      <div style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, color: "#fff", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,.18)", border: "2px solid rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, position: "relative" }}
+          className={aiMode ? "ai-avatar" : ""}>
+          {logo ? <img src={logo} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} /> : <RobotIcon />}
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3 }}>{name}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{name}</div>
           <div style={{ fontSize: 11, opacity: 0.85 }}>Assistant virtuel</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
           <button
             onClick={() => setAiMode(!aiMode)}
             style={{
-              width: 30, height: 30, borderRadius: 8,
-              background: aiMode ? "rgba(255,255,255,.22)" : "rgba(0,0,0,.12)",
-              border: aiMode ? `1px solid rgba(255,255,255,.5)` : "1px solid rgba(255,255,255,.15)",
-              boxShadow: aiMode ? `0 0 12px rgba(255,255,255,.2)` : "none",
-              color: "#fff", fontSize: 14, cursor: "pointer", display: "flex",
-              alignItems: "center", justifyContent: "center", transition: "all .2s",
+              width: 34, height: 34, borderRadius: 8,
+              background: aiMode ? "rgba(168,85,247,.4)" : "rgba(255,255,255,.1)",
+              border: "none", color: "#fff", fontSize: 14, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s",
             }}
             title={aiMode ? "Mode IA actif" : "Mode IA désactivé"}
           >
@@ -90,48 +94,105 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
         </div>
       </div>
 
+      {/* Status bar */}
+      <div style={{ padding: "7px 14px", fontSize: 11, color: "#6b7280", borderBottom: "1px solid #e5e7eb", background: "#fcfcfe", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexShrink: 0 }}>
+        {aiMode && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "linear-gradient(90deg,#7c3aed,#9333ea)", color: "#fff", padding: "2px 9px", borderRadius: 12, fontSize: 10, fontWeight: 600 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 10, height: 10 }}>
+              <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.4 2.1-1 2.8V12l-3 3-3-3V8.8A4 4 0 0 1 12 2z" />
+              <path d="M8 14v3l4 4 4-4v-3" />
+            </svg>
+            IA Active
+          </span>
+        )}
+        <span style={{ color: aiMode ? "#6b7280" : "#6b7280" }}>Base de connaissances</span>
+      </div>
+
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10, background: "#f8f9fc" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "18px 16px", display: "flex", flexDirection: "column", gap: 12, background: "#f4f7fb" }}>
         {messages.map((m, i) => (
-          <div key={i} style={{ maxWidth: "82%", alignSelf: m.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{
-              padding: "10px 14px", fontSize: 13.5, lineHeight: 1.5, wordWrap: "break-word",
-              background: m.role === "user" ? primaryColor : "#fff",
-              color: m.role === "user" ? "#fff" : "#1f2937",
-              borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-              boxShadow: m.role === "user" ? "none" : "0 1px 4px rgba(0,0,0,.06)",
-            }}>
-              {m.text}
+          m.role === "user" ? (
+            <div key={i} style={{ maxWidth: "84%", alignSelf: "flex-end", animation: "nr .28s ease" }}>
+              <div style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
+                color: "#fff", padding: "12px 15px", borderRadius: "18px 18px 4px 18px",
+                fontSize: 13.5, lineHeight: 1.6, boxShadow: `0 3px 10px ${primaryColor}33`,
+              }}>{m.text}</div>
             </div>
-            {m.role === "bot" && m.source && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                {m.source === "kb" && m.score != null && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, lineHeight: 1.4,
-                    ...(scoreLabel(m.score) === "green" ? { background: "#d1fae5", color: "#065f46" } :
-                        scoreLabel(m.score) === "orange" ? { background: "#fef3c7", color: "#92400e" } :
-                        { background: "#fee2e2", color: "#991b1b" })
-                  }}>
-                    ✓ {m.score}%
-                  </span>
-                )}
-                <span style={{ fontSize: 10, color: "#6b7280" }}>
-                  {m.source === "kb" ? "Base de connaissances" : m.source === "ai" ? (m.provider ? `Propulsé par ${m.provider}` : "IA") : "Fallback"}
-                </span>
+          ) : (
+            <div key={i} style={{ display: "flex", gap: 9, maxWidth: "92%", animation: "nl .28s ease" }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%",
+                background: aiMode || m.source === "ai" ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
+              }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+                  <rect x="3" y="11" width="18" height="10" rx="2" />
+                  <circle cx="12" cy="5" r="2" />
+                  <path d="M12 7v4" />
+                  <line x1="8" y1="16" x2="8" y2="16" />
+                  <line x1="16" y1="16" x2="16" y2="16" />
+                </svg>
               </div>
-            )}
-          </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  background: "#fff", border: "1px solid #e5e7eb", padding: "12px 15px",
+                  borderRadius: "18px 18px 18px 4px", fontSize: 13.5, lineHeight: 1.72,
+                  color: "#0d1b2a", boxShadow: "0 1px 6px rgba(0,0,0,.05)",
+                  borderLeft: aiMode || m.source === "ai" ? "3px solid #7c3aed" : "none",
+                  backgroundImage: aiMode || m.source === "ai" ? "linear-gradient(135deg,#fff,#f5f3ff)" : "none",
+                }}>
+                  {m.text}
+                </div>
+                {m.source && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                    {m.source === "kb" && m.score != null && (
+                      <span style={{
+                        fontSize: 10.5, fontWeight: 600, padding: "1px 6px", borderRadius: 4, lineHeight: 1.4,
+                        ...(scoreClass(m.score) === "green" ? { background: "#d1fae5", color: "#065f46" } :
+                            scoreClass(m.score) === "orange" ? { background: "#fef3c7", color: "#92400e" } :
+                            { background: "#fee2e2", color: "#991b1b" })
+                      }}>
+                        ✓ {m.score}%
+                      </span>
+                    )}
+                    <span style={{ fontSize: 10.5, color: m.source === "ai" ? "#7c3aed" : "#6b7280", fontWeight: m.source === "ai" ? 500 : 400 }}>
+                      {m.source === "kb" ? "Base de connaissances" : m.source === "ai" ? (m.provider ? `Propulsé par ${m.provider}` : "IA") : "Fallback"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
         ))}
         {loading && (
-          <div style={{ maxWidth: "82%", alignSelf: "flex-start" }}>
-            <div style={{ background: "#fff", padding: "14px 18px", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,.06)", display: "flex", gap: 4 }}>
-              {[0, 1, 2].map((j) => (
-                <span key={j} style={{
-                  width: 7, height: 7, borderRadius: "50%", background: "#9ca3af",
-                  animation: "nb 1s ease-in-out infinite",
-                  animationDelay: `${j * 0.15}s`,
-                }} />
-              ))}
+          <div style={{ display: "flex", gap: 9, maxWidth: "92%", animation: "nl .2s ease" }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: "50%",
+              background: aiMode ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
+            }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+                <rect x="3" y="11" width="18" height="10" rx="2" />
+                <circle cx="12" cy="5" r="2" />
+                <path d="M12 7v4" />
+                <line x1="8" y1="16" x2="8" y2="16" />
+                <line x1="16" y1="16" x2="16" y2="16" />
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "14px 16px", borderRadius: "18px 18px 18px 4px" }}>
+                <div style={{ fontSize: 11, color: "#7c3aed", marginBottom: 6 }}>Réflexion en cours</div>
+                <div style={{ display: "flex", gap: 5 }}>
+                  {[0, 1, 2].map((j) => (
+                    <span key={j} style={{
+                      width: 7, height: 7, borderRadius: "50%", background: "#d1d5db",
+                      animation: "nb .8s infinite ease-in-out",
+                      animationDelay: `${j * 0.16}s`,
+                    }} />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -139,31 +200,38 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
       </div>
 
       {/* Input */}
-      <div style={{ borderTop: "1px solid #e5e7eb", padding: "10px 12px 12px", background: "#fff", flexShrink: 0 }}>
+      <div style={{ borderTop: "1px solid #e5e7eb", padding: 14, background: "#fff", flexShrink: 0 }}>
         <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          background: "#f3f4f6", borderRadius: 12, padding: "4px 4px 4px 14px",
-          border: `1px solid transparent`, transition: "all .2s",
+          display: "flex", alignItems: "flex-end", gap: 9,
+          background: "#f4f7fb", border: "2px solid #e5e7eb",
+          borderRadius: 18, padding: "5px 5px 5px 14px",
+          transition: "all .2s",
         }}
-          className="chat-input-ring"
+          className={`chat-input-wrap ${aiMode ? "ai-focus" : ""}`}
         >
-          <input
+          <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") sendMessage(input); }}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = Math.min(e.target.scrollHeight, 90) + "px";
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
             placeholder="Posez votre question..."
             disabled={loading}
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent", color: "#1f2937", padding: "6px 0", minWidth: 0 }}
+            rows={1}
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 14, background: "transparent", color: "#0d1b2a", resize: "none", minHeight: 38, maxHeight: 96, fontFamily: "inherit", lineHeight: 1.5, padding: "7px 0" }}
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={loading || !input.trim()}
             style={{
-              width: 34, height: 34, borderRadius: 10, border: "none",
-              background: primaryColor, color: "#fff", cursor: "pointer",
+              width: 38, height: 38, borderRadius: 12, border: "none",
+              background: aiMode ? "#7c3aed" : primaryColor,
+              color: "#fff", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0, opacity: loading || !input.trim() ? 0.5 : 1,
-              transition: "all .15s",
+              flexShrink: 0, opacity: loading || !input.trim() ? 0.45 : 1,
+              transition: "all .14s",
             }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
@@ -175,14 +243,35 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
       </div>
 
       <style>{`
-        .chat-input-ring:focus-within {
-          border-color: ${primaryColor} !important;
-          background: #fff !important;
-          box-shadow: 0 0 0 3px ${primaryColor}1a !important;
+        .chat-input-wrap:focus-within {
+          border-color: ${aiMode ? "#7c3aed" : primaryColor} !important;
+          box-shadow: 0 0 0 4px ${aiMode ? "rgba(124,58,237,.18)" : `${primaryColor}15`} !important;
+        }
+        .ai-avatar::after {
+          content: '';
+          position: absolute;
+          bottom: 2px; right: 2px;
+          width: 11px; height: 11px;
+          background: #a855f7;
+          border-radius: 50%;
+          border: 2px solid ${primaryColor};
+          animation: ai-dot 2s infinite;
+        }
+        @keyframes ai-dot {
+          0%,100% { box-shadow: 0 0 0 0 rgba(168,85,247,.7); }
+          50% { box-shadow: 0 0 0 5px rgba(168,85,247,0); }
         }
         @keyframes nb {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
+          50% { transform: translateY(-9px); }
+        }
+        @keyframes nr {
+          from { opacity: 0; transform: translateX(16px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes nl {
+          from { opacity: 0; transform: translateX(-16px); }
+          to { opacity: 1; transform: translateX(0); }
         }
       `}</style>
     </div>
