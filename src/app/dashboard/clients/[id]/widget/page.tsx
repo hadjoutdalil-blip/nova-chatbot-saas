@@ -67,7 +67,7 @@ export default function ClientWidgetPage() {
 
   function embedCode() {
     if (!clientSlug) return "";
-    return `<script src="${window.location.origin}/api/widget/${clientSlug}/embed.js"></script>`;
+    return `<script src="${window.location.origin}/api/widget/${clientSlug}/embed"></script>`;
   }
 
   if (loading) return <p className="text-gray-500">Chargement...</p>;

@@ -68,7 +68,7 @@ export default function AppWidgetPage() {
 
   function embedCode() {
     if (!clientSlug) return "";
-    return `<script src="${window.location.origin}/api/widget/${clientSlug}/embed.js"></script>`;
+    return `<script src="${window.location.origin}/api/widget/${clientSlug}/embed"></script>`;
   }
 
   if (loading) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
