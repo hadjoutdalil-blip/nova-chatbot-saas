@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import {
+  LayoutDashboard,
+  BookOpen,
+  MessageCircle,
+  BarChart3,
+  Settings,
+  LogOut,
+} from "lucide-react";
 
 function getPayload(): { userId: string; clientId: string; role: string } | null {
   if (typeof window === "undefined") return null;
@@ -16,11 +24,11 @@ function getPayload(): { userId: string; clientId: string; role: string } | null
 }
 
 const NAV = [
-  { href: "/app", label: "Dashboard", icon: "📊" },
-  { href: "/app/kb", label: "Base de connaissances", icon: "📚" },
-  { href: "/app/widget", label: "Mon widget", icon: "💬" },
-  { href: "/app/analytics", label: "Statistiques", icon: "📈" },
-  { href: "/app/settings", label: "Paramètres", icon: "⚙️" },
+  { href: "/app", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/app/kb", label: "Base de connaissances", icon: BookOpen },
+  { href: "/app/widget", label: "Mon widget", icon: MessageCircle },
+  { href: "/app/analytics", label: "Statistiques", icon: BarChart3 },
+  { href: "/app/settings", label: "Paramètres", icon: Settings },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -53,35 +61,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!payload) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <nav className="w-64 bg-white border-r p-6 flex flex-col">
-        <Link href="/app" className="flex items-center gap-2 mb-8 no-underline text-gray-900">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: client?.primaryColor || "#7c3aed" }}>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 flex">
+      <nav className="w-64 bg-white/80 backdrop-blur-xl border-r border-white/20 p-6 flex flex-col shrink-0">
+        <Link href="/app" className="flex items-center gap-3 mb-8 no-underline">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg" style={{ backgroundColor: client?.primaryColor || "#7c3aed" }}>
             {client?.name?.charAt(0) || "N"}
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight">{client?.name || "Mon espace"}</p>
+            <p className="font-bold text-sm leading-tight text-gray-900">{client?.name || "Mon espace"}</p>
             <p className="text-xs text-gray-400">Mon tableau de bord</p>
           </div>
         </Link>
         <div className="flex flex-col gap-1 flex-1">
           {NAV.map((item) => {
             const active = pathname === item.href;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
-                  active ? "bg-purple-50 text-purple-700" : "text-gray-600 hover:bg-gray-100"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active ? "bg-purple-100/80 text-purple-700 shadow-sm" : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
                 }`}
               >
-                <span>{item.icon}</span>
+                <Icon size={18} />
                 {item.label}
               </Link>
             );
           })}
         </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-500 text-left px-3 py-2">
+        <button onClick={handleLogout} className="flex items-center gap-3 text-sm text-gray-400 hover:text-red-500 transition-colors text-left px-4 py-2.5 rounded-xl hover:bg-red-50/50">
+          <LogOut size={18} />
           Déconnexion
         </button>
       </nav>
