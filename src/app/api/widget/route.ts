@@ -28,6 +28,13 @@ export async function POST(req: NextRequest) {
       marginBottom: body.marginBottom ?? 20,
       marginRight: body.marginRight ?? 20,
       avatarIcon: body.avatarIcon || "robot",
+      proactiveEnabled: body.proactiveEnabled === true,
+      autoOpenDelay: body.autoOpenDelay ?? 5,
+      showNotification: body.showNotification !== false,
+      notificationText: body.notificationText || "",
+      sendGreeting: body.sendGreeting === true,
+      scrollTrigger: body.scrollTrigger ?? 0,
+      exitIntent: body.exitIntent === true,
     });
     await db.write("widget_configs", configs);
     return NextResponse.json(existing);
@@ -42,6 +49,13 @@ export async function POST(req: NextRequest) {
     marginBottom: body.marginBottom ?? 20,
     marginRight: body.marginRight ?? 20,
     avatarIcon: body.avatarIcon || "robot",
+    proactiveEnabled: body.proactiveEnabled === true,
+    autoOpenDelay: body.autoOpenDelay ?? 5,
+    showNotification: body.showNotification !== false,
+    notificationText: body.notificationText || "",
+    sendGreeting: body.sendGreeting === true,
+    scrollTrigger: body.scrollTrigger ?? 0,
+    exitIntent: body.exitIntent === true,
     clientId,
   };
 
@@ -70,6 +84,13 @@ export async function PUT(req: NextRequest) {
       marginBottom: body.marginBottom ?? 20,
       marginRight: body.marginRight ?? 20,
       avatarIcon: body.avatarIcon || "robot",
+      proactiveEnabled: body.proactiveEnabled === true,
+      autoOpenDelay: body.autoOpenDelay ?? 5,
+      showNotification: body.showNotification !== false,
+      notificationText: body.notificationText || "",
+      sendGreeting: body.sendGreeting === true,
+      scrollTrigger: body.scrollTrigger ?? 0,
+      exitIntent: body.exitIntent === true,
       clientId,
     };
     configs.push(config);
@@ -86,6 +107,13 @@ export async function PUT(req: NextRequest) {
     marginBottom: body.marginBottom ?? configs[idx].marginBottom,
     marginRight: body.marginRight ?? configs[idx].marginRight,
     avatarIcon: body.avatarIcon ?? configs[idx].avatarIcon,
+    proactiveEnabled: body.proactiveEnabled === true,
+    autoOpenDelay: body.autoOpenDelay ?? configs[idx].autoOpenDelay ?? 5,
+    showNotification: body.showNotification !== false,
+    notificationText: body.notificationText ?? configs[idx].notificationText ?? "",
+    sendGreeting: body.sendGreeting === true,
+    scrollTrigger: body.scrollTrigger ?? configs[idx].scrollTrigger ?? 0,
+    exitIntent: body.exitIntent === true,
   };
 
   await db.write("widget_configs", configs);

@@ -16,6 +16,13 @@ export default function ClientWidgetPage() {
     marginBottom: 20,
     marginRight: 20,
     avatarIcon: "robot",
+    proactiveEnabled: false,
+    autoOpenDelay: 5,
+    showNotification: true,
+    notificationText: "",
+    sendGreeting: false,
+    scrollTrigger: 0,
+    exitIntent: false,
   });
   const [hasConfig, setHasConfig] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -44,6 +51,13 @@ export default function ClientWidgetPage() {
             marginBottom: data.widgetConfig.marginBottom,
             marginRight: data.widgetConfig.marginRight,
             avatarIcon: data.widgetConfig.avatarIcon,
+            proactiveEnabled: data.widgetConfig.proactiveEnabled === true,
+            autoOpenDelay: data.widgetConfig.autoOpenDelay ?? 5,
+            showNotification: data.widgetConfig.showNotification !== false,
+            notificationText: data.widgetConfig.notificationText || "",
+            sendGreeting: data.widgetConfig.sendGreeting === true,
+            scrollTrigger: data.widgetConfig.scrollTrigger ?? 0,
+            exitIntent: data.widgetConfig.exitIntent === true,
           });
         }
         setLoading(false);
@@ -171,6 +185,45 @@ export default function ClientWidgetPage() {
               <input type="checkbox" checked={form.showBrand} onChange={(e) => setForm({ ...form, showBrand: e.target.checked })} className="rounded" />
               <span className="text-sm">Afficher "Propulsé par Nova"</span>
             </label>
+
+            <div className="border-t pt-4 mt-3">
+              <h3 className="font-semibold text-sm mb-3 flex items-center gap-1.5">🔔 Engagement visiteur</h3>
+              <label className="flex items-center gap-2 mb-3">
+                <input type="checkbox" checked={form.proactiveEnabled} onChange={(e) => setForm({ ...form, proactiveEnabled: e.target.checked })} className="rounded" />
+                <span className="text-sm font-medium">Activer le mode proactif</span>
+              </label>
+              {form.proactiveEnabled && (
+                <div className="space-y-3 pl-4 border-l-2 border-purple-200">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Ouverture automatique (secondes)</label>
+                    <input type="number" min="0" max="60" value={form.autoOpenDelay} onChange={(e) => setForm({ ...form, autoOpenDelay: +e.target.value })} className="w-full border rounded-lg px-3 py-1.5 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Déclencheur scroll (%)</label>
+                    <input type="number" min="0" max="100" value={form.scrollTrigger} onChange={(e) => setForm({ ...form, scrollTrigger: +e.target.value })} className="w-full border rounded-lg px-3 py-1.5 text-sm" />
+                  </div>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={form.exitIntent} onChange={(e) => setForm({ ...form, exitIntent: e.target.checked })} className="rounded" />
+                    <span className="text-sm">Détecter la sortie</span>
+                  </label>
+                  <div className="border-t pt-3">
+                    <label className="flex items-center gap-2 mb-2">
+                      <input type="checkbox" checked={form.showNotification} onChange={(e) => setForm({ ...form, showNotification: e.target.checked })} className="rounded" />
+                      <span className="text-sm">Notification</span>
+                    </label>
+                    {form.showNotification && (
+                      <input value={form.notificationText} onChange={(e) => setForm({ ...form, notificationText: e.target.value })}
+                        placeholder="Texte notification" className="w-full border rounded-lg px-3 py-1.5 text-sm mb-2" />
+                    )}
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" checked={form.sendGreeting} onChange={(e) => setForm({ ...form, sendGreeting: e.target.checked })} className="rounded" />
+                      <span className="text-sm">Message bienvenue auto</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button type="submit" disabled={saving} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
                 {saving ? "Enregistrement..." : "Enregistrer"}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, Eye } from "lucide-react";
+import { Save, Eye, Bell, MessageCircle, Timer, ScrollText, MousePointer2 } from "lucide-react";
 
 export default function AppWidgetPage() {
   const [clientSlug, setClientSlug] = useState("");
@@ -13,6 +13,13 @@ export default function AppWidgetPage() {
     marginBottom: 20,
     marginRight: 20,
     avatarIcon: "robot",
+    proactiveEnabled: false,
+    autoOpenDelay: 5,
+    showNotification: true,
+    notificationText: "",
+    sendGreeting: false,
+    scrollTrigger: 0,
+    exitIntent: false,
   });
   const [hasConfig, setHasConfig] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,6 +50,13 @@ export default function AppWidgetPage() {
             marginBottom: data.widgetConfig.marginBottom,
             marginRight: data.widgetConfig.marginRight,
             avatarIcon: data.widgetConfig.avatarIcon,
+            proactiveEnabled: data.widgetConfig.proactiveEnabled === true,
+            autoOpenDelay: data.widgetConfig.autoOpenDelay ?? 5,
+            showNotification: data.widgetConfig.showNotification !== false,
+            notificationText: data.widgetConfig.notificationText || "",
+            sendGreeting: data.widgetConfig.sendGreeting === true,
+            scrollTrigger: data.widgetConfig.scrollTrigger ?? 0,
+            exitIntent: data.widgetConfig.exitIntent === true,
           });
         }
         setLoading(false);
@@ -176,6 +190,73 @@ export default function AppWidgetPage() {
               <input type="checkbox" checked={form.showBrand} onChange={(e) => setForm({ ...form, showBrand: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
               <span className="text-sm text-gray-700">Afficher &quot;Propulsé par Nova&quot;</span>
             </label>
+
+            <div className="border-t border-gray-100 pt-5 mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Bell size={16} className="text-purple-600" />
+                <h3 className="font-semibold text-sm text-gray-800">Engagement visiteur</h3>
+              </div>
+
+              <label className="flex items-center gap-2.5 mb-4">
+                <input type="checkbox" checked={form.proactiveEnabled} onChange={(e) => setForm({ ...form, proactiveEnabled: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                <span className="text-sm text-gray-700 font-medium">Activer le mode proactif</span>
+              </label>
+
+              {form.proactiveEnabled && (
+                <div className="space-y-4 pl-6 border-l-2 border-purple-100">
+                  <div className="flex items-center gap-3">
+                    <Timer size={14} className="text-gray-400" />
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-600 mb-1">Ouverture automatique (secondes)</label>
+                      <input type="number" min="0" max="60" value={form.autoOpenDelay} onChange={(e) => setForm({ ...form, autoOpenDelay: +e.target.value })}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <ScrollText size={14} className="text-gray-400" />
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-600 mb-1">Déclencheur au scroll (%)</label>
+                      <input type="number" min="0" max="100" value={form.scrollTrigger} onChange={(e) => setForm({ ...form, scrollTrigger: +e.target.value })}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                      <p className="text-xs text-gray-400 mt-1">0 = désactivé</p>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2.5">
+                    <MousePointer2 size={14} className="text-gray-400" />
+                    <input type="checkbox" checked={form.exitIntent} onChange={(e) => setForm({ ...form, exitIntent: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                    <span className="text-sm text-gray-700">Détecter la sortie de page</span>
+                  </label>
+
+                  <div className="border-t border-gray-100 pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MessageCircle size={14} className="text-gray-400" />
+                      <span className="text-sm font-medium text-gray-700">Notification & message</span>
+                    </div>
+
+                    <label className="flex items-center gap-2.5 mb-3">
+                      <input type="checkbox" checked={form.showNotification} onChange={(e) => setForm({ ...form, showNotification: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                      <span className="text-sm text-gray-700">Afficher une notification</span>
+                    </label>
+
+                    {form.showNotification && (
+                      <div className="mb-3">
+                        <label className="block text-sm text-gray-600 mb-1">Texte de la notification</label>
+                        <input value={form.notificationText} onChange={(e) => setForm({ ...form, notificationText: e.target.value })}
+                          placeholder="Une question ?"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                      </div>
+                    )}
+
+                    <label className="flex items-center gap-2.5">
+                      <input type="checkbox" checked={form.sendGreeting} onChange={(e) => setForm({ ...form, sendGreeting: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                      <span className="text-sm text-gray-700">Envoyer un message de bienvenue à l&apos;ouverture</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="flex gap-3 pt-2">
               <button type="submit" disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
