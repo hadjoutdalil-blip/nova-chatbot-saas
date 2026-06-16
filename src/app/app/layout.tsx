@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -40,6 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [payload, setPayload] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const p = getPayload();
@@ -56,6 +57,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {});
   }, [router]);
+
+  useEffect(() => {
+    if (!client?.slug) return;
+    const existing = document.querySelector(`script[src*="/api/widget/${client.slug}/embed"]`);
+    if (existing) return;
+    const el = document.createElement("script");
+    el.src = `/api/widget/${client.slug}/embed?t=${Date.now()}`;
+    el.async = true;
+    widgetRef.current?.appendChild(el);
+    return () => { el.remove(); };
+  }, [client?.slug]);
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -100,6 +112,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </button>
       </nav>
       <main className="flex-1 p-8 overflow-auto">{children}</main>
+      <div ref={widgetRef} />
     </div>
   );
 }
