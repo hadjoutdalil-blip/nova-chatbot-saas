@@ -11,6 +11,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  FlaskConical,
 } from "lucide-react";
 
 function getPayload(): { userId: string; clientId: string; role: string } | null {
@@ -27,6 +28,7 @@ function getPayload(): { userId: string; clientId: string; role: string } | null
 const NAV = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/kb", label: "Base de connaissances", icon: BookOpen },
+  { href: "/app/test", label: "Tester", icon: FlaskConical },
   { href: "/app/widget", label: "Mon widget", icon: MessageCircle },
   { href: "/app/conversations", label: "Conversations", icon: MessageSquare },
   { href: "/app/analytics", label: "Statistiques", icon: BarChart3 },
