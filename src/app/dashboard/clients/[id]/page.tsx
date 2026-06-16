@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Building2, Brain, BarChart3, BookOpen, MessageCircle, FlaskConical,
+  Building2, Brain, BarChart3, BookOpen, FlaskConical,
   Download, Plus, Search, FileText, Inbox, Edit3, Trash2, Thermometer, Layers, PanelRightClose,
 } from "lucide-react";
 import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
@@ -41,7 +41,6 @@ const TABS = [
   { id: "ai", label: "IA", icon: <Brain size={16} /> },
   { id: "stats", label: "Stats", icon: <BarChart3 size={16} /> },
   { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
-  { id: "widget", label: "Widget", icon: <MessageCircle size={16} /> },
   { id: "test", label: "Test", icon: <FlaskConical size={16} /> },
 ];
 
@@ -62,8 +61,7 @@ export default function EditClientPage() {
   const [editingEntry, setEditingEntry] = useState<KBEntry | null>(null);
   const [kbImporting, setKbImporting] = useState(false);
 
-  const [widgetForm, setWidgetForm] = useState<any>(null);
-  const [widgetLoaded, setWidgetLoaded] = useState(false);
+  // widget tab removed — config gérée depuis /app/widget
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -195,39 +193,6 @@ export default function EditClientPage() {
     } catch { setError("Erreur d'import"); }
     setKbImporting(false);
     e.target.value = "";
-  }
-
-  async function loadWidget() {
-    if (!form?.slug) return;
-    const res = await fetch(`/api/widget/${form.slug}`, { cache: "no-store" });
-    const data = await res.json();
-    if (data.widgetConfig) setWidgetForm(data.widgetConfig);
-    else setWidgetForm({
-      welcomeTitle: "Bienvenue !",
-      welcomeSub: "Comment puis-je vous aider ?",
-      showBrand: true,
-      position: "right",
-      marginBottom: 20,
-      marginRight: 20,
-    });
-    setWidgetLoaded(true);
-  }
-
-  useEffect(() => {
-    if (tab === "widget" && !widgetLoaded && form?.slug) loadWidget();
-  }, [tab, form, widgetLoaded]);
-
-  async function handleWidgetSave(e: React.FormEvent) {
-    e.preventDefault();
-    const t = token();
-    const method = widgetForm?.id != null ? "PUT" : "POST";
-    await fetch("/api/widget", {
-      method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-      body: JSON.stringify({ ...widgetForm, clientId: id }),
-    });
-    setWidgetLoaded(false);
-    await loadWidget();
   }
 
   const models = PROVIDERS.find((p) => p.id === form?.aiProvider)?.models || PROVIDERS[0].models;
@@ -604,94 +569,6 @@ export default function EditClientPage() {
         )}
 
         {/* ── Widget ── */}
-        {tab === "widget" && (
-          <div className="max-w-lg">
-            {form.slug && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60 rounded-xl p-5 mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <MessageCircle size={18} />
-                  <p className="text-sm font-semibold text-green-800">Code d'intégration</p>
-                </div>
-                <code className="text-xs bg-white/80 px-3 py-2 rounded-lg border border-green-100 block break-all select-all font-mono">{`<script src="${typeof window !== "undefined" ? window.location.origin : ""}/api/widget/${form.slug}/embed"></script>`}</code>
-              </div>
-            )}
-
-            <Card>
-              {widgetLoaded && widgetForm ? (
-                <form onSubmit={handleWidgetSave} className="space-y-4">
-                  <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
-                    <MessageCircle size={18} className="text-purple-600" />
-                    <h2 className="font-semibold text-gray-900">Configuration du widget</h2>
-                  </div>
-                  <Input
-                    label="Titre de bienvenue"
-                    id="welcomeTitle"
-                    value={widgetForm.welcomeTitle}
-                    onChange={(e) => setWidgetForm({ ...widgetForm, welcomeTitle: e.target.value })}
-                  />
-                  <Input
-                    label="Sous-titre"
-                    id="welcomeSub"
-                    value={widgetForm.welcomeSub}
-                    onChange={(e) => setWidgetForm({ ...widgetForm, welcomeSub: e.target.value })}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Position</label>
-                      <select
-                        value={widgetForm.position}
-                        onChange={(e) => setWidgetForm({ ...widgetForm, position: e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
-                      >
-                        <option value="right">Droite</option>
-                        <option value="left">Gauche</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Marge bas (px)</label>
-                      <input
-                        type="number"
-                        value={widgetForm.marginBottom}
-                        onChange={(e) => setWidgetForm({ ...widgetForm, marginBottom: +e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Marge {widgetForm.position === "right" ? "droite" : "gauche"} (px)
-                      </label>
-                      <input
-                        type="number"
-                        value={widgetForm.marginRight}
-                        onChange={(e) => setWidgetForm({ ...widgetForm, marginRight: +e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
-                      />
-                    </div>
-                  </div>
-                  <label className="flex items-center gap-2.5 pt-1">
-                    <input
-                      type="checkbox"
-                      checked={widgetForm.showBrand}
-                      onChange={(e) => setWidgetForm({ ...widgetForm, showBrand: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-gray-700">Afficher &quot;Propulsé par Nova&quot;</span>
-                  </label>
-                  <div className="flex gap-3 pt-2">
-                    <Button type="submit">Enregistrer</Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-gray-400 text-sm">Chargement...</p>
-                </div>
-              )}
-            </Card>
-          </div>
-        )}
-
         {/* ── Test ── */}
         {tab === "test" && (
           <div className="max-w-2xl">
@@ -738,7 +615,7 @@ export default function EditClientPage() {
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 mb-3">
-                    Le chatbot apparaît en bas à {widgetForm?.position === "left" ? "gauche" : "droite"} sur le site de {form.name}.
+                    Le chatbot est configurable par le client depuis son espace.
                   </p>
                   <p className="text-xs text-gray-400">
                     Endpoint : <code className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-mono">/api/chat/{form.slug}</code>
