@@ -119,6 +119,7 @@ export default function ClientWidgetPage() {
               <p><span className="text-gray-500 text-sm">Sous-titre :</span> <span>{form.welcomeSub}</span></p>
               <p><span className="text-gray-500 text-sm">Position :</span> <span>{form.position === "right" ? "Droite" : "Gauche"}</span></p>
               <p><span className="text-gray-500 text-sm">Marges :</span> <span>bas {form.marginBottom}px</span></p>
+              <p><span className="text-gray-500 text-sm">Proactif :</span> <span className={form.proactiveEnabled ? "text-green-600 font-medium" : ""}>{form.proactiveEnabled ? "Activé" : "Désactivé"}</span></p>
             </div>
             <button onClick={() => setEditMode(true)} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700">Modifier</button>
           </div>
