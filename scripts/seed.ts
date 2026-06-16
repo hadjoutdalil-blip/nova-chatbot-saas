@@ -21,6 +21,13 @@ async function main() {
       plan: "support",
       subdomain: "cetim",
       relanceActive: true,
+      kbThreshold: 80,
+      ragThreshold: 72,
+      tempQA: 0.05,
+      tempRAG: 0.10,
+      tempEscalade: 0.20,
+      chunkSize: 500,
+      topNChunks: 3,
     },
   });
 

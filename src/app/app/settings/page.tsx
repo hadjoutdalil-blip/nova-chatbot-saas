@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2 } from "lucide-react";
+import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, PanelRightClose } from "lucide-react";
 
 const PROVIDERS = [
-  { id: "groq", name: "Groq", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
-  { id: "cerebras", name: "Cerebras", models: ["llama3.1-8b", "llama3.1-70b"] },
+  { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
+  { id: "cerebras", name: "Cerebras (gratuit)", models: ["llama3.1-8b", "llama3.1-70b"] },
+  { id: "xai", name: "xAI Grok", models: ["grok-2-latest", "grok-3-beta"] },
 ];
 
 export default function AppSettingsPage() {
@@ -15,6 +16,7 @@ export default function AppSettingsPage() {
   const [form, setForm] = useState<any>(null);
   const [keyTest, setKeyTest] = useState<{ loading?: boolean; valid?: boolean; error?: string }>({});
   const [saving, setSaving] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -39,6 +41,12 @@ export default function AppSettingsPage() {
         aiProvider: form.aiProvider,
         aiModel: form.aiModel,
         kbThreshold: form.kbThreshold,
+        ragThreshold: form.ragThreshold,
+        tempQA: form.tempQA,
+        tempRAG: form.tempRAG,
+        tempEscalade: form.tempEscalade,
+        chunkSize: form.chunkSize,
+        topNChunks: form.topNChunks,
         relanceActive: form.relanceActive,
         relanceText: form.relanceText,
         siteContext: form.siteContext,
@@ -53,7 +61,7 @@ export default function AppSettingsPage() {
     const res = await fetch("/api/chat/test-key", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: form.apiKey, provider: form.aiProvider }),
+      body: JSON.stringify({ apiKey: form.apiKey }),
     });
     const data = await res.json();
     setKeyTest({ loading: false, valid: data.valid, error: data.error });
@@ -93,7 +101,7 @@ export default function AppSettingsPage() {
 
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-              <Key size={14} /> Clé API
+              <Key size={14} /> Clé API (détection auto : Grok=xai- / Cerebras=csk_ / autre=Groq)
             </label>
             <div className="flex gap-2">
               <input value={form.apiKey} onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }} type="password" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
@@ -101,17 +109,61 @@ export default function AppSettingsPage() {
                 <TestTube size={15} /> {keyTest.loading ? "Test..." : "Tester"}
               </button>
             </div>
-            {keyTest.valid === true && <p className="text-green-600 text-xs mt-1.5 flex items-center gap-1">✓ Clé valide</p>}
+            {keyTest.valid === true && <p className="text-green-600 text-xs mt-1.5 flex items-center gap-1">✓ Clé valide ({keyTest.error || form.aiProvider})</p>}
             {keyTest.valid === false && <p className="text-red-500 text-xs mt-1.5">✗ {keyTest.error}</p>}
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-              <SlidersHorizontal size={14} /> Seuil de confiance KB : {form.kbThreshold ?? 60}%
-            </label>
-            <input type="range" min={10} max={100} value={form.kbThreshold ?? 60} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full accent-purple-600" />
-            <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                <SlidersHorizontal size={14} /> Seuil QA (N1) : {form.kbThreshold ?? 80}%
+              </label>
+              <input type="range" min={10} max={100} value={form.kbThreshold ?? 80} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full accent-purple-600" />
+              <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                <Layers size={14} /> Seuil RAG (N2) : {form.ragThreshold ?? 72}%
+              </label>
+              <input type="range" min={10} max={100} value={form.ragThreshold ?? 72} onChange={(e) => setForm({ ...form, ragThreshold: +e.target.value })} className="w-full accent-purple-600" />
+              <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
+            </div>
           </div>
+
+          <div>
+            <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors">
+              <Thermometer size={14} /> Paramètres avancés {showAdvanced ? "▲" : "▼"}
+            </button>
+          </div>
+
+          {showAdvanced && (
+            <div className="space-y-4 pl-4 border-l-2 border-purple-100">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Temp. QA (N1)</label>
+                  <input type="number" step={0.01} min={0} max={1} value={form.tempQA ?? 0.05} onChange={(e) => setForm({ ...form, tempQA: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Temp. RAG (N2)</label>
+                  <input type="number" step={0.01} min={0} max={1} value={form.tempRAG ?? 0.10} onChange={(e) => setForm({ ...form, tempRAG: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Temp. Escalade (N3)</label>
+                  <input type="number" step={0.01} min={0} max={1} value={form.tempEscalade ?? 0.20} onChange={(e) => setForm({ ...form, tempEscalade: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Taille chunk (car.)</label>
+                  <input type="number" min={100} max={5000} step={100} value={form.chunkSize ?? 500} onChange={(e) => setForm({ ...form, chunkSize: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Top N chunks RAG</label>
+                  <input type="number" min={1} max={20} value={form.topNChunks ?? 3} onChange={(e) => setForm({ ...form, topNChunks: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
@@ -130,7 +182,7 @@ export default function AppSettingsPage() {
 
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-              <Building2 size={14} /> Contexte de l&apos;entreprise
+              <Building2 size={14} /> Contexte de l&apos;entreprise (importé automatiquement en chunks)
             </label>
             <textarea value={form.siteContext || ""} onChange={(e) => setForm({ ...form, siteContext: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
           </div>
