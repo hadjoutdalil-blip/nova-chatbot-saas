@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findClientBySlug } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { randomUUID } from "crypto";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -266,6 +267,28 @@ async function callAI(apiKey: string, providerId: string, model: string, system:
   return data.choices?.[0]?.message?.content || "";
 }
 
+/* ── SAVE CONVERSATION ──────────────────────────────── */
+async function saveConversation(client: any, history: any[], userMsg: string, aiMsg: string, source: string, provider: string, score: number) {
+  try {
+    const all = await db.read<any>("conversations");
+    const allMsgs = [...(history || []), { role: "user", content: userMsg }, { role: "assistant", content: aiMsg, source, provider, score }];
+    const title = (history?.[0]?.content?.slice(0, 80)) || userMsg.slice(0, 80);
+
+    all.push({
+      id: randomUUID(),
+      title,
+      messages: JSON.stringify(allMsgs),
+      clientId: client.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    await db.write("conversations", all);
+  } catch (err) {
+    console.error("[Nova Chat] Failed to save conversation:", err);
+  }
+}
+
 /* ── MAIN HANDLER ───────────────────────────────────── */
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
@@ -303,6 +326,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   /* ── NIVEAU 1 : QA VALIDÉE ── */
   if (match && score >= kbThreshold) {
     if (score === 100 || !aiMode || !client.apiKey) {
+      saveConversation(client, history || [], message, match.answer, "kb", "", score);
       return NextResponse.json({
         response: match.answer,
         source: "kb",
@@ -315,16 +339,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     try {
       const providerInfo = detectProvider(client.apiKey);
       const text = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
+      saveConversation(client, history || [], message, text, "qa", providerInfo.label, score);
       return NextResponse.json({ response: text, source: "qa", provider: providerInfo.label, score, suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     } catch {
+      saveConversation(client, history || [], message, match.answer, "kb", "", score);
       return NextResponse.json({ response: match.answer, source: "kb", score, suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     }
   }
 
   /* ── PAS D'IA → fallback KB ou message générique ── */
   if (!aiMode || !client.apiKey) {
+    const resp = match?.answer || "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.";
+    saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score);
     return NextResponse.json({
-      response: match?.answer || "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.",
+      response: resp,
       source: match?.answer ? "kb" : "fallback",
       score,
       suggestions: match ? findRelated(match, KB, 3) : [],
@@ -343,6 +371,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const { system, user } = buildRAGPrompt(client, topChunks, message);
       try {
         const text = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
+        saveConversation(client, history || [], message, text, "rag", providerInfo.label, score);
         return NextResponse.json({ response: text, source: "rag", provider: providerInfo.label, score, chunks: topChunks.map(c => c.source) }, { headers: corsHeaders });
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
@@ -355,11 +384,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     const text = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || []);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
+    saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score);
     return NextResponse.json({ response: text, source: "escalade", provider: providerInfo.label, score }, { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
+    const fallbackResp = "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.";
+    saveConversation(client, history || [], message, fallbackResp, "fallback", "", score);
     return NextResponse.json({
-      response: "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.",
+      response: fallbackResp,
       source: "fallback",
       score,
     }, { headers: corsHeaders });

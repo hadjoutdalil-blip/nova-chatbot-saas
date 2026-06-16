@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   BookOpen,
   MessageCircle,
+  MessageSquare,
   BarChart3,
   Settings,
   LogOut,
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/kb", label: "Base de connaissances", icon: BookOpen },
   { href: "/app/widget", label: "Mon widget", icon: MessageCircle },
+  { href: "/app/conversations", label: "Conversations", icon: MessageSquare },
   { href: "/app/analytics", label: "Statistiques", icon: BarChart3 },
   { href: "/app/settings", label: "Paramètres", icon: Settings },
 ];

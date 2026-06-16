@@ -17,6 +17,21 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
   const configs = await db.read<any>("widget_configs");
+  const existing = configs.find((w: any) => w.clientId === clientId);
+
+  if (existing) {
+    Object.assign(existing, {
+      welcomeTitle: body.welcomeTitle || "Bienvenue !",
+      welcomeSub: body.welcomeSub || "",
+      showBrand: body.showBrand ?? true,
+      position: body.position || "right",
+      marginBottom: body.marginBottom ?? 20,
+      marginRight: body.marginRight ?? 20,
+      avatarIcon: body.avatarIcon || "robot",
+    });
+    await db.write("widget_configs", configs);
+    return NextResponse.json(existing);
+  }
 
   const config = {
     id: randomUUID(),

@@ -21,6 +21,7 @@ export default function ClientWidgetPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -53,14 +54,16 @@ export default function ClientWidgetPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setSaveError("");
     const t = token();
     const method = hasConfig ? "PUT" : "POST";
-    await fetch("/api/widget", {
+    const res = await fetch("/api/widget", {
       method,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
       body: JSON.stringify({ ...form, clientId: id }),
     });
     setSaving(false);
+    if (!res.ok) { const d = await res.json(); setSaveError(d.error || "Erreur"); return; }
     setEditMode(false);
     setHasConfig(true);
   }
@@ -107,6 +110,7 @@ export default function ClientWidgetPage() {
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">
+            {saveError && <p className="text-red-500 text-sm bg-red-50 px-4 py-2 rounded-lg">{saveError}</p>}
             <div>
               <label className="block text-sm font-medium mb-1">Titre de bienvenue</label>
               <input value={form.welcomeTitle} onChange={(e) => setForm({ ...form, welcomeTitle: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
@@ -123,17 +127,28 @@ export default function ClientWidgetPage() {
                   <option value="left">Gauche</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Icône avatar</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "robot", label: "Robot", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/></svg>' },
-                    { id: "bot", label: "Bot", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1.5" fill="currentColor"/><circle cx="15" cy="13" r="1.5" fill="currentColor"/><path d="M8 17a4 4 0 0 0 8 0"/></svg>' },
-                    { id: "sparkle", label: "Étincelle", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 15,9 22,12 15,15 12,22 9,15 2,12 9,9"/></svg>' },
-                    { id: "heart", label: "Cœur", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' },
-                    { id: "chat", label: "Chat", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' },
-                    { id: "headset", label: "Casque", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="2" y="14" width="4" height="6" rx="1"/><rect x="18" y="14" width="4" height="6" rx="1"/></svg>' },
-                  ].map((a) => (
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Icône avatar</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: "robot", label: "Robot", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M5 5L9 9M19 5L15 9M5 19L9 15M19 19L15 15"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/></svg>' },
+                  { id: "bot", label: "Bot", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="4"/><circle cx="8.5" cy="12.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="12.5" r="1.5" fill="currentColor"/><path d="M7 17a5 5 0 0 0 10 0"/><path d="M12 2v5M8 4l4 3 4-3"/></svg>' },
+                  { id: "sparkle", label: "Étincelle", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5z"/><circle cx="12" cy="12" r="3" fill="currentColor" opacity=".3"/></svg>' },
+                  { id: "heart", label: "Coeur", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/><path d="M12 8.5l-1.5-1.5" stroke-width="1.5"/><circle cx="12" cy="8.5" r="1" fill="currentColor"/></svg>' },
+                  { id: "chat", label: "Chat", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13.5a3 3 0 0 1-3 3H7l-4 4V5a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v8.5z"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="12" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/></svg>' },
+                  { id: "headset", label: "Casque", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="2" y="13" width="5" height="7" rx="2"/><rect x="17" y="13" width="5" height="7" rx="2"/><path d="M12 22v-2"/><circle cx="12" cy="12" r="2" fill="currentColor" opacity=".2"/></svg>' },
+                  { id: "smile", label: "Sourire", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M8 14s1.5 3 4 3 4-3 4-3"/></svg>' },
+                  { id: "zap", label: "Éclair", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10" fill="currentColor" opacity=".2"/><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>' },
+                  { id: "compass", label: "Boussole", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z" fill="currentColor" opacity=".2"/><path d="M16.24 7.76l-2.12 6.36-6.36 2.12"/></svg>' },
+                  { id: "shield", label: "Bouclier", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 3v7c0 4-7 9-7 9s-7-5-7-9V5l7-3z"/><path d="M9 12l2 2 4-4" stroke-width="2.5"/></svg>' },
+                  { id: "globe", label: "Globe", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="3" ry="9"/><path d="M3 12h18"/></svg>' },
+                  { id: "star", label: "Étoile", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" fill="currentColor" opacity=".2"/><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>' },
+                  { id: "pulse", label: "Activité", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+                  { id: "crystal", label: "Cristal", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
+                  { id: "moon", label: "Lune", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>' },
+                  { id: "palette", label: "Palette", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.42-4.5-8-10-8z"/></svg>' },
+                ].map((a) => (
                     <button key={a.id} type="button" onClick={() => setForm({ ...form, avatarIcon: a.id })}
                       className={"flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all " + (form.avatarIcon === a.id ? "border-purple-500 bg-purple-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white" dangerouslySetInnerHTML={{ __html: a.svg }} />
@@ -142,7 +157,6 @@ export default function ClientWidgetPage() {
                   ))}
                 </div>
               </div>
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Marge bas (px)</label>

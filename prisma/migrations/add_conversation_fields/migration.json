@@ -1,0 +1,13 @@
+{
+  "version": "5.2",
+  "steps": [
+    {
+      "tag": "AlterTable",
+      "sql": "ALTER TABLE \"Conversation\" ADD COLUMN \"title\" TEXT NOT NULL DEFAULT '';"
+    },
+    {
+      "tag": "AlterTable",
+      "sql": "ALTER TABLE \"Conversation\" ADD COLUMN \"updatedAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;"
+    }
+  ]
+}
