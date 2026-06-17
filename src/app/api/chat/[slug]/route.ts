@@ -307,19 +307,20 @@ async function callAI(apiKey: string, providerId: string, model: string, system:
 
 async function saveUsage(clientId: string, provider: string, model: string, usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {
   try {
-    await db.prisma.aIUsageLog.create({
-      data: {
-        id: randomUUID(),
-        clientId,
-        provider,
-        model,
-        promptTokens: usage.prompt_tokens || 0,
-        completionTokens: usage.completion_tokens || 0,
-        totalTokens: usage.total_tokens || 0,
-      },
-    });
-  } catch (err) {
-    console.error("[Nova Chat] Failed to save AI usage:", err);
+    const data = {
+      id: randomUUID(),
+      clientId,
+      provider,
+      model,
+      promptTokens: usage.prompt_tokens || 0,
+      completionTokens: usage.completion_tokens || 0,
+      totalTokens: usage.total_tokens || 0,
+    };
+    console.log("[Nova Chat] saveUsage called:", JSON.stringify({ clientId, provider, model, totalTokens: data.totalTokens }));
+    await db.prisma.aIUsageLog.create({ data });
+    console.log("[Nova Chat] saveUsage success");
+  } catch (err: any) {
+    console.error("[Nova Chat] Failed to save AI usage:", err?.message || err, err?.stack || "");
   }
 }
 

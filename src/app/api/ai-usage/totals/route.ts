@@ -53,9 +53,11 @@ export async function GET(req: NextRequest) {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   const allLogs = await db.read<any>("ai_usage_logs");
+  console.log("[AI Usage Totals] user.clientId:", user.clientId, "monthStart:", monthStart, "totalLogs:", allLogs.length);
   const clientLogs = allLogs.filter(
     (l: any) => l.clientId === user.clientId && l.createdAt >= monthStart
   );
+  console.log("[AI Usage Totals] clientLogs:", clientLogs.length);
 
   const usage: Record<string, { provider: string; model: string; used: number; limit: number; calls: number }> = {};
 
