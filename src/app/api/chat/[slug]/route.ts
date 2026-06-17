@@ -81,7 +81,11 @@ function calcSimilarity(a: string, b: string): number {
   const na = norm(a);
   const nb = norm(b);
   if (na === nb) return 1;
-  if (na.includes(nb) || nb.includes(na)) return 0.95;
+  const wa = na.split(" ").filter(w => w);
+  const wb = nb.split(" ").filter(w => w);
+  const shorter = wa.length <= wb.length ? wa : wb;
+  const longer = wa.length <= wb.length ? wb : wa;
+  if (shorter.length > 0 && shorter.every(w => longer.some(lw => lw.includes(w) || w.includes(lw)))) return 0.95;
   const wo = wordOverlap(na, nb);
   const bo = bigramOverlap(na, nb);
   const fs = fuzzyScore(na, nb);
@@ -91,33 +95,34 @@ function calcSimilarity(a: string, b: string): number {
 function findBestMatch(
   query: string,
   KB: { question: string; alt_questions: string; answer: string; category: string; keywords: string }[]
-): { match: any | null; score: number } {
+): { match: any | null; score: number; isKeyword: boolean } {
   let best: any | null = null;
   let bestScore = 0;
+  let isKeyword = false;
   const nq = norm(query);
   for (const e of KB) {
     const sq = calcSimilarity(query, e.question);
-    if (sq > bestScore) { bestScore = sq; best = e; }
+    if (sq > bestScore) { bestScore = sq; best = e; isKeyword = false; }
     if (e.alt_questions) {
-      for (const a of e.alt_questions.split(",").map(s => s.trim())) {
+      for (const a of e.alt_questions.split(/[,|]+\s*/).map(s => s.trim())) {
         if (!a) continue;
         const sa = calcSimilarity(query, a);
-        if (sa > bestScore) { bestScore = sa; best = e; }
+        if (sa > bestScore) { bestScore = sa; best = e; isKeyword = false; }
       }
     }
     for (const kw of (e.keywords || "").split(",").map(s => s.trim())) {
       const nkw = norm(kw);
       if (nkw && (nq.includes(nkw) || nkw.includes(nq))) {
         const sk = 0.6;
-        if (sk > bestScore) { bestScore = sk; best = e; }
+        if (sk > bestScore) { bestScore = sk; best = e; isKeyword = true; }
       }
     }
     const cat = norm(e.category);
     if (cat && (nq.includes(cat) || cat.includes(nq))) {
-      if (0.55 > bestScore) { bestScore = 0.55; best = e; }
+      if (0.55 > bestScore) { bestScore = 0.55; best = e; isKeyword = false; }
     }
   }
-  return { match: best, score: Math.round(Math.min(bestScore, 1) * 100) };
+  return { match: best, score: Math.round(Math.min(bestScore, 1) * 100), isKeyword };
 }
 
 function findRelated(match: any | null, KB: any[], count: number): string[] {
@@ -361,8 +366,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     valid_until: k.valid_until || "",
   }));
 
-  const { match, score } = findBestMatch(message, KB);
-  const kbThreshold = client.kbThreshold ?? 80;
+  const { match, score, isKeyword } = findBestMatch(message, KB);
+  const kbThreshold = isKeyword ? 50 : (client.kbThreshold ?? 80);
   const ragThreshold = client.ragThreshold ?? 72;
 
   /* ── NIVEAU 1 : QA VALIDÉE ── */
