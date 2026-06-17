@@ -225,43 +225,47 @@ ${question}`;
   return { system, user };
 }
 
-function buildEscaladePrompt(client: any, question: string, sessionType: string) {
-  const contacts: Record<string, string> = {
-    client: `- Expertise technique → experts@cetim.fr
-- Demande de devis → commercial@cetim.fr
-- Formations → formation@cetim.fr
-- Standard → +33 (0)3 44 67 36 82`,
-    partenaire: `- Partenariats → partenaires@cetim.fr
-- Support technique → support@cetim.fr`,
-    interne: `- Support interne → support-interne@cetim.fr
-- IT → it@cetim.fr`,
-  };
+function findContactEntry(KB: any[]): string {
+  const entry = KB.find(k =>
+    k.question && norm(k.question).includes("contacter le cetim")
+  ) || KB.find(k =>
+    k.keywords && norm(k.keywords).includes("contact")
+  );
+  return entry?.answer?.trim() || "";
+}
 
-  const system = `Tu es l'assistant officiel de ${client.name}.
-Tu n'as pas trouvé d'information pertinente pour répondre.
+function buildEscaladePrompt(client: any, question: string, sessionType: string, KB: any[]) {
+  const contactInfo = findContactEntry(KB);
+
+  const system = `Tu es un conseiller commercial chaleureux et professionnel de ${client.name}.
+Tu n'as pas trouvé de réponse précise dans la base de connaissances pour cette question.
 
 RÈGLES ABSOLUES :
-- Reconnais honnêtement que tu n'as pas la réponse
-- Explique brièvement pourquoi (hors périmètre ou info non disponible)
-- Propose les canaux de contact adaptés
-- NE TENTE PAS de répondre approximativement
-- Réponds toujours en français, professionnel et concis`;
+- Reste chaleureux, commercial et accueillant
+- Explique que tu n'as pas l'information exacte mais que tu es là pour l'aider
+- Propose les coordonnées de contact ci-dessous avec enthousiasme
+- Insiste pour que le client n'hésite pas à contacter l'équipe, pose une question ouverte en fin de message
+- Suggère 2-3 questions ou sujets pertinents que le client pourrait poser
+- N'invente JAMAIS d'information technique
+- Réponds toujours en français, ton professionnel mais accessible et commercial`;
 
   const user = `NIVEAU : ESCALADE — AUCUN CONTEXTE PERTINENT
 
 PROFIL : ${sessionType}
 
-CANAUX DE CONTACT :
-${contacts[sessionType] || contacts.client}
+INFORMATIONS DE CONTACT :
+${contactInfo || "Aucune coordonnée spécifique disponible."}
 
 QUESTION DU CLIENT :
-${question}`;
+${question}
 
-  return { system, user };
+Consigne : Réponds de façon chaleureuse et commerciale. Propose les contacts ci-dessus, suggère 2-3 questions que le client pourrait poser, et termine par une question ouverte ou une invitation à poursuivre.`;
+
+  return { system, user, contactInfo };
 }
 
 /* ── AI CALL ────────────────────────────────────────── */
-async function callAI(apiKey: string, providerId: string, model: string, system: string, user: string, temperature: number, history: any[]) {
+async function callAI(apiKey: string, providerId: string, model: string, system: string, user: string, temperature: number, history: any[], max_tokens: number = 600) {
   const provider = PROVIDERS[providerId];
   if (!provider) throw new Error("Fournisseur AI inconnu");
 
@@ -281,7 +285,7 @@ async function callAI(apiKey: string, providerId: string, model: string, system:
         { role: "user", content: user },
       ],
       temperature,
-      max_tokens: 600,
+      max_tokens,
     }),
   });
 
@@ -397,9 +401,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
   }
 
-  /* ── PAS D'IA → fallback KB ou message générique ── */
+  /* ── PAS D'IA → fallback avec contacts KB ── */
   if (!aiMode || !client.apiKey) {
-    const resp = match?.answer || "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.";
+    const contactInfo = findContactEntry(KB);
+    let resp: string;
+    if (match?.answer && score >= kbThreshold) {
+      resp = match.answer;
+    } else if (contactInfo) {
+      resp = `Je n'ai pas trouvé de réponse précise à votre question. 🎯\n\nN'hésitez pas à nous contacter directement, notre équipe se fera un plaisir de vous renseigner :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`;
+    } else {
+      resp = "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.";
+    }
     saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score);
     return NextResponse.json({
       response: resp,
@@ -437,21 +449,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   /* ── NIVEAU 3 : ESCALADE ── */
-  const { system, user } = buildEscaladePrompt(client, message, sessionType);
+  const kbMatch = match ? findRelated(match, KB, 3) : [];
+  const { system, user, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB);
   try {
-    const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || []);
+    const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
     saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score);
     saveUsage(client.id, providerInfo.id, model, usage);
-    return NextResponse.json({ response: text, source: "escalade", provider: providerInfo.label, score }, { headers: corsHeaders });
+    return NextResponse.json({ response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
-    const fallbackResp = "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.";
+    const fallbackResp = contactInfo
+      ? `Je n'ai pas pu traiter votre demande pour le moment. 📋\n\nN'hésitez pas à nous contacter directement, notre équipe se fera un plaisir de vous renseigner :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`
+      : "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.";
     saveConversation(client, history || [], message, fallbackResp, "fallback", "", score);
     return NextResponse.json({
       response: fallbackResp,
       source: "fallback",
       score,
+      suggestions: kbMatch,
     }, { headers: corsHeaders });
   }
 }

@@ -464,6 +464,8 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
       sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">Base de connaissances</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }else if(source==="ai"&&provider){
       sourceHtml='<div class="nft"><span class="nsrc ai">Propuls\u00e9 par '+escHtml(provider)+(clientName?" + contexte "+escHtml(clientName):"")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+    }else if(source==="escalade"){
+      sourceHtml='<div class="nft"><span class="nsc orange">📋 Contact humain</span><span class="nsrc" style="color:#92400e">Notre équipe reste à votre écoute</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }else if(source==="fallback"){
       sourceHtml='<div class="nft"><span class="nsrc">Fallback</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }else{
