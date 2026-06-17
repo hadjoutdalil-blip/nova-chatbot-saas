@@ -10,6 +10,7 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "seed": "node node_modules/tsx/dist/cli.mjs scripts/seed.ts",
+"seed:cetim-kb": "node node_modules/tsx/dist/cli.mjs scripts/seed-cetim-kb.ts",
     "migrate:pg": "node node_modules/tsx/dist/cli.mjs scripts/migrate-to-pg.ts"
   },
   "dependencies": {
