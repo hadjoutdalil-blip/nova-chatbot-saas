@@ -30,10 +30,12 @@ model Client {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  users         User[]
-  widgetConfigs WidgetConfig[]
-  kbEntries     KBEntry[]
-  conversations Conversation[]
+  users           User[]
+  widgetConfigs   WidgetConfig[]
+  kbEntries       KBEntry[]
+  clientDocuments ClientDocument[]
+  aiUsageLogs     AIUsageLog[]
+  conversations   Conversation[]
 }
 
 model User {
@@ -86,6 +88,30 @@ model KBEntry {
   clientId      String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model ClientDocument {
+  id           String   @id @default(uuid())
+  clientId     String
+  originalName String
+  mimeType     String   @default("")
+  content      String   @default("")
+  createdAt    DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model AIUsageLog {
+  id              String   @id @default(uuid())
+  clientId        String
+  provider        String
+  model           String
+  promptTokens    Int      @default(0)
+  completionTokens Int     @default(0)
+  totalTokens     Int      @default(0)
+  createdAt       DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, PanelRightClose } from "lucide-react";
+import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, PanelRightClose, Upload, FileText, Trash2 } from "lucide-react";
 
 const PROVIDERS = [
   { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
@@ -17,6 +17,8 @@ export default function AppSettingsPage() {
   const [keyTest, setKeyTest] = useState<{ loading?: boolean; valid?: boolean; error?: string }>({});
   const [saving, setSaving] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -28,6 +30,9 @@ export default function AppSettingsPage() {
         const c = clients.find((c: any) => c.id === payload.clientId);
         if (c) { setClient(c); setForm({ ...c }); }
       });
+    fetch("/api/client-documents", { headers: { Authorization: `Bearer ${token()}` } })
+      .then((r) => r.json())
+      .then(setDocuments);
   }, []);
 
   async function handleSave() {
@@ -65,6 +70,37 @@ export default function AppSettingsPage() {
     });
     const data = await res.json();
     setKeyTest({ loading: false, valid: data.valid, error: data.error });
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/client-documents", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token()}` },
+      body: fd,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setDocuments((prev) => [...prev, data]);
+    } else {
+      const err = await res.json();
+      alert(err.error || "Erreur d'upload");
+    }
+    setUploading(false);
+    e.target.value = "";
+  }
+
+  async function handleDeleteDoc(id: string) {
+    if (!confirm("Supprimer ce document ?")) return;
+    const res = await fetch(`/api/client-documents/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token()}` },
+    });
+    if (res.ok) setDocuments((prev) => prev.filter((d) => d.id !== id));
   }
 
   if (!form) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
@@ -185,6 +221,35 @@ export default function AppSettingsPage() {
               <Building2 size={14} /> Contexte de l&apos;entreprise (importé automatiquement en chunks)
             </label>
             <textarea value={form.siteContext || ""} onChange={(e) => setForm({ ...form, siteContext: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700"><FileText size={14} /> Documents contextuels</h3>
+              <label className="flex items-center gap-2 text-xs font-medium text-purple-600 hover:text-purple-700 cursor-pointer transition-colors">
+                <Upload size={14} /> {uploading ? "Upload..." : "Ajouter un fichier"}
+                <input type="file" accept=".txt,.csv,.json,.md" className="hidden" onChange={handleUpload} disabled={uploading} />
+              </label>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">Formats supportés : .txt, .csv, .json, .md (max 5 Mo). Le contenu est automatiquement découpé en chunks pour le RAG.</p>
+            {documents.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">Aucun document uploadé.</p>
+            ) : (
+              <div className="space-y-2">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText size={16} className="text-purple-500 shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">{doc.originalName}</span>
+                      <span className="text-xs text-gray-400 shrink-0">{(doc.contentLength / 1024).toFixed(1)} Ko</span>
+                    </div>
+                    <button onClick={() => handleDeleteDoc(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 ml-2">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">

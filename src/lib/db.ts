@@ -18,6 +18,8 @@ function getDelegate(collection: string) {
     users: "user",
     widget_configs: "widgetConfig",
     kb_entries: "kBEntry",
+    ai_usage_logs: "aIUsageLog",
+    client_documents: "clientDocument",
     conversations: "conversation",
     global_configs: "globalConfig",
   };

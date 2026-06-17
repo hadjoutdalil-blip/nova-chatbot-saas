@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   LayoutDashboard,
   Users,
+  UserCog,
   BookOpen,
   BarChart3,
   Settings,
@@ -15,6 +16,7 @@ import {
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/clients", label: "Clients", icon: Users },
+  { href: "/dashboard/users", label: "Utilisateurs", icon: UserCog },
   { href: "/dashboard/kb", label: "Base de connaissances", icon: BookOpen },
   { href: "/dashboard/analytics", label: "Statistiques", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Paramètres", icon: Settings },

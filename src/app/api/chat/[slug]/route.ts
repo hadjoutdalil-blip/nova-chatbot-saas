@@ -132,6 +132,24 @@ function findRelated(match: any | null, KB: any[], count: number): string[] {
 }
 
 /* ── CHUNK PARSING ─────────────────────────── */
+function chunkDocument(doc: { originalName: string; content: string }, chunkSize: number): { source: string; content: string }[] {
+  const chunks: { source: string; content: string }[] = [];
+  const text = doc.content;
+  if (!text) return chunks;
+  let start = 0;
+  let idx = 0;
+  while (start < text.length) {
+    const end = Math.min(start + chunkSize, text.length);
+    const chunk = text.slice(start, end).trim();
+    if (chunk) {
+      chunks.push({ source: `${doc.originalName} (partie ${idx + 1})`, content: chunk });
+      idx++;
+    }
+    start = end;
+  }
+  return chunks;
+}
+
 function parseChunks(siteContext: string): { source: string; content: string }[] {
   if (!siteContext) return [];
   const chunks: { source: string; content: string }[] = [];
@@ -264,7 +282,28 @@ async function callAI(apiKey: string, providerId: string, model: string, system:
 
   const data = await resp.json();
   if (!resp.ok) throw new Error(data.error?.message || `Erreur ${resp.status}`);
-  return data.choices?.[0]?.message?.content || "";
+  const text = data.choices?.[0]?.message?.content || "";
+  const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  return { text, usage };
+}
+
+async function saveUsage(clientId: string, provider: string, model: string, usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {
+  try {
+    const all = await db.read<any>("ai_usage_logs");
+    all.push({
+      id: randomUUID(),
+      clientId,
+      provider,
+      model,
+      promptTokens: usage.prompt_tokens || 0,
+      completionTokens: usage.completion_tokens || 0,
+      totalTokens: usage.total_tokens || 0,
+      createdAt: new Date().toISOString(),
+    });
+    await db.write("ai_usage_logs", all);
+  } catch (err) {
+    console.error("[Nova Chat] Failed to save AI usage:", err);
+  }
 }
 
 /* ── SAVE CONVERSATION ──────────────────────────────── */
@@ -343,8 +382,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const { system, user } = buildQAPrompt(client, match, score, message);
     try {
       const providerInfo = detectProvider(client.apiKey);
-      const text = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
+      const { text, usage } = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
       saveConversation(client, history || [], message, text, "qa", providerInfo.label, score);
+      saveUsage(client.id, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", usage);
       return NextResponse.json({ response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     } catch {
       saveConversation(client, history || [], message, match.answer, "kb", "", score);
@@ -371,14 +411,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 2 : RAG — contexte documentaire ── */
   if (score >= ragThreshold) {
-    const chunks = parseChunks(client.siteContext || "");
+    const siteChunks = parseChunks(client.siteContext || "");
+    const allDocs = await db.read<any>("client_documents");
+    const clientDocs = allDocs.filter((d: any) => d.clientId === client.id);
+    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 500));
+    const chunks = [...siteChunks, ...docChunks];
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
 
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message);
       try {
-        const text = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
+        const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, score);
+        saveUsage(client.id, providerInfo.id, model, usage);
         return NextResponse.json({ response: text, source: "rag", provider: providerInfo.label, score, chunks: topChunks.map(c => c.source) }, { headers: corsHeaders });
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
@@ -389,9 +434,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   /* ── NIVEAU 3 : ESCALADE ── */
   const { system, user } = buildEscaladePrompt(client, message, sessionType);
   try {
-    const text = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || []);
+    const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || []);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
     saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score);
+    saveUsage(client.id, providerInfo.id, model, usage);
     return NextResponse.json({ response: text, source: "escalade", provider: providerInfo.label, score }, { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
