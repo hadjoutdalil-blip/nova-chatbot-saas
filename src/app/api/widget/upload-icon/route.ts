@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/api-auth";
-import { writeFile, unlink, mkdir } from "fs/promises";
-import { join } from "path";
+import { put } from "@vercel/blob";
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
@@ -24,19 +23,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fichier trop volumineux (max 2 Mo)" }, { status: 400 });
   }
 
-  const uploadDir = join(process.cwd(), "public", "uploads", "widget-icons");
-  await mkdir(uploadDir, { recursive: true });
+  const blob = await put(`widget-icons/${targetClientId}.${ext}`, file, {
+    access: "public",
+  });
 
-  const oldPaths = ["png", "gif"].map((e) => join(uploadDir, `${targetClientId}.${e}`));
-  for (const p of oldPaths) {
-    try { await unlink(p); } catch {}
-  }
-
-  const fileName = `${targetClientId}.${ext}`;
-  const filePath = join(uploadDir, fileName);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
-
-  const url = `/uploads/widget-icons/${fileName}`;
-  return NextResponse.json({ url });
+  return NextResponse.json({ url: blob.url });
 }
