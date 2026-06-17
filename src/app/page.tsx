@@ -5,7 +5,6 @@ const PLANS = [
   {
     id: "ecommerce",
     name: "E-commerce",
-    price: 299,
     desc: "Idéal pour les boutiques en ligne qui veulent automatiser le support et booster les ventes.",
     features: ["Réponses sur les produits et stocks", "Suivi de commandes et livraisons", "Gestion des retours et remboursements", "Recommandations produits", "Disponible en 48h"],
     color: "purple",
@@ -13,7 +12,6 @@ const PLANS = [
   {
     id: "support",
     name: "Support Client",
-    price: 399,
     desc: "Pour les entreprises qui reçoivent beaucoup de questions fréquentes et veulent y répondre 24/7.",
     features: ["FAQ et base de connaissances illimitée", "Création de tickets automatique", "Transfert vers un humain si nécessaire", "Horaires et procédures", "Disponible en 72h"],
     color: "indigo",
@@ -22,7 +20,6 @@ const PLANS = [
   {
     id: "realestate",
     name: "Immobilier",
-    price: 499,
     desc: "Conçu pour les agences immobilières qui veulent qualifier leurs leads 24h/24.",
     features: ["Recherche de biens par critères", "Planification de visites", "Simulation de crédit", "Qualification des leads", "Disponible en 72h"],
     color: "blue",
@@ -98,8 +95,11 @@ export default function LandingPage() {
                 <h3 className="font-bold text-xl mb-1">{plan.name}</h3>
                 <p className="text-sm text-gray-500 mb-4">{plan.desc}</p>
                 <div className="mb-6">
-                  <span className="text-3xl font-bold">{plan.price}$</span>
-                  <span className="text-gray-400 text-sm">/mois</span>
+                  <span className="text-3xl font-bold">Compétitif</span>
+                  <div className="mt-1 flex gap-2 text-xs text-gray-400">
+                    <span className="bg-gray-100 px-2 py-0.5 rounded">Mensuel</span>
+                    <span className="bg-gray-100 px-2 py-0.5 rounded">Annuel</span>
+                  </div>
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f, i) => (
@@ -110,7 +110,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <a href="mailto:contact@nova.dz?subject=Demande pack chatbot" className={`w-full text-center py-2.5 rounded-xl font-semibold text-sm text-white ${colorMap[plan.color]} transition`}>
-                  Demander ce pack
+                  Contactez-nous
                 </a>
               </div>
             ))}
@@ -118,9 +118,9 @@ export default function LandingPage() {
           <div className="text-center mt-10 max-w-md mx-auto bg-white rounded-2xl border p-6 shadow-sm">
             <p className="text-gray-400 text-sm font-semibold mb-1">Pack</p>
             <h3 className="font-bold text-xl mb-1">Sur Mesure</h3>
-            <p className="text-sm text-gray-500 mb-4">Vous avez un besoin spécifique ? Je crée un chatbot adapté à votre métier.</p>
-            <a href="mailto:contact@nova.dz?subject=Demande chatbot sur mesure" className="inline-block border border-gray-300 text-gray-700 px-8 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition">
-              Demander un devis
+            <p className="text-sm text-gray-500 mb-4">Vous avez un besoin spécifique ? Contactez-nous pour une solution adaptée à votre métier.</p>
+            <a href="mailto:contact@nova.dz?subject=Demande chatbot sur mesure" className="inline-block bg-purple-600 text-white px-8 py-2.5 rounded-xl font-semibold text-sm hover:bg-purple-700 transition">
+              Contactez-nous
             </a>
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function LandingPage() {
           <p className="text-purple-200 mb-8 text-lg">Contactez-moi pour discuter de votre projet. Je vous réponds sous 24h.</p>
           <div className="flex items-center justify-center gap-4">
             <a href="mailto:contact@nova.dz" className="inline-block bg-white text-purple-600 px-8 py-3 rounded-xl font-bold hover:bg-purple-50 shadow-xl transition">
-              Demander un devis
+              Contactez-nous
             </a>
             <a href="#pricing" className="inline-block border border-white/30 text-white px-8 py-3 rounded-xl font-bold hover:bg-white/10 transition">
               Voir les packs
