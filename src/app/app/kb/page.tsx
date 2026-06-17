@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Plus, Search, Download, Upload, Edit3, Trash2, X } from "lucide-react";
+import { Plus, Search, Download, Upload, Edit3, Trash2, X, FileText } from "lucide-react";
 
 interface KBEntry {
   id: string;
@@ -111,8 +111,22 @@ export default function AppKBPage() {
     setShowForm(false);
   }
 
-  function handleExport() {
-    window.open("/api/kb/export", "_blank");
+  async function handleExport() {
+    const res = await fetch("/api/kb/export", { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleExportPDF() {
+    const res = await fetch("/api/kb/export-pdf", { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.pdf"; a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -250,7 +264,8 @@ export default function AppKBPage() {
             <option value="">Toutes catégories</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button onClick={handleExport} className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-white/80 transition-all"><Download size={15} /> Exporter</button>
+          <button onClick={handleExportPDF} className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-white/80 transition-all"><FileText size={15} /> Exporter PDF</button>
+          <button onClick={handleExport} className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-white/80 transition-all"><Download size={15} /> Exporter JSON</button>
           <label className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-white/80 transition-all cursor-pointer">
             <Upload size={15} /> {importing ? "Import..." : "Importer"}
             <input type="file" accept=".json" className="hidden" onChange={handleImport} disabled={importing} />

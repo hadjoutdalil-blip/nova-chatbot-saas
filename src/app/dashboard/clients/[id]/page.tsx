@@ -171,8 +171,22 @@ export default function EditClientPage() {
     setModalOpen(true);
   }
 
-  function handleExport() {
-    window.open(`/api/kb/export?clientId=${id}`, "_blank");
+  async function handleExport() {
+    const res = await fetch(`/api/kb/export?clientId=${id}`, { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleExportPDF() {
+    const res = await fetch(`/api/kb/export-pdf?clientId=${id}`, { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.pdf"; a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleKbImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -477,9 +491,13 @@ export default function EditClientPage() {
                   <option value="">Toutes catégories</option>
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
+                <Button variant="secondary" onClick={handleExportPDF}>
+                  <FileText size={14} />
+                  Exporter PDF
+                </Button>
                 <Button variant="secondary" onClick={handleExport}>
                   <Download size={14} />
-                  Exporter
+                  Exporter JSON
                 </Button>
                 <label className="cursor-pointer">
                   <span className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 text-sm rounded-xl">

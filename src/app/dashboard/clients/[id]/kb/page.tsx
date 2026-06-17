@@ -91,8 +91,22 @@ export default function ClientKBPage() {
     load();
   }
 
-  function handleExport() {
-    window.open(`/api/kb/export?clientId=${id}`, "_blank");
+  async function handleExport() {
+    const res = await fetch(`/api/kb/export?clientId=${id}`, { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleExportPDF() {
+    const res = await fetch(`/api/kb/export-pdf?clientId=${id}`, { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.pdf"; a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -134,7 +148,8 @@ export default function ClientKBPage() {
             <option value="">Toutes catégories</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button onClick={handleExport} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter</button>
+          <button onClick={handleExportPDF} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter PDF</button>
+          <button onClick={handleExport} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter JSON</button>
           <label className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50 cursor-pointer">
             {importing ? "Import..." : "Importer"}
             <input type="file" accept=".json" className="hidden" onChange={handleImport} disabled={importing} />

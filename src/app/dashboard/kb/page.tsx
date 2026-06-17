@@ -65,9 +65,33 @@ export default function KBPage() {
     setError("");
   }
 
+  async function handleExportJSON() {
+    const res = await fetch("/api/kb/export", { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleExportPDF() {
+    const res = await fetch("/api/kb/export-pdf", { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) { const d = await res.json(); alert(d.error || "Erreur"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "kb-export.pdf"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Base de connaissances</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Base de connaissances</h1>
+        <div className="flex gap-2">
+          <button onClick={handleExportPDF} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter PDF</button>
+          <button onClick={handleExportJSON} className="text-sm border rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">Exporter JSON</button>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 mb-6 max-w-2xl space-y-4">
         {error && <p className="text-red-500 text-sm">{error}</p>}
