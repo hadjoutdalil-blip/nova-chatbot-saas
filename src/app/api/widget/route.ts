@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
       sendGreeting: body.sendGreeting === true,
       scrollTrigger: body.scrollTrigger ?? 0,
       exitIntent: body.exitIntent === true,
+      buttonAnimation: body.buttonAnimation || "pulse",
+      buttonLabel: body.buttonLabel || "",
+      buttonLabelDuration: body.buttonLabelDuration ?? 8,
     });
     await db.write("widget_configs", configs);
     return NextResponse.json(existing);
@@ -56,6 +59,9 @@ export async function POST(req: NextRequest) {
     sendGreeting: body.sendGreeting === true,
     scrollTrigger: body.scrollTrigger ?? 0,
     exitIntent: body.exitIntent === true,
+    buttonAnimation: body.buttonAnimation || "pulse",
+    buttonLabel: body.buttonLabel || "",
+    buttonLabelDuration: body.buttonLabelDuration ?? 8,
     clientId,
   };
 
@@ -91,10 +97,12 @@ export async function PUT(req: NextRequest) {
       sendGreeting: body.sendGreeting === true,
       scrollTrigger: body.scrollTrigger ?? 0,
       exitIntent: body.exitIntent === true,
+      buttonAnimation: body.buttonAnimation || "pulse",
+      buttonLabel: body.buttonLabel || "",
+      buttonLabelDuration: body.buttonLabelDuration ?? 8,
       clientId,
     };
     configs.push(config);
-    await db.write("widget_configs", configs);
     return NextResponse.json(config);
   }
 
@@ -114,6 +122,9 @@ export async function PUT(req: NextRequest) {
     sendGreeting: body.sendGreeting === true,
     scrollTrigger: body.scrollTrigger ?? configs[idx].scrollTrigger ?? 0,
     exitIntent: body.exitIntent === true,
+    buttonAnimation: body.buttonAnimation ?? configs[idx].buttonAnimation ?? "pulse",
+    buttonLabel: body.buttonLabel ?? configs[idx].buttonLabel ?? "",
+    buttonLabelDuration: body.buttonLabelDuration ?? configs[idx].buttonLabelDuration ?? 8,
   };
 
   await db.write("widget_configs", configs);

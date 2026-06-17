@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+const ANIMATIONS = ["pulse", "bounce", "ring", "shimmer", "rotate", "breath", "none"];
+
 interface WidgetConfig {
   id: string;
   welcomeTitle: string;
@@ -10,7 +12,9 @@ interface WidgetConfig {
   position: string;
   marginBottom: number;
   marginRight: number;
-  avatarIcon: string;
+  buttonAnimation: string;
+  buttonLabel: string;
+  buttonLabelDuration: number;
   clientId: string;
 }
 
@@ -26,8 +30,11 @@ export default function WidgetPage() {
     position: "right",
     marginBottom: 20,
     marginRight: 20,
-    avatarIcon: "robot",
+    buttonAnimation: "pulse",
+    buttonLabel: "",
+    buttonLabelDuration: 8,
   });
+  const [showButtonLabel, setShowButtonLabel] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
   function token() { return localStorage.getItem("token") || ""; }
@@ -48,15 +55,19 @@ export default function WidgetPage() {
         const data = await res.json();
         if (data.widgetConfig) {
           setConfig(data.widgetConfig);
+          const wc = data.widgetConfig;
           setForm({
-            welcomeTitle: data.widgetConfig.welcomeTitle,
-            welcomeSub: data.widgetConfig.welcomeSub,
-            showBrand: data.widgetConfig.showBrand,
-            position: data.widgetConfig.position,
-            marginBottom: data.widgetConfig.marginBottom,
-            marginRight: data.widgetConfig.marginRight,
-            avatarIcon: data.widgetConfig.avatarIcon,
+            welcomeTitle: wc.welcomeTitle,
+            welcomeSub: wc.welcomeSub,
+            showBrand: wc.showBrand,
+            position: wc.position,
+            marginBottom: wc.marginBottom,
+            marginRight: wc.marginRight,
+            buttonAnimation: wc.buttonAnimation || "pulse",
+            buttonLabel: wc.buttonLabel || "",
+            buttonLabelDuration: wc.buttonLabelDuration ?? 8,
           });
+          setShowButtonLabel(!!wc.buttonLabel);
         }
         setLoading(false);
       })
@@ -69,17 +80,19 @@ export default function WidgetPage() {
     const t = token();
     const payload = JSON.parse(atob(t.split(".")[1]));
 
+    const body = { ...form, buttonLabel: showButtonLabel ? form.buttonLabel : "" };
+
     if (config) {
       await fetch(`/api/widget/${clientSlug}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ ...form, clientId: payload.clientId }),
+        body: JSON.stringify({ ...body, clientId: payload.clientId }),
       });
     } else {
       await fetch("/api/widget", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ ...form, clientId: payload.clientId }),
+        body: JSON.stringify({ ...body, clientId: payload.clientId }),
       });
     }
     setSaving(false);
@@ -114,6 +127,8 @@ export default function WidgetPage() {
               <p><span className="text-gray-500 text-sm">Sous-titre :</span> <span>{form.welcomeSub}</span></p>
               <p><span className="text-gray-500 text-sm">Position :</span> <span>{form.position === "right" ? "Droite" : "Gauche"}</span></p>
               <p><span className="text-gray-500 text-sm">Marges :</span> <span>bas {form.marginBottom}px / {form.position === "right" ? "droite" : "gauche"} {form.marginRight}px</span></p>
+              <p><span className="text-gray-500 text-sm">Animation :</span> <span className="capitalize">{form.buttonAnimation}</span></p>
+              <p><span className="text-gray-500 text-sm">Message :</span> <span>{form.buttonLabel || "—"}</span></p>
               <p><span className="text-gray-500 text-sm">Marque :</span> <span>{form.showBrand ? "Affichée" : "Masquée"}</span></p>
             </div>
             <button onClick={() => setEditMode(true)} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700">Modifier</button>
@@ -128,6 +143,39 @@ export default function WidgetPage() {
               <label className="block text-sm font-medium mb-1">Sous-titre</label>
               <input value={form.welcomeSub} onChange={(e) => setForm({ ...form, welcomeSub: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Animation du bouton</label>
+              <div className="flex flex-wrap gap-2">
+                {ANIMATIONS.map((a) => (
+                  <button key={a} type="button" onClick={() => setForm({ ...form, buttonAnimation: a })}
+                    className={"px-4 py-2 rounded-lg border text-sm capitalize transition-all " + (form.buttonAnimation === a ? "border-purple-500 bg-purple-50 text-purple-700 font-medium" : "border-gray-200 hover:border-gray-300")}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 mb-2">
+                <input type="checkbox" checked={showButtonLabel} onChange={(e) => setShowButtonLabel(e.target.checked)} className="rounded" />
+                <span className="text-sm font-medium">Afficher un message d'accueil sur le bouton</span>
+              </label>
+              {showButtonLabel && (
+                <div className="pl-6 space-y-2">
+                  <input value={form.buttonLabel} onChange={(e) => setForm({ ...form, buttonLabel: e.target.value })}
+                    placeholder="Une question ?"
+                    className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Disparaît après</label>
+                    <input type="number" min="2" max="30" value={form.buttonLabelDuration} onChange={(e) => setForm({ ...form, buttonLabelDuration: +e.target.value })}
+                      className="w-16 border rounded-lg px-2 py-1 text-sm" />
+                    <span className="text-xs text-gray-500">secondes</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Position</label>
@@ -137,19 +185,11 @@ export default function WidgetPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Icône</label>
-                <select value={form.avatarIcon} onChange={(e) => setForm({ ...form, avatarIcon: e.target.value })} className="w-full border rounded-lg px-3 py-2">
-                  <option value="robot">Robot</option>
-                  <option value="chat">Chat</option>
-                  <option value="headset">Casque</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
                 <label className="block text-sm font-medium mb-1">Marge bas (px)</label>
                 <input type="number" value={form.marginBottom} onChange={(e) => setForm({ ...form, marginBottom: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Marge {form.position === "right" ? "droite" : "gauche"} (px)</label>
                 <input type="number" value={form.marginRight} onChange={(e) => setForm({ ...form, marginRight: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />

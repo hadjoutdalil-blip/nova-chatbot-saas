@@ -63,9 +63,12 @@ model WidgetConfig {
   showNotification  Boolean @default(true)
   notificationText  String  @default("")
   sendGreeting      Boolean @default(false)
-  scrollTrigger     Int     @default(0)
-  exitIntent        Boolean @default(false)
-  clientId          String
+  scrollTrigger       Int     @default(0)
+  exitIntent          Boolean @default(false)
+  buttonAnimation     String  @default("pulse")
+  buttonLabel         String  @default("")
+  buttonLabelDuration Int     @default(8)
+  clientId            String
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
