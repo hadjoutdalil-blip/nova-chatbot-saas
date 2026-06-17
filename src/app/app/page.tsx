@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, MessageCircle, CheckCircle, ArrowRight } from "lucide-react";
+import { BookOpen, MessageCircle, CheckCircle, ArrowRight, Brain, Cpu, Gauge } from "lucide-react";
 
 export default function AppDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState({ kb: 0 });
+  const [tokenUsage, setTokenUsage] = useState<any[]>([]);
+  const [totals, setTotals] = useState({ totalUsed: 0, totalLimit: 0, totalPct: 0, month: "" });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -14,6 +16,13 @@ export default function AppDashboard() {
     fetch("/api/kb", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => setStats({ kb: data.length }))
+      .catch(() => {});
+    fetch("/api/ai-usage/totals", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => {
+        setTokenUsage(data.providers || []);
+        setTotals({ totalUsed: data.totalUsed || 0, totalLimit: data.totalLimit || 0, totalPct: data.totalPct || 0, month: data.month || "" });
+      })
       .catch(() => {});
   }, []);
 
@@ -50,6 +59,68 @@ export default function AppDashboard() {
           <p className="text-sm text-gray-500">Statut du chatbot</p>
           <p className="text-3xl font-bold text-green-500">Actif</p>
         </div>
+      </div>
+
+      {/* Token Usage per Provider/Model */}
+      <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-elevated mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Brain size={18} className="text-purple-600" />
+            <h2 className="font-semibold text-gray-900">Consommation IA — {totals.month}</h2>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Gauge size={16} className={totals.totalPct >= 80 ? "text-red-500" : totals.totalPct >= 50 ? "text-amber-500" : "text-green-500"} />
+            <span className="text-gray-500">
+              {totals.totalPct}% utilisé
+              <span className="text-gray-400 ml-1">({(totals.totalUsed / 1000).toFixed(0)}K / {(totals.totalLimit / 1000).toFixed(0)}K tokens)</span>
+            </span>
+          </div>
+        </div>
+
+        {tokenUsage.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">Aucune consommation pour le moment.</p>
+        ) : (
+          <div className="space-y-4">
+            {tokenUsage.map((u) => (
+              <div key={`${u.provider}:${u.model}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      u.provider === "groq" ? "bg-orange-50 text-orange-700" :
+                      u.provider === "cerebras" ? "bg-blue-50 text-blue-700" :
+                      "bg-gray-50 text-gray-700"
+                    }`}>
+                      <Cpu size={11} /> {u.provider}
+                    </span>
+                    <span className="text-sm font-medium text-gray-700">{u.model}</span>
+                    <span className="text-xs text-gray-400">{u.calls} appel{u.calls > 1 ? "s" : ""}</span>
+                  </div>
+                  <span className={`text-xs font-semibold ${
+                    u.pct >= 80 ? "text-red-600" : u.pct >= 50 ? "text-amber-600" : "text-green-600"
+                  }`}>
+                    {u.pct}%
+                  </span>
+                </div>
+                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      u.pct >= 80 ? "bg-red-500" : u.pct >= 50 ? "bg-amber-500" : "bg-green-500"
+                    }`}
+                    style={{ width: `${Math.min(u.pct, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-0.5">
+                  <span className="text-[11px] text-gray-400">
+                    {u.used >= 1000000 ? (u.used / 1000000).toFixed(1) + "M" : (u.used >= 1000 ? (u.used / 1000).toFixed(0) + "K" : u.used)} utilisés
+                  </span>
+                  <span className="text-[11px] text-gray-400">
+                    {u.remaining >= 1000000 ? (u.remaining / 1000000).toFixed(1) + "M" : (u.remaining >= 1000 ? (u.remaining / 1000).toFixed(0) + "K" : u.remaining)} restants
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h2>
