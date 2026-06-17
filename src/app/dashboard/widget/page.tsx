@@ -12,6 +12,7 @@ interface WidgetConfig {
   position: string;
   marginBottom: number;
   marginRight: number;
+  avatarIcon: string;
   buttonAnimation: string;
   buttonLabel: string;
   buttonLabelDuration: number;
@@ -33,6 +34,7 @@ export default function WidgetPage() {
     buttonAnimation: "pulse",
     buttonLabel: "",
     buttonLabelDuration: 8,
+    avatarIcon: "robot",
   });
   const [showButtonLabel, setShowButtonLabel] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -66,6 +68,7 @@ export default function WidgetPage() {
             buttonAnimation: wc.buttonAnimation || "pulse",
             buttonLabel: wc.buttonLabel || "",
             buttonLabelDuration: wc.buttonLabelDuration ?? 8,
+            avatarIcon: wc.avatarIcon || "robot",
           });
           setShowButtonLabel(!!wc.buttonLabel);
         }

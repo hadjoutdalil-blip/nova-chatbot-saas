@@ -87,8 +87,8 @@ C+="@keyframes nw-glow{0%,100%{box-shadow:0 8px 24px "+e.primaryColor+"44}50%{bo
 C+=".nb{position:fixed;bottom:"+e.marginBottom+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);border:none;cursor:pointer;box-shadow:0 8px 32px "+e.primaryColor+"55;z-index:999999;display:flex;align-items:center;justify-content:center;transition:all .35s cubic-bezier(.4,0,.2,1)}";
 C+=".nb:hover{transform:scale(1.08) translateY(-2px);box-shadow:0 12px 40px "+e.primaryColor+"66;animation:none}";
 C+=".nb:active{transform:scale(.95)}";
-C+=".nb svg{width:24px;height:24px;color:#fff;transition:transform .5s}";
-C+=".nb.ai-mode svg{color:#a855f7;filter:drop-shadow(0 0 6px rgba(168,85,247,.6))}";
+C+=".nb svg{width:24px;height:24px;color:#fff;transition:all .5s}";
+C+=".nb.ai-mode{box-shadow:0 0 0 3px #a855f7, 0 0 20px rgba(168,85,247,.5), 0 8px 32px "+e.primaryColor+"55}";
 C+=".nb.o{opacity:0;pointer-events:none;transform:scale(.75)}";
 C+=".nb-notif{position:absolute;top:-1px;right:-1px;width:20px;height:20px;background:#dc2626;border-radius:50%;border:3px solid #fff;display:none;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff;animation:npulse 2s infinite}";
 C+="@keyframes npulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.7)}50%{box-shadow:0 0 0 7px rgba(220,38,38,0)}}";
@@ -324,7 +324,7 @@ var animClass="nb-"+(e.buttonAnimation||"pulse");
 btn.className="nova-widget nb "+(aiMode?"ai-mode ":"")+animClass;btn.id="nb";
 btn.setAttribute("aria-label","Ouvrir le chatbot");
 btn.setAttribute("aria-expanded","false");
-btn.innerHTML=ICONS.brain+'<span class="nb-notif" id="nb-notif" aria-hidden="true"></span>';
+btn.innerHTML=getAvatar()+'<span class="nb-notif" id="nb-notif" aria-hidden="true"></span>';
 document.body.appendChild(btn);
 
 /* button label */
