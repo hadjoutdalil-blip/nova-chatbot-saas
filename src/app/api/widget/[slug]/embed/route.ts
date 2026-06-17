@@ -439,7 +439,7 @@ if(e.proactiveEnabled&&!proactiveShown){
 /* Message Helpers */
 var chatHistory=[];
 
-function addMsg(text,role,source,provider,clientName,score,source_url,valid_until){
+function addMsg(text,role,source,provider,clientName,score,source_url,valid_until,documents){
   var box=document.getElementById("nm"),row=document.createElement("div");
   var time=formatTime();
   if(role==="user"){
@@ -462,6 +462,17 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
     if(source==="kb"&&score!=null){
       var cls=score>70?"green":score>40?"orange":"red";
       sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">Base de connaissances</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+    }else if(source==="rag"){
+      var docLinks="";
+      if(documents&&documents.length>0){
+        docLinks='<div class="nft" style="margin-top:4px">';
+        for(var di=0;di<documents.length;di++){
+          var d=documents[di];
+          docLinks+='<a href="'+escAttr(d.source_url||"#")+'" target="_blank" class="nsrc" style="display:inline-flex;align-items:center;gap:3px;color:#7c3aed;font-weight:600;text-decoration:none;background:#f5f3ff;padding:2px 8px;border-radius:6px;font-size:11px;margin-right:4px">\\ud83d\\udcc4 v'+d.version+'</a>';
+        }
+        docLinks+='</div>';
+      }
+      sourceHtml='<div class="nft"><span class="nsrc">Documentation technique</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>'+docLinks;
     }else if(source==="ai"&&provider){
       sourceHtml='<div class="nft"><span class="nsrc ai">Propuls\u00e9 par '+escHtml(provider)+(clientName?" + contexte "+escHtml(clientName):"")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }else if(source==="escalade"){
@@ -577,7 +588,7 @@ function sendMessage(text){
     if(xhr.status>=500){addMsg("Service temporairement indisponible. Veuillez r\u00e9essayer.","bot","fallback");return}
     try{
       var resp=JSON.parse(xhr.responseText);
-      addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until);
+      addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until,resp.documents);
       chatHistory.push({role:"assistant",content:resp.response});
       if(chatHistory.length>e.maxHistoryLength) chatHistory=chatHistory.slice(-e.maxHistoryLength);
       addSuggestions(resp.suggestions);

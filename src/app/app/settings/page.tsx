@@ -231,23 +231,34 @@ export default function AppSettingsPage() {
                 <input type="file" accept=".txt,.csv,.json,.md" className="hidden" onChange={handleUpload} disabled={uploading} />
               </label>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Formats supportés : .txt, .csv, .json, .md (max 5 Mo). Le contenu est automatiquement découpé en chunks pour le RAG.</p>
+            <p className="text-xs text-gray-400 mb-3">Formats supportés : .txt, .csv, .json, .md (max 5 Mo). Gestion des versions et dates de validité.</p>
             {documents.length === 0 ? (
               <p className="text-sm text-gray-400 italic">Aucun document uploadé.</p>
             ) : (
               <div className="space-y-2">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <FileText size={16} className="text-purple-500 shrink-0" />
-                      <span className="text-sm text-gray-700 truncate">{doc.originalName}</span>
-                      <span className="text-xs text-gray-400 shrink-0">{(doc.contentLength / 1024).toFixed(1)} Ko</span>
+                {documents.map((doc) => {
+                  const isValid = doc.valid_until ? new Date(doc.valid_until) >= new Date() : true;
+                  const isExpired = doc.valid_until ? new Date(doc.valid_until) < new Date() : false;
+                  return (
+                    <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText size={16} className="text-purple-500 shrink-0" />
+                        <span className="text-sm text-gray-700 truncate">{doc.originalName}</span>
+                        <span className="text-xs text-gray-400 shrink-0">{(doc.fileSize / 1024).toFixed(1)} Ko</span>
+                        {doc.version > 1 && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">v{doc.version}</span>}
+                        {doc.valid_from && <span className="text-xs text-gray-400 shrink-0">Du {new Date(doc.valid_from).toLocaleDateString("fr")}</span>}
+                        {doc.valid_until ? (
+                          <span className={"text-xs shrink-0 " + (isExpired ? "text-red-500" : "text-green-600")}>
+                            {isExpired ? "Expiré" : "Valide jusqu'au " + new Date(doc.valid_until).toLocaleDateString("fr")}
+                          </span>
+                        ) : null}
+                      </div>
+                      <button onClick={() => handleDeleteDoc(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 ml-2">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                    <button onClick={() => handleDeleteDoc(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 ml-2">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

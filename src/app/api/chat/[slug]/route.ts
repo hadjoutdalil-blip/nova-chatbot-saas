@@ -137,8 +137,10 @@ function findRelated(match: any | null, KB: any[], count: number): string[] {
 }
 
 /* ── CHUNK PARSING ─────────────────────────── */
-function chunkDocument(doc: { originalName: string; content: string }, chunkSize: number): { source: string; content: string }[] {
-  const chunks: { source: string; content: string }[] = [];
+interface ChunkMeta { source: string; content: string; docId?: string; version?: number; source_url?: string; valid_until?: string; }
+
+function chunkDocument(doc: any, chunkSize: number): ChunkMeta[] {
+  const chunks: ChunkMeta[] = [];
   const text = doc.content;
   if (!text) return chunks;
   let start = 0;
@@ -147,7 +149,14 @@ function chunkDocument(doc: { originalName: string; content: string }, chunkSize
     const end = Math.min(start + chunkSize, text.length);
     const chunk = text.slice(start, end).trim();
     if (chunk) {
-      chunks.push({ source: `${doc.originalName} (partie ${idx + 1})`, content: chunk });
+      chunks.push({
+        source: `${doc.originalName} (partie ${idx + 1})`,
+        content: chunk,
+        docId: doc.id,
+        version: doc.version ?? 1,
+        source_url: doc.source_url || "",
+        valid_until: doc.valid_until || null,
+      });
       idx++;
     }
     start = end;
@@ -155,7 +164,7 @@ function chunkDocument(doc: { originalName: string; content: string }, chunkSize
   return chunks;
 }
 
-function parseChunks(siteContext: string): { source: string; content: string }[] {
+function parseChunks(siteContext: string): ChunkMeta[] {
   if (!siteContext) return [];
   const chunks: { source: string; content: string }[] = [];
   const regex = /\[CHUNK:([^\]]+)\]([\s\S]*?)(?=\[CHUNK:|$)/g;
@@ -170,7 +179,7 @@ function parseChunks(siteContext: string): { source: string; content: string }[]
   return chunks;
 }
 
-function findBestChunks(question: string, chunks: { source: string; content: string }[], topN: number, threshold: number) {
+function findBestChunks(question: string, chunks: ChunkMeta[], topN: number, threshold: number) {
   const scored = chunks.map(c => ({ ...c, score: calcSimilarity(question, c.content) }));
   const sorted = scored.sort((a, b) => b.score - a.score);
   return sorted.filter(c => c.score * 100 >= threshold).slice(0, topN);
@@ -430,7 +439,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (score >= ragThreshold) {
     const siteChunks = parseChunks(client.siteContext || "");
     const allDocs = await db.read<any>("client_documents");
-    const clientDocs = allDocs.filter((d: any) => d.clientId === client.id);
+    const now = new Date();
+    const clientDocs = allDocs.filter((d: any) =>
+      d.clientId === client.id &&
+      d.status !== "archived" &&
+      (!d.valid_until || new Date(d.valid_until) >= now) &&
+      (!d.valid_from || new Date(d.valid_from) <= now)
+    );
     const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 500));
     const chunks = [...siteChunks, ...docChunks];
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
@@ -441,7 +456,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, score);
         saveUsage(client.id, providerInfo.id, model, usage);
-        return NextResponse.json({ response: text, source: "rag", provider: providerInfo.label, score, chunks: topChunks.map(c => c.source) }, { headers: corsHeaders });
+        const docMeta = topChunks.filter(c => c.docId).map(c => ({
+          docId: c.docId,
+          name: c.source,
+          version: c.version,
+          source_url: c.source_url,
+          valid_until: c.valid_until,
+        })).filter((v, i, a) => a.findIndex(d => d.docId === v.docId) === i);
+        return NextResponse.json({ response: text, source: "rag", provider: providerInfo.label, score, chunks: topChunks.map(c => c.source), documents: docMeta }, { headers: corsHeaders });
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
       }

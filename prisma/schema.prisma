@@ -97,12 +97,24 @@ model KBEntry {
 }
 
 model ClientDocument {
-  id           String   @id @default(uuid())
-  clientId     String
-  originalName String
-  mimeType     String   @default("")
-  content      String   @default("")
-  createdAt    DateTime @default(now())
+  id                String    @id @default(uuid())
+  clientId          String
+  originalName      String
+  mimeType          String    @default("")
+  content           String    @default("")
+  fileSize          Int       @default(0)
+  description       String    @default("")
+  tags              String    @default("")
+  category          String    @default("")
+  author            String    @default("")
+  version           Int       @default(1)
+  previousVersionId String    @default("")
+  source_url        String    @default("")
+  valid_from        DateTime?
+  valid_until       DateTime?
+  status            String    @default("active")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }

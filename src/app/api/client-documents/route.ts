@@ -16,13 +16,25 @@ export async function GET(req: NextRequest) {
 
   const clientId = getTargetClientId(req, user);
   const all = await db.read<any>("client_documents");
-  const docs = all.filter((d: any) => d.clientId === clientId).map((d: any) => ({
-    id: d.id,
-    originalName: d.originalName,
-    mimeType: d.mimeType,
-    contentLength: d.content?.length || 0,
-    createdAt: d.createdAt,
-  }));
+  const docs = all
+    .filter((d: any) => d.clientId === clientId && d.status !== "archived")
+    .map((d: any) => ({
+      id: d.id,
+      originalName: d.originalName,
+      mimeType: d.mimeType,
+      fileSize: d.fileSize || d.content?.length || 0,
+      description: d.description || "",
+      tags: d.tags || "",
+      category: d.category || "",
+      author: d.author || "",
+      version: d.version ?? 1,
+      status: d.status || "active",
+      valid_from: d.valid_from || null,
+      valid_until: d.valid_until || null,
+      source_url: d.source_url || "",
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+    }));
   return NextResponse.json(docs);
 }
 
@@ -48,6 +60,13 @@ export async function POST(req: NextRequest) {
 
   const content = file.type === "application/json" ? JSON.stringify(JSON.parse(text), null, 2) : text;
 
+  const description = form.get("description")?.toString() || "";
+  const tags = form.get("tags")?.toString() || "";
+  const category = form.get("category")?.toString() || "";
+  const author = form.get("author")?.toString() || "";
+  const valid_from = form.get("valid_from")?.toString() || "";
+  const valid_until = form.get("valid_until")?.toString() || "";
+
   const all = await db.read<any>("client_documents");
   const doc = {
     id: randomUUID(),
@@ -55,10 +74,34 @@ export async function POST(req: NextRequest) {
     originalName: file.name,
     mimeType: file.type || "text/plain",
     content,
+    fileSize: file.size,
+    description,
+    tags,
+    category,
+    author,
+    version: 1,
+    previousVersionId: "",
+    source_url: `/api/client-documents/${randomUUID()}/download`,
+    valid_from: valid_from || null,
+    valid_until: valid_until || null,
+    status: "active",
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
+  doc.source_url = `/api/client-documents/${doc.id}/download`;
   all.push(doc);
   await db.write("client_documents", all);
 
-  return NextResponse.json({ id: doc.id, originalName: doc.originalName, contentLength: content.length }, { status: 201 });
+  return NextResponse.json({
+    id: doc.id,
+    originalName: doc.originalName,
+    fileSize: doc.fileSize,
+    description: doc.description,
+    tags: doc.tags,
+    category: doc.category,
+    version: doc.version,
+    source_url: doc.source_url,
+    valid_from: doc.valid_from,
+    valid_until: doc.valid_until,
+  }, { status: 201 });
 }
