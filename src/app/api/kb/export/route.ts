@@ -24,6 +24,9 @@ export async function GET(req: NextRequest) {
       ].filter(Boolean),
       kw: (k.keywords || "").split(",").map((s: string) => s.trim()).filter(Boolean),
       short_resp: k.short_resp || "",
+      source: k.source || "",
+      source_url: k.source_url || "",
+      valid_until: k.valid_until || "",
       resp: k.answer,
     }));
 

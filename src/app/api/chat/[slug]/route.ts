@@ -317,6 +317,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     answer: k.answer,
     category: k.category,
     keywords: k.keywords || "",
+    source: k.source || "",
+    source_url: k.source_url || "",
+    valid_until: k.valid_until || "",
   }));
 
   const { match, score } = findBestMatch(message, KB);
@@ -331,6 +334,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         response: match.answer,
         source: "kb",
         score,
+        source_url: match.source_url || "",
+        valid_until: match.valid_until || "",
         suggestions: findRelated(match, KB, 3),
       }, { headers: corsHeaders });
     }
@@ -340,10 +345,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const providerInfo = detectProvider(client.apiKey);
       const text = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
       saveConversation(client, history || [], message, text, "qa", providerInfo.label, score);
-      return NextResponse.json({ response: text, source: "qa", provider: providerInfo.label, score, suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+      return NextResponse.json({ response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     } catch {
       saveConversation(client, history || [], message, match.answer, "kb", "", score);
-      return NextResponse.json({ response: match.answer, source: "kb", score, suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+      return NextResponse.json({ response: match.answer, source: "kb", score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     }
   }
 
@@ -355,6 +360,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       response: resp,
       source: match?.answer ? "kb" : "fallback",
       score,
+      source_url: match?.source_url || "",
+      valid_until: match?.valid_until || "",
       suggestions: match ? findRelated(match, KB, 3) : [],
     }, { headers: corsHeaders });
   }

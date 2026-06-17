@@ -1,0 +1,4 @@
+-- Add source, source_url, valid_until fields to KBEntry
+ALTER TABLE "KBEntry" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "KBEntry" ADD COLUMN IF NOT EXISTS "source_url" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "KBEntry" ADD COLUMN IF NOT EXISTS "valid_until" TEXT NOT NULL DEFAULT '';

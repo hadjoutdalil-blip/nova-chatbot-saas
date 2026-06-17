@@ -408,7 +408,7 @@ if(e.proactiveEnabled&&!proactiveShown){
 /* Message Helpers */
 var chatHistory=[];
 
-function addMsg(text,role,source,provider,clientName,score){
+function addMsg(text,role,source,provider,clientName,score,source_url,valid_until){
   var box=document.getElementById("nm"),row=document.createElement("div");
   var time=formatTime();
   if(role==="user"){
@@ -420,15 +420,23 @@ function addMsg(text,role,source,provider,clientName,score){
     var bubbleCls=(source==="ai"||aiMode)?"nmsg-bbl ai-enhanced":"nmsg-bbl";
     var sourceHtml="";
     var copyId="cp-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
+    var extraLinks="";
+    if(source_url){
+      extraLinks=' <a href="'+escAttr(source_url)+'" target="_blank" class="nsrc" style="text-decoration:underline;font-weight:600">\\ud83d\\udcc4 T\u00e9l\u00e9charger</a>';
+    }
+    if(valid_until){
+      var isExpired=new Date(valid_until)<new Date();
+      extraLinks+=' <span class="nsrc" style="color:'+(isExpired?"#dc2626":"#16a34a")+'">'+(isExpired?"Expir\u00e9e":"Valide")+'</span>';
+    }
     if(source==="kb"&&score!=null){
       var cls=score>70?"green":score>40?"orange":"red";
-      sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">Base de connaissances</span><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">Base de connaissances</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }else if(source==="ai"&&provider){
-      sourceHtml='<div class="nft"><span class="nsrc ai">Propuls\u00e9 par '+escHtml(provider)+(clientName?" + contexte "+escHtml(clientName):"")+'</span><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft"><span class="nsrc ai">Propuls\u00e9 par '+escHtml(provider)+(clientName?" + contexte "+escHtml(clientName):"")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }else if(source==="fallback"){
-      sourceHtml='<div class="nft"><span class="nsrc">Fallback</span><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft"><span class="nsrc">Fallback</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }else{
-      sourceHtml='<div class="nft"><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft">'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }
     row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+'<div class="nts">'+time+'</div></div>';
     setTimeout(function(){
@@ -536,7 +544,7 @@ function sendMessage(text){
     if(xhr.status>=500){addMsg("Service temporairement indisponible. Veuillez r\u00e9essayer.","bot","fallback");return}
     try{
       var resp=JSON.parse(xhr.responseText);
-      addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score);
+      addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until);
       chatHistory.push({role:"assistant",content:resp.response});
       if(chatHistory.length>e.maxHistoryLength) chatHistory=chatHistory.slice(-e.maxHistoryLength);
       addSuggestions(resp.suggestions);
