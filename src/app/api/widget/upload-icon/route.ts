@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/api-auth";
-import { put } from "@vercel/blob";
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-
-  const targetClientId = req.nextUrl.searchParams.get("clientId") || user.clientId;
-  if (user.role !== "admin" && targetClientId !== user.clientId) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  }
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -23,9 +17,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fichier trop volumineux (max 2 Mo)" }, { status: 400 });
   }
 
-  const blob = await put(`widget-icons/${targetClientId}.${ext}`, file, {
-    access: "public",
-  });
+  const bytes = await file.arrayBuffer();
+  const base64 = Buffer.from(bytes).toString("base64");
+  const dataUrl = `data:image/${ext === "png" ? "png" : "gif"};base64,${base64}`;
 
-  return NextResponse.json({ url: blob.url });
+  return NextResponse.json({ url: dataUrl });
 }
