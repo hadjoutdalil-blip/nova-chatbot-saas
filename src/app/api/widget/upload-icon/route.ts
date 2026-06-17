@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/api-auth";
-import { writeFile, unlink } from "fs/promises";
+import { writeFile, unlink, mkdir } from "fs/promises";
 import { join } from "path";
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  const targetClientId = req.nextUrl.searchParams.get("clientId") || user.clientId;
+  if (user.role !== "admin" && targetClientId !== user.clientId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -20,14 +25,14 @@ export async function POST(req: NextRequest) {
   }
 
   const uploadDir = join(process.cwd(), "public", "uploads", "widget-icons");
+  await mkdir(uploadDir, { recursive: true });
 
-  // Supprimer l'ancien fichier s'il existe
-  const oldPaths = ["png", "gif"].map((e) => join(uploadDir, `${user.clientId}.${e}`));
+  const oldPaths = ["png", "gif"].map((e) => join(uploadDir, `${targetClientId}.${e}`));
   for (const p of oldPaths) {
     try { await unlink(p); } catch {}
   }
 
-  const fileName = `${user.clientId}.${ext}`;
+  const fileName = `${targetClientId}.${ext}`;
   const filePath = join(uploadDir, fileName);
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);

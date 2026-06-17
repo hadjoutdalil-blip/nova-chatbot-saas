@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       buttonAnimation: body.buttonAnimation || "pulse",
       buttonLabel: body.buttonLabel || "",
       buttonLabelDuration: body.buttonLabelDuration ?? 8,
+      buttonIcon: body.buttonIcon ?? "",
     });
     await db.write("widget_configs", configs);
     return NextResponse.json(existing);
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
     buttonAnimation: body.buttonAnimation || "pulse",
     buttonLabel: body.buttonLabel || "",
     buttonLabelDuration: body.buttonLabelDuration ?? 8,
+    buttonIcon: body.buttonIcon ?? "",
     clientId,
   };
 
@@ -100,6 +102,7 @@ export async function PUT(req: NextRequest) {
       buttonAnimation: body.buttonAnimation || "pulse",
       buttonLabel: body.buttonLabel || "",
       buttonLabelDuration: body.buttonLabelDuration ?? 8,
+      buttonIcon: body.buttonIcon ?? "",
       clientId,
     };
     configs.push(config);
@@ -125,6 +128,7 @@ export async function PUT(req: NextRequest) {
     buttonAnimation: body.buttonAnimation ?? configs[idx].buttonAnimation ?? "pulse",
     buttonLabel: body.buttonLabel ?? configs[idx].buttonLabel ?? "",
     buttonLabelDuration: body.buttonLabelDuration ?? configs[idx].buttonLabelDuration ?? 8,
+    buttonIcon: body.buttonIcon ?? configs[idx].buttonIcon ?? "",
   };
 
   await db.write("widget_configs", configs);

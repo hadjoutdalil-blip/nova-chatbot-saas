@@ -28,7 +28,9 @@ export default function ClientWidgetPage() {
     buttonLabel: "",
     buttonLabelDuration: 8,
     avatarIcon: "robot",
+    buttonIcon: "",
   });
+  const [hasCustomIcon, setHasCustomIcon] = useState(false);
   const [showButtonLabel, setShowButtonLabel] = useState(false);
   const [hasConfig, setHasConfig] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -67,6 +69,7 @@ export default function ClientWidgetPage() {
             buttonAnimation: wc.buttonAnimation || "pulse",
             buttonLabel: wc.buttonLabel || "",
             buttonLabelDuration: wc.buttonLabelDuration ?? 8,
+            buttonIcon: wc.buttonIcon ?? "",
             avatarIcon: wc.avatarIcon || "robot",
           });
           setShowButtonLabel(!!wc.buttonLabel);

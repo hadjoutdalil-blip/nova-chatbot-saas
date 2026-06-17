@@ -52,7 +52,9 @@ export default function AppWidgetPage() {
     buttonLabel: "",
     buttonLabelDuration: 8,
     avatarIcon: "robot",
+    buttonIcon: "",
   });
+  const [hasCustomIcon, setHasCustomIcon] = useState(false);
   const [showButtonLabel, setShowButtonLabel] = useState(false);
   const [hasConfig, setHasConfig] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,9 @@ export default function AppWidgetPage() {
             buttonLabel: wc.buttonLabel || "",
             buttonLabelDuration: wc.buttonLabelDuration ?? 8,
             avatarIcon: wc.avatarIcon || "robot",
+            buttonIcon: wc.buttonIcon || "",
           });
+          setHasCustomIcon(!!wc.buttonIcon);
           setShowButtonLabel(!!wc.buttonLabel);
         }
         setLoading(false);
@@ -111,7 +115,7 @@ export default function AppWidgetPage() {
     const t = token();
     const payload = JSON.parse(atob(t.split(".")[1]));
     const method = hasConfig ? "PUT" : "POST";
-    const body = { ...form, clientId: payload.clientId, buttonLabel: showButtonLabel ? form.buttonLabel : "" };
+    const body = { ...form, clientId: payload.clientId, buttonLabel: showButtonLabel ? form.buttonLabel : "", buttonIcon: hasCustomIcon ? form.buttonIcon : "" };
     const res = await fetch("/api/widget", {
       method,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
@@ -154,7 +158,7 @@ export default function AppWidgetPage() {
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Sous-titre :</span><span className="text-gray-600">{form.welcomeSub}</span></div>
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Position :</span><span className="text-gray-900">{form.position === "right" ? "Droite" : "Gauche"}</span></div>
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Marges :</span><span className="text-gray-900">bas {form.marginBottom}px</span></div>
-              <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Icône :</span><span className="font-medium text-gray-900 capitalize">{form.avatarIcon}</span></div>
+              <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Icône :</span><span className="text-gray-900">{hasCustomIcon ? <img src={form.buttonIcon} alt="" className="w-6 h-6 rounded-full inline-block object-cover" /> : <span className="font-medium capitalize">{form.avatarIcon}</span>}</span></div>
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Animation :</span><span className="text-gray-900 capitalize">{form.buttonAnimation}</span></div>
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Message :</span><span className="text-gray-600">{form.buttonLabel || "—"}</span></div>
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Proactif :</span><span className={form.proactiveEnabled ? "text-green-600 font-medium" : "text-gray-400"}>{form.proactiveEnabled ? "Activé" : "Désactivé"}</span></div>
@@ -197,15 +201,64 @@ export default function AppWidgetPage() {
             {/* Avatar picker */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Icône du bouton</label>
-              <div className={"grid " + avatarGridCols + " gap-2"}>
-                {avatarOptions.map((a) => (
-                  <button key={a.id} type="button" onClick={() => setForm({ ...form, avatarIcon: a.id })}
-                    className={"flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all " + (form.avatarIcon === a.id ? "border-purple-500 bg-purple-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white" dangerouslySetInnerHTML={{ __html: a.svg }} />
-                    <span className="text-xs font-medium text-gray-600">{a.label}</span>
-                  </button>
-                ))}
-              </div>
+
+              {hasCustomIcon ? (
+                <div className="mb-3 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                  <p className="text-xs text-purple-600 mb-2">Icône personnalisée</p>
+                  <img src={form.buttonIcon} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-purple-300 mb-2" />
+                  <div className="flex gap-2">
+                    <label className="cursor-pointer text-xs font-medium text-purple-600 bg-white px-4 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition-all">
+                      Changer
+                      <input type="file" accept=".png,.gif" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        const t = token();
+                        const res = await fetch("/api/widget/upload-icon", { method: "POST", headers: { Authorization: `Bearer ${t}` }, body: fd });
+                        const data = await res.json();
+                        if (data.url) { setForm({ ...form, buttonIcon: data.url }); setHasCustomIcon(true); }
+                      }} />
+                    </label>
+                    <button type="button" onClick={async () => {
+                      const t = token();
+                      await fetch("/api/widget/delete-icon", { method: "DELETE", headers: { Authorization: `Bearer ${t}` } });
+                      setForm({ ...form, buttonIcon: "" }); setHasCustomIcon(false);
+                    }} className="text-xs text-red-500 bg-white px-4 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-all">
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <label className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium text-purple-600 bg-purple-50 px-4 py-2.5 rounded-xl border border-purple-200 hover:bg-purple-100 transition-all">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload PNG / GIF
+                      <input type="file" accept=".png,.gif" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        const t = token();
+                        const res = await fetch("/api/widget/upload-icon", { method: "POST", headers: { Authorization: `Bearer ${t}` }, body: fd });
+                        const data = await res.json();
+                        if (data.url) { setForm({ ...form, buttonIcon: data.url }); setHasCustomIcon(true); }
+                      }} />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-2">Ou choisissez un avatar :</p>
+                  <div className={"grid " + avatarGridCols + " gap-2"}>
+                    {avatarOptions.map((a) => (
+                      <button key={a.id} type="button" onClick={() => setForm({ ...form, avatarIcon: a.id })}
+                        className={"flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all " + (form.avatarIcon === a.id ? "border-purple-500 bg-purple-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white" dangerouslySetInnerHTML={{ __html: a.svg }} />
+                        <span className="text-xs font-medium text-gray-600">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Button label */}
