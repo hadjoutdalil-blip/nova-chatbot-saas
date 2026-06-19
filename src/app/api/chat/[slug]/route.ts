@@ -246,10 +246,11 @@ ${question}`;
 }
 
 function findContactEntry(KB: any[]): string {
+  const contactKeywords = ["contact", "contacter", "support", "assistance", "administration"];
   const entry = KB.find(k =>
-    k.question && norm(k.question).includes("contacter le cetim")
+    k.keywords && contactKeywords.some(kw => norm(k.keywords).includes(kw))
   ) || KB.find(k =>
-    k.keywords && norm(k.keywords).includes("contact")
+    k.question && contactKeywords.some(kw => norm(k.question).includes(kw))
   );
   return entry?.answer?.trim() || "";
 }
