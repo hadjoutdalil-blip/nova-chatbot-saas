@@ -1941,8 +1941,6 @@ export const KB: CETIMEntry[] = [
       "horaire",
       "ouverture",
       "BENCHIEUB",
-      "Reda",
-      "Kamel",
       "Ayache",
       "parking",
       "facebook"
