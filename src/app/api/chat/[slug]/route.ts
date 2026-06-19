@@ -185,10 +185,21 @@ function findBestChunks(question: string, chunks: ChunkMeta[], topN: number, thr
   return sorted.filter(c => c.score * 100 >= threshold).slice(0, topN);
 }
 
+function buildContext(client: any, pageUrl?: string, pageTitle?: string): string {
+  const parts: string[] = [];
+  if (pageUrl) parts.push(`Page visitée : ${pageUrl}`);
+  if (pageTitle) parts.push(`Titre de la page : ${pageTitle}`);
+  if (client.siteContext) {
+    const ctx = client.siteContext.trim().slice(0, 2000);
+    if (ctx) parts.push(`Contexte de l'entreprise : ${ctx}`);
+  }
+  return parts.length > 0 ? `\n\nCONTEXTE :\n${parts.join("\n")}` : "";
+}
+
 /* ── PROMPT BUILDERS ──────────────────────────────────── */
-function buildQAPrompt(client: any, match: any, score: number, question: string) {
+function buildQAPrompt(client: any, match: any, score: number, question: string, pageUrl?: string, pageTitle?: string) {
   const system = `Tu es l'assistant officiel de ${client.name}.
-Tu reformules UNIQUEMENT une réponse validée issue de la base de connaissance.
+Tu reformules UNIQUEMENT une réponse validée issue de la base de connaissance.${buildContext(client, pageUrl, pageTitle)}
 
 RÈGLES ABSOLUES :
 - Ne modifie PAS le fond, les chiffres, les délais ou les références
@@ -207,13 +218,13 @@ ${question}`;
   return { system, user };
 }
 
-function buildRAGPrompt(client: any, chunks: { source: string; content: string }[], question: string) {
+function buildRAGPrompt(client: any, chunks: { source: string; content: string }[], question: string, pageUrl?: string, pageTitle?: string) {
   const docs = chunks.map((c, i) =>
     `[Extrait #${i + 1} — Source : ${c.source}]\n${c.content}`
   ).join("\n\n");
 
   const system = `Tu es l'assistant officiel de ${client.name}.
-Tu réponds en te basant UNIQUEMENT sur les extraits de documentation ci-dessous.
+Tu réponds en te basant UNIQUEMENT sur les extraits de documentation ci-dessous.${buildContext(client, pageUrl, pageTitle)}
 
 RÈGLES ABSOLUES :
 - Ne réponds qu'à partir des extraits fournis
@@ -243,11 +254,11 @@ function findContactEntry(KB: any[]): string {
   return entry?.answer?.trim() || "";
 }
 
-function buildEscaladePrompt(client: any, question: string, sessionType: string, KB: any[]) {
+function buildEscaladePrompt(client: any, question: string, sessionType: string, KB: any[], pageUrl?: string, pageTitle?: string) {
   const contactInfo = findContactEntry(KB);
 
   const system = `Tu es un conseiller commercial chaleureux et professionnel de ${client.name}.
-Tu n'as pas trouvé de réponse précise dans la base de connaissances pour cette question.
+Tu n'as pas trouvé de réponse précise dans la base de connaissances pour cette question.${buildContext(client, pageUrl, pageTitle)}
 
 RÈGLES ABSOLUES :
 - Reste chaleureux, commercial et accueillant
@@ -360,7 +371,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
   }
 
-  const { message, history, aiMode, sessionType = "client" } = await req.json();
+  const { message, history, aiMode, sessionType = "client", pageUrl, pageTitle } = await req.json();
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
@@ -397,7 +408,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }, { headers: corsHeaders });
     }
 
-    const { system, user } = buildQAPrompt(client, match, score, message);
+    const { system, user } = buildQAPrompt(client, match, score, message, pageUrl, pageTitle);
     try {
       const providerInfo = detectProvider(client.apiKey);
       const { text, usage } = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
@@ -451,7 +462,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
 
     if (topChunks.length > 0) {
-      const { system, user } = buildRAGPrompt(client, topChunks, message);
+      const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
       try {
         const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, score);
@@ -472,7 +483,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 3 : ESCALADE ── */
   const kbMatch = match ? findRelated(match, KB, 3) : [];
-  const { system, user, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB);
+  const { system, user, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
   try {
     const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);

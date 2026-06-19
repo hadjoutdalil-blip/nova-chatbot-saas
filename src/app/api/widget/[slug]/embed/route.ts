@@ -598,7 +598,7 @@ function sendMessage(text){
   };
   xhr.onerror=function(){setLoading(false);addMsg("Erreur r\u00e9seau. V\u00e9rifiez votre connexion.","bot","fallback")};
   xhr.ontimeout=function(){setLoading(false);addMsg("La requ\u00eate a expir\u00e9 (30s). Veuillez r\u00e9essayer.","bot","fallback")};
-  xhr.send(JSON.stringify({message:text,history:chatHistory.slice(0,-1),aiMode:aiMode}));
+   xhr.send(JSON.stringify({message:text,history:chatHistory.slice(0,-1),aiMode:aiMode,pageUrl:window.location.href,pageTitle:document.title}));
 }
 /* Escape to close */
 document.addEventListener("keydown",function(ev){
