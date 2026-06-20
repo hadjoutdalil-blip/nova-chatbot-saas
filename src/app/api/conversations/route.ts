@@ -62,11 +62,21 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const url = new URL(req.url);
+  const all = await db.read<any>("conversations");
+  const clientId = getTargetClientId(req, user);
+
   const id = url.searchParams.get("id");
+  const deleteAll = url.searchParams.get("all") === "true";
+
+  if (deleteAll) {
+    const filtered = all.filter((c: any) => c.clientId !== clientId);
+    await db.write("conversations", filtered);
+    return NextResponse.json({ success: true, deleted: true });
+  }
+
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
-  const all = await db.read<any>("conversations");
-  const filtered = all.filter((c: any) => c.id !== id);
+  const filtered = all.filter((c: any) => c.id !== id || c.clientId !== clientId);
   if (filtered.length === all.length) {
     return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
   }

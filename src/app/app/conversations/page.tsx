@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquare, ChevronDown, ChevronUp, Trash2, Bot, User, Search } from "lucide-react";
+import { MessageSquare, ChevronDown, ChevronUp, Trash2, Bot, User, Search, Trash } from "lucide-react";
 
 interface Conversation {
   id: string;
@@ -56,6 +56,15 @@ export default function ConversationsPage() {
     if (res.ok) setConversations((prev) => prev.filter((c) => c.id !== id));
   }
 
+  async function handleDeleteAll() {
+    if (!confirm("Supprimer toutes les conversations ? Cette action est irréversible.")) return;
+    const res = await fetch("/api/conversations?all=true", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token()}` },
+    });
+    if (res.ok) { setConversations([]); setExpanded(null); }
+  }
+
   const filtered = search
     ? conversations.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()))
     : conversations;
@@ -72,9 +81,16 @@ export default function ConversationsPage() {
     <div>
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-gray-900">Conversations</h1>
-        <button onClick={load} className="text-sm text-purple-600 hover:text-purple-800 font-medium">
-          Actualiser
-        </button>
+        <div className="flex items-center gap-2">
+          {conversations.length > 0 && (
+            <button onClick={handleDeleteAll} className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium transition-colors">
+              <Trash size={14} /> Tout supprimer
+            </button>
+          )}
+          <button onClick={load} className="text-sm text-purple-600 hover:text-purple-800 font-medium">
+            Actualiser
+          </button>
+        </div>
       </div>
       <p className="text-gray-500 mb-6">Historique des échanges entre les visiteurs et votre chatbot.</p>
 
