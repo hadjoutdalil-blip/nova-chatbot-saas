@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, PanelRightClose, Upload, FileText, Trash2 } from "lucide-react";
+import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, PanelRightClose, Upload, FileText, Trash2, Eye, Download, X } from "lucide-react";
 
 const PROVIDERS = [
   { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
@@ -19,8 +19,39 @@ export default function AppSettingsPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [contextChunks, setContextChunks] = useState<{ name: string; index: number; content: string }[]>([]);
+  const [viewDoc, setViewDoc] = useState<{ title: string; content: string } | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
+
+  function parseContextChunks(siteContext: string) {
+    if (!siteContext) return [];
+    const regex = /\[CHUNK:([^\]]+)\]([\s\S]*?)(?=\[CHUNK:|$)/g;
+    const chunks: { name: string; index: number; content: string }[] = [];
+    let m;
+    while ((m = regex.exec(siteContext)) !== null) {
+      const parts = m[1].split(":");
+      const name = parts.slice(0, -1).join(":") || parts[0];
+      const idx = parseInt(parts[parts.length - 1], 10);
+      chunks.push({ name, index: isNaN(idx) ? 0 : idx, content: m[2].trim() });
+    }
+    if (chunks.length === 0 && siteContext.trim()) {
+      chunks.push({ name: "contexte.txt", index: 0, content: siteContext.trim() });
+    }
+    return chunks;
+  }
+
+  function downloadContent(content: string, filename: string) {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   useEffect(() => {
     fetch("/api/clients", { headers: { Authorization: `Bearer ${token()}` } })
@@ -28,7 +59,7 @@ export default function AppSettingsPage() {
       .then((clients) => {
         const payload = JSON.parse(atob(token().split(".")[1]));
         const c = clients.find((c: any) => c.id === payload.clientId);
-        if (c) { setClient(c); setForm({ ...c }); }
+        if (c) { setClient(c); setForm({ ...c }); setContextChunks(parseContextChunks(c.siteContext || "")); }
       });
     fetch("/api/client-documents", { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json())
@@ -220,7 +251,28 @@ export default function AppSettingsPage() {
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
               <Building2 size={14} /> Contexte de l&apos;entreprise (importé automatiquement en chunks)
             </label>
-            <textarea value={form.siteContext || ""} onChange={(e) => setForm({ ...form, siteContext: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
+            {contextChunks.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                <p className="text-xs text-gray-400 mb-1.5">{contextChunks.length} fichier(s) importé(s) :</p>
+                {contextChunks.map((chunk, i) => (
+                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText size={14} className="text-purple-500 shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">{chunk.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
+                        <Eye size={14} />
+                      </button>
+                      <button onClick={() => downloadContent(chunk.content, chunk.name)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
+                        <Download size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <textarea value={form.siteContext || ""} onChange={(e) => { setForm({ ...form, siteContext: e.target.value }); setContextChunks(parseContextChunks(e.target.value)); }} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
           </div>
 
           <div className="border-t border-gray-100 pt-4">
@@ -253,9 +305,17 @@ export default function AppSettingsPage() {
                           </span>
                         ) : null}
                       </div>
-                      <button onClick={() => handleDeleteDoc(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 ml-2">
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button onClick={() => setViewDoc({ title: doc.originalName, content: doc.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => window.open(`/api/client-documents/${doc.id}/download`, "_blank")} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
+                          <Download size={14} />
+                        </button>
+                        <button onClick={() => handleDeleteDoc(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Supprimer">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -274,6 +334,27 @@ export default function AppSettingsPage() {
           </button>
         </div>
       </div>
+
+      {viewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900 truncate">{viewDoc.title}</h3>
+              <button onClick={() => setViewDoc(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{viewDoc.content}</pre>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100">
+              <button onClick={() => { downloadContent(viewDoc.content, viewDoc.title); setViewDoc(null); }} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-all">
+                <Download size={14} /> Télécharger
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
