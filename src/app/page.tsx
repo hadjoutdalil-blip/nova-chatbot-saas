@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Script from "next/script";
 
 const PLANS = [
   {
@@ -221,7 +220,6 @@ export default function LandingPage() {
           <Link href="/login" className="hover:text-gray-600">Connexion</Link>
         </div>
       </footer>
-      <Script src="/api/widget/cetim/embed" strategy="afterInteractive" />
     </div>
   );
 }
