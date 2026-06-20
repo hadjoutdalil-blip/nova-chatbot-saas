@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { findClientBySlug } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
+import { extractIP, lookupGeo } from "@/lib/geo";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -337,8 +338,9 @@ async function saveUsage(clientId: string, provider: string, model: string, usag
 }
 
 /* ── SAVE CONVERSATION ──────────────────────────────── */
-async function saveConversation(client: any, history: any[], userMsg: string, aiMsg: string, source: string, provider: string, score: number) {
+async function saveConversation(client: any, history: any[], userMsg: string, aiMsg: string, source: string, provider: string, score: number, geoPromise?: Promise<{ ip: string; country: string; city: string }>) {
   try {
+    const geo = geoPromise ? await geoPromise : { ip: "", country: "", city: "" };
     const all = await db.read<any>("conversations");
     const allMsgs = [...(history || []), { role: "user", content: userMsg }, { role: "assistant", content: aiMsg, source, provider, score }];
     const title = (history?.[0]?.content?.slice(0, 80)) || userMsg.slice(0, 80);
@@ -348,6 +350,9 @@ async function saveConversation(client: any, history: any[], userMsg: string, ai
       title,
       messages: JSON.stringify(allMsgs),
       clientId: client.id,
+      ipAddress: geo.ip,
+      country: geo.country,
+      city: geo.city,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -377,6 +382,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
 
+  const ip = extractIP(req);
+  const geoPromise = lookupGeo(ip);
+
   const allEntries = await db.read<any>("kb_entries");
   const kbEntries = allEntries.filter((k: any) => k.clientId === client.id);
 
@@ -398,7 +406,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   /* ── NIVEAU 1 : QA VALIDÉE ── */
   if (match && score >= kbThreshold) {
     if (score === 100 || !aiMode || !client.apiKey) {
-      saveConversation(client, history || [], message, match.answer, "kb", "", score);
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
       return NextResponse.json({
         response: match.answer,
         source: "kb",
@@ -413,11 +421,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     try {
       const providerInfo = detectProvider(client.apiKey);
       const { text, usage } = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
-      saveConversation(client, history || [], message, text, "qa", providerInfo.label, score);
+      saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
       saveUsage(client.id, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", usage);
       return NextResponse.json({ response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     } catch {
-      saveConversation(client, history || [], message, match.answer, "kb", "", score);
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
       return NextResponse.json({ response: match.answer, source: "kb", score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     }
   }
@@ -433,7 +441,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     } else {
       resp = "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.";
     }
-    saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score);
+    saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score, geoPromise);
     return NextResponse.json({
       response: resp,
       source: match?.answer ? "kb" : "fallback",
@@ -466,7 +474,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
       try {
         const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
-        saveConversation(client, history || [], message, text, "rag", providerInfo.label, score);
+        saveConversation(client, history || [], message, text, "rag", providerInfo.label, score, geoPromise);
         saveUsage(client.id, providerInfo.id, model, usage);
         const docMeta = topChunks.filter(c => c.docId).map(c => ({
           docId: c.docId,
@@ -488,7 +496,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
-    saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score);
+    saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score, geoPromise);
     saveUsage(client.id, providerInfo.id, model, usage);
     return NextResponse.json({ response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, { headers: corsHeaders });
   } catch (err: any) {
@@ -496,7 +504,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const fallbackResp = contactInfo
       ? `Je n'ai pas pu traiter votre demande pour le moment. 📋\n\nN'hésitez pas à nous contacter directement, notre équipe se fera un plaisir de vous renseigner :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`
       : "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.";
-    saveConversation(client, history || [], message, fallbackResp, "fallback", "", score);
+    saveConversation(client, history || [], message, fallbackResp, "fallback", "", score, geoPromise);
     return NextResponse.json({
       response: fallbackResp,
       source: "fallback",

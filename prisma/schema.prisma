@@ -143,6 +143,9 @@ model Conversation {
   title     String   @default("")
   messages  String   @default("[]")
   clientId  String
+  ipAddress String   @default("")
+  country   String   @default("")
+  city      String   @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -8,6 +8,9 @@ interface Conversation {
   title: string;
   messages: string;
   clientId: string;
+  ipAddress?: string;
+  country?: string;
+  city?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,6 +113,7 @@ export default function ConversationsPage() {
                     <p className="text-xs text-gray-400 mt-1">
                       {formatDate(conv.createdAt)}
                       {msgs.length > 0 && <span className="ml-3">{msgs.length} message{msgs.length > 1 ? "s" : ""}</span>}
+                      {(conv.country || conv.city) && <span className="ml-3">{conv.city ? conv.city + (conv.country ? ", " : "") : ""}{conv.country}</span>}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4 shrink-0">
