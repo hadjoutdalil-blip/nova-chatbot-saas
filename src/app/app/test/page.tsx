@@ -331,10 +331,12 @@ export default function ClientTestPage() {
   useEffect(() => {
     const t = localStorage.getItem("token");
     if (!t) return;
+    const payload = JSON.parse(atob(t.split(".")[1]));
     fetch("/api/clients", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((clients) => {
-        if (clients && clients.length > 0) setClient(clients[0]);
+        const c = clients.find((c: any) => c.id === payload.clientId);
+        if (c) setClient(c);
       });
   }, []);
 
