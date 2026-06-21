@@ -99,13 +99,16 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
     s = s.replace(/^[-*]\s+(.+)$/gm, "<li>$1</li>");
     s = s.replace(/(<li>.*<\/li>(\n|$))+/g, (m) => "<ul>" + m + "</ul>");
     s = s.replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>");
-    s = s.replace(/^\|(.+)\|\n\|[-:| ]+\|\n((?:\|.+\|\n?)*)/gm, (_: string, headerRow: string, bodyRows: string) => {
-      const headers = headerRow.split("|").map((h: string) => `<th>${h.trim()}</th>`).join("");
-      const rows = bodyRows.trim().split("\n").map((row: string) => {
-        const cells = row.replace(/^\||\|$/g, "").split("|").map((c: string) => `<td>${c.trim()}</td>`).join("");
-        return `<tr>${cells}</tr>`;
-      }).join("");
-      return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+    s = s.replace(/^\|(.+)\|\n\| *[-:|]+ *\|\n((?:\|.+\|\n?)*)/gm, (_: string, headerRow: string, bodyRows: string) => {
+      try {
+        if (!headerRow || !headerRow.includes("|")) return _;
+        const headers = headerRow.split("|").map((h: string) => `<th>${h.trim()}</th>`).join("");
+        const rows = (bodyRows || "").trim().split("\n").filter((r: string) => r.trim()).map((row: string) => {
+          const cells = row.replace(/^\||\|$/g, "").split("|").map((c: string) => `<td>${(c || "").trim()}</td>`).join("");
+          return cells ? `<tr>${cells}</tr>` : "";
+        }).join("");
+        return rows ? `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>` : _;
+      } catch { return _; }
     });
     s = s.replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>");
     if (!/^<[hup]/.test(s)) s = "<p>" + s + "</p>";
