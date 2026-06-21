@@ -99,6 +99,14 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
     s = s.replace(/^[-*]\s+(.+)$/gm, "<li>$1</li>");
     s = s.replace(/(<li>.*<\/li>(\n|$))+/g, (m) => "<ul>" + m + "</ul>");
     s = s.replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>");
+    s = s.replace(/^\|(.+)\|\n\|[-:| ]+\|\n((?:\|.+\|\n?)*)/gm, (_: string, headerRow: string, bodyRows: string) => {
+      const headers = headerRow.split("|").map((h: string) => `<th>${h.trim()}</th>`).join("");
+      const rows = bodyRows.trim().split("\n").map((row: string) => {
+        const cells = row.replace(/^\||\|$/g, "").split("|").map((c: string) => `<td>${c.trim()}</td>`).join("");
+        return `<tr>${cells}</tr>`;
+      }).join("");
+      return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+    });
     s = s.replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>");
     if (!/^<[hup]/.test(s)) s = "<p>" + s + "</p>";
     return s;
@@ -328,6 +336,10 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
       </div>
 
       <style>{`
+        .nmsg-bbl table { border-collapse: collapse; width: 100%; margin: 6px 0; font-size: 12.5px; }
+        .nmsg-bbl th, .nmsg-bbl td { border: 1px solid #e2e8f0; padding: 5px 8px; text-align: left; }
+        .nmsg-bbl th { background: #f8fafc; font-weight: 700; color: #334155; }
+        .nmsg-bbl tr:nth-child(even) td { background: #fafbfc; }
         .chat-input-wrap:focus-within {
           border-color: ${aiMode ? "#7c3aed" : primaryColor} !important;
           box-shadow: 0 0 0 4px ${aiMode ? "rgba(124,58,237,.18)" : `${primaryColor}15`} !important;
