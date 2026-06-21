@@ -36,6 +36,7 @@ model Client {
   clientDocuments ClientDocument[]
   aiUsageLogs     AIUsageLog[]
   conversations   Conversation[]
+  messageFeedback MessageFeedback[]
 }
 
 model User {
@@ -128,6 +129,24 @@ model AIUsageLog {
   completionTokens Int     @default(0)
   totalTokens     Int      @default(0)
   createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model MessageFeedback {
+  id             String   @id @default(uuid())
+  clientId       String
+  messageId      String
+  conversationId String   @default("")
+  rating         Int
+  question       String
+  response       String
+  source         String   @default("")
+  score          Int      @default(0)
+  provider       String   @default("")
+  comment        String   @default("")
+  pageUrl        String   @default("")
+  createdAt      DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }

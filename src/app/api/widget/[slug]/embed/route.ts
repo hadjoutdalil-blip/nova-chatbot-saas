@@ -179,6 +179,12 @@ C+=".nsrc.ai{color:#7c3aed;font-weight:600;font-style:normal}";
 C+=".ncopy{background:none;border:1px solid #e2e8f0;border-radius:6px;padding:2px 7px;font-size:10px;color:#94a3b8;cursor:pointer;transition:all .15s;margin-left:auto}";
 C+=".ncopy:hover{background:#f1f5f9;color:#475569;border-color:#cbd5e1}";
 C+=".ncopy.done{color:#16a34a;border-color:#d1fae5}";
+/* feedback */
+C+=".nfb{display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap}";
+C+=".nfb-label{font-size:10px;color:#94a3b8;margin-right:2px}";
+C+=".nfb-btn{width:20px;height:20px;border-radius:50%;border:1px solid #d1d5db;background:transparent;cursor:pointer;font-size:9px;font-weight:700;color:#6b7280;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;transition:all .15s}";
+C+=".nfb-btn:hover{background:#f1f5f9;border-color:#94a3b8}";
+C+=".nfb-done{font-size:10px;color:#16a34a;font-weight:600}";
 /* timestamp */
 C+=".nts{font-size:10px;color:#94a3b8;margin-top:4px;text-align:right}";
 C+=".nmsg.b .nts{text-align:left}";
@@ -436,10 +442,40 @@ if(e.proactiveEnabled&&!proactiveShown){
   }
 }
 
+/* Feedback */
+var lastQuestion="";
+var feedState={};
+
 /* Message Helpers */
 var chatHistory=[];
 
-function addMsg(text,role,source,provider,clientName,score,source_url,valid_until,documents){
+function buildFeedback(msgId,respText,src,scr,prov){
+  if(!msgId) return "";
+  var slug=e.chatUrl.split("/").pop();
+  var labels=["Très mauvais","Mauvais","Moyen","Bien","Excellent"];
+  var html='<div class="nfb" id="nfb-'+msgId+'"><span class="nfb-label">Noter :</span>';
+  for(var fi=5;fi>=1;fi--){
+    html+='<button class="nfb-btn" data-r="'+fi+'" data-mid="'+msgId+'" data-q="'+escAttr(lastQuestion)+'" data-resp="'+escAttr(respText)+'" data-src="'+escAttr(src||"")+'" data-scr="'+(scr||0)+'" data-prov="'+escAttr(prov||"")+'" title="'+labels[fi-1]+'">'+fi+'</button>';
+  }
+  html+='</div>';
+  return html;
+}
+function submitFeedback(msgId,rating,question,response,source,score,provider){
+  if(feedState[msgId]) return;
+  var xhr=new XMLHttpRequest();
+  xhr.open("POST","/api/feedback",true);
+  xhr.setRequestHeader("Content-Type","application/json");
+  xhr.onload=function(){
+    if(xhr.status===200){
+      feedState[msgId]=rating;
+      var el=document.getElementById("nfb-"+msgId);
+      if(el) el.innerHTML='<span class="nfb-done">Merci ! ('+rating+'/5)</span>';
+    }
+  };
+  var slug=e.chatUrl.split("/").pop();
+  xhr.send(JSON.stringify({slug:slug,messageId:msgId,rating:rating,question:question,response:response,source:source,score:score,provider:provider}));
+}
+function addMsg(text,role,source,provider,clientName,score,source_url,valid_until,documents,messageId){
   var box=document.getElementById("nm"),row=document.createElement("div");
   var time=formatTime();
   if(role==="user"){
@@ -482,7 +518,8 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
     }else{
       sourceHtml='<div class="nft">'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
     }
-    row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+'<div class="nts">'+time+'</div></div>';
+    var feedbackHtml=messageId?buildFeedback(messageId,text,source,score,provider):"";
+    row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+feedbackHtml+'<div class="nts">'+time+'</div></div>';
     setTimeout(function(){
       var cb=document.getElementById(copyId);
       if(cb)cb.onclick=function(){
@@ -493,6 +530,23 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
         });
       };
     },0);
+    if(messageId){
+      setTimeout(function(){
+        var fbel=document.getElementById("nfb-"+messageId);
+        if(fbel){
+          var btns=fbel.querySelectorAll(".nfb-btn");
+          for(var fi2=0;fi2<btns.length;fi2++){
+            (function(btn){
+              btn.onclick=function(){
+                if(feedState[messageId]) return;
+                var r=parseInt(btn.dataset.r);
+                submitFeedback(messageId,r,btn.dataset.q,btn.dataset.resp,btn.dataset.src,parseInt(btn.dataset.scr),btn.dataset.prov);
+              };
+            })(btns[fi2]);
+          }
+        }
+      },0);
+    }
   }
   box.appendChild(row);
   box.scrollTop=box.scrollHeight;
@@ -572,6 +626,7 @@ function sendMessage(text){
   if(text.length>e.maxMessageLength) text=text.slice(0,e.maxMessageLength);
   setLoading(true);
   nac.classList.remove("o");selIdx=-1;
+  lastQuestion=text;
   chatHistory.push({role:"user",content:text});
   addMsg(text,"user");
   document.getElementById("ni").value="";
@@ -588,7 +643,7 @@ function sendMessage(text){
     if(xhr.status>=500){addMsg("Service temporairement indisponible. Veuillez r\u00e9essayer.","bot","fallback");return}
     try{
       var resp=JSON.parse(xhr.responseText);
-      addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until,resp.documents);
+      addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until,resp.documents,resp.messageId);
       chatHistory.push({role:"assistant",content:resp.response});
       if(chatHistory.length>e.maxHistoryLength) chatHistory=chatHistory.slice(-e.maxHistoryLength);
       addSuggestions(resp.suggestions);

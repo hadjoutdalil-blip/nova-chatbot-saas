@@ -21,6 +21,7 @@ function getDelegate(collection: string) {
     ai_usage_logs: "aIUsageLog",
     client_documents: "clientDocument",
     conversations: "conversation",
+    message_feedback: "messageFeedback",
     global_configs: "globalConfig",
   };
   const key = map[collection];

@@ -19,11 +19,12 @@ function WidgetLoader({ slug }: { slug: string }) {
 }
 
 function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryColor: string; name: string; logo?: string }) {
-  const [messages, setMessages] = useState<{ text: string; role: string; source?: string; score?: number; provider?: string }[]>([]);
+  const [messages, setMessages] = useState<{ text: string; role: string; source?: string; score?: number; provider?: string; messageId?: string; question?: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiMode, setAiMode] = useState(true);
   const [history, setHistory] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -55,12 +56,25 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
         return;
       }
       const data = await res.json();
-      setMessages((prev) => [...prev, { text: data.response, role: "bot", source: data.source, score: data.score, provider: data.provider }]);
+      setMessages((prev) => [...prev, { text: data.response, role: "bot", source: data.source, score: data.score, provider: data.provider, messageId: data.messageId, question: text }]);
       setHistory((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: data.response }].slice(-20));
     } catch {
       setMessages((prev) => [...prev, { text: "Je n'ai pas trouvé de réponse. Contactez-nous pour plus d'informations.", role: "bot", source: "fallback" }]);
     }
     setLoading(false);
+  }
+
+  async function submitFeedback(messageId: string, rating: number, question: string, response: string, source?: string, score?: number, provider?: string) {
+    try {
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, messageId, rating, question, response, source, score, provider }),
+      });
+      setRatings((prev) => ({ ...prev, [messageId]: rating }));
+    } catch (err) {
+      console.error("Feedback error:", err);
+    }
   }
 
   function scoreClass(score?: number) {
@@ -236,6 +250,31 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                     >
                       <CopyIcon />{copiedId === `copied-${i}` ? "Copié !" : "Copier"}
                     </button>
+                  </div>
+                )}
+                {m.messageId && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 4 }}>
+                    {!ratings[m.messageId] ? (
+                      <>
+                        <span style={{ fontSize: 10, color: "#94a3b8", marginRight: 2 }}>Noter :</span>
+                        {[5,4,3,2,1].map(r => (
+                          <button key={r}
+                            onClick={() => submitFeedback(m.messageId!, r, m.question || "", m.text, m.source, m.score, m.provider)}
+                            style={{
+                              width: 20, height: 20, borderRadius: "50%", border: "1px solid #d1d5db",
+                              background: "transparent", cursor: "pointer", fontSize: 9, fontWeight: 700,
+                              color: "#6b7280", display: "flex", alignItems: "center", justifyContent: "center",
+                              transition: "all .15s", padding: 0, lineHeight: 1,
+                            }}
+                            title={r === 5 ? "Excellent" : r === 4 ? "Bien" : r === 3 ? "Moyen" : r === 2 ? "Mauvais" : "Très mauvais"}
+                          >{r}</button>
+                        ))}
+                      </>
+                    ) : (
+                      <span style={{ fontSize: 10, color: "#16a34a", fontWeight: 600 }}>
+                        Noté : {ratings[m.messageId]}/5
+                      </span>
+                    )}
                   </div>
                 )}
                 <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{formatTime()}</div>

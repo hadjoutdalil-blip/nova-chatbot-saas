@@ -401,10 +401,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
 
+  const messageId = randomUUID();
   const trimmed = message.trim();
   const words = trimmed.split(/\s+/).filter(Boolean);
   if (words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) {
     return NextResponse.json({
+      messageId,
       response: "Votre question est trop courte. Pouvez-vous la reformuler ou préciser votre demande ?",
       source: "clarification",
       score: 0,
@@ -440,6 +442,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (score === 100 || !aiMode || !client.apiKey) {
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
       return NextResponse.json({
+        messageId,
         response: match.answer,
         source: "kb",
         score,
@@ -455,10 +458,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const { text, usage } = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
       saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
       saveUsage(client.id, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", usage);
-      return NextResponse.json({ response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+      return NextResponse.json({ messageId, response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     } catch {
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
-      return NextResponse.json({ response: match.answer, source: "kb", score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+      return NextResponse.json({ messageId, response: match.answer, source: "kb", score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     }
   }
 
@@ -475,6 +478,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
     saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score, geoPromise);
     return NextResponse.json({
+      messageId,
       response: resp,
       source: match?.answer ? "kb" : "fallback",
       score,
@@ -515,7 +519,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           source_url: c.source_url,
           valid_until: c.valid_until,
         })).filter((v, i, a) => a.findIndex(d => d.docId === v.docId) === i);
-        return NextResponse.json({ response: text, source: "rag", provider: providerInfo.label, score, chunks: topChunks.map(c => c.source), documents: docMeta }, { headers: corsHeaders });
+        return NextResponse.json({ messageId, response: text, source: "rag", provider: providerInfo.label, score, chunks: topChunks.map(c => c.source), documents: docMeta }, { headers: corsHeaders });
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
       }
@@ -530,7 +534,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
     saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score, geoPromise);
     saveUsage(client.id, providerInfo.id, model, usage);
-    return NextResponse.json({ response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, { headers: corsHeaders });
+    return NextResponse.json({ messageId, response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
     const fallbackResp = contactInfo
@@ -538,6 +542,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       : "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.";
     saveConversation(client, history || [], message, fallbackResp, "fallback", "", score, geoPromise);
     return NextResponse.json({
+      messageId,
       response: fallbackResp,
       source: "fallback",
       score,
