@@ -2251,5 +2251,41 @@ export const KB: CETIMEntry[] = [
     ],
     "short_resp": "🤝 Clients publics, privés, particuliers, internationaux – toute l'Algérie",
     "resp": "🤝 **Clientèle & Zone d'Intervention CETIM** :\n\n👥 **Clients** : Entreprises publiques · Privées · Particuliers · Coopération internationale\n🗺️ **Zone** : Toute l'Algérie · Missions internationales (sur étude de faisabilité)\n\n🛡️ **Confidentialité** : Données strictement confidentielles · Protection données techniques sensibles · Personnel soumis au secret professionnel"
+  },
+  {
+    "tag": "salutations",
+    "icon": "👋",
+    "cat": "Général",
+    "priority": 99,
+    "related_tags": [],
+    "qs": [
+      "bonjour",
+      "bonjour cetim",
+      "salut",
+      "bonsoir",
+      "hello",
+      "hi",
+      "hey",
+      "coucou",
+      "bonne journée",
+      "bonne soirée",
+      "bon après midi",
+      "bon après-midi",
+      "bienvenue",
+      "salutations",
+      "yo",
+      "salam",
+      "salam alikoum"
+    ],
+    "kw": [
+      "bonjour",
+      "salut",
+      "bonsoir",
+      "hello",
+      "hi",
+      "coucou"
+    ],
+    "short_resp": "👋 Bonjour ! Comment puis-je vous aider ?",
+    "resp": "👋 **Bonjour et bienvenue sur l'assistant virtuel du CETIM !**\n\nJe suis là pour vous renseigner sur nos **prestations**, **laboratoires**, **métrologie**, **certifications**, et bien plus encore.\n\n💡 **Quelques exemples de questions :**\n- \"Quels sont les activités du CETIM ?\"\n- \"Où se trouve le CETIM ?\"\n- \"Comment contacter le CETIM ?\"\n- \"Liste des laboratoires accrédités\"\n- \"Tarifs des essais\"\n\nN'hésitez pas à me poser votre question ! 😊\n\n📞 Pour une urgence : 024 79 10 09"
   }
 ];
