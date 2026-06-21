@@ -46,6 +46,11 @@ var aiKey="nova_ai_"+e.name.replace(/[^a-z0-9]/gi,"_");
 var store=localStorage.getItem(aiKey);
 var aiMode=store===null||store==="true";
 
+/* Mode RAG */
+var ragKey="nova_rag_"+e.name.replace(/[^a-z0-9]/gi,"_");
+var ragStore=localStorage.getItem(ragKey);
+var ragMode=ragStore==="true";
+
 function updateAIUI(){
   var btn=document.getElementById("na-ai");
   var av=document.getElementById("na-av");
@@ -68,6 +73,19 @@ function toggleAI(){
   aiMode=!aiMode;
   localStorage.setItem(aiKey,aiMode?"true":"false");
   updateAIUI();
+}
+
+/* Mode RAG */
+function updateRAGUI(){
+  var btn=document.getElementById("na-rag");
+  var ind=document.getElementById("na-rag-ind");
+  if(btn)btn.classList.toggle("on",ragMode);
+  if(ind)ind.style.display=ragMode?"inline-flex":"none";
+}
+function toggleRAG(){
+  ragMode=!ragMode;
+  localStorage.setItem(ragKey,ragMode?"true":"false");
+  updateRAGUI();
 }
 
 /* CSS */
@@ -147,6 +165,11 @@ C+=".na-ai svg{width:16px;height:16px}";
 C+=".na-ai.on{background:rgba(168,85,247,.4);box-shadow:0 0 12px rgba(168,85,247,.3)}";
 C+=".na-ai:hover{background:rgba(255,255,255,.25);transform:scale(1.06)}";
 C+=".na-ai.on:hover{background:rgba(168,85,247,.5)}";
+C+=".na-rag{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:14px;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;padding:0}";
+C+=".na-rag svg{width:16px;height:16px}";
+C+=".na-rag.on{background:rgba(5,150,105,.4);box-shadow:0 0 12px rgba(5,150,105,.3)}";
+C+=".na-rag:hover{background:rgba(255,255,255,.25);transform:scale(1.06)}";
+C+=".na-rag.on:hover{background:rgba(5,150,105,.5)}";
 /* status bar */
 C+=".n-powered{padding:8px 16px;font-size:11.5px;color:#64748b;border-bottom:1px solid #eef2f6;background:#fff;display:flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0}";
 C+=".n-ind{display:none;align-items:center;gap:5px;background:linear-gradient(90deg,#7c3aed,#9333ea);color:#fff;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px;box-shadow:0 2px 8px rgba(124,58,237,.25)}";
@@ -248,6 +271,7 @@ var ICONS={
   chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
   brain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.1-.4 2.1-1 2.8V12l-3 3-3-3V8.8A4 4 0 0 1 12 2z"/><path d="M8 14v3l4 4 4-4v-3"/></svg>',
+  file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   maximize:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>',
   minimize:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="10" y1="14" x2="3" y2="21"/></svg>',
   reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
@@ -371,7 +395,7 @@ card.className="nova-widget nc";card.id="nc";
 card.setAttribute("role","dialog");
 card.setAttribute("aria-label","Chatbot");
 card.setAttribute("aria-modal","true");
-card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode IA">'+ICONS.brain+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span id="na-sk" style="color:#6b7280">Base de connaissances</span></div><div class="nm" id="nm" role="log" aria-live="polite">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
+card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode IA">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode RAG (documents)">'+ICONS.file+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">Base de connaissances</span></div><div class="nm" id="nm" role="log" aria-live="polite">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
 document.body.appendChild(card);
 
 /* Logo onerror fallback */
@@ -669,7 +693,7 @@ function sendMessage(text){
   };
   xhr.onerror=function(){setLoading(false);addMsg("Erreur r\u00e9seau. V\u00e9rifiez votre connexion.","bot","fallback")};
   xhr.ontimeout=function(){setLoading(false);addMsg("La requ\u00eate a expir\u00e9 (30s). Veuillez r\u00e9essayer.","bot","fallback")};
-   xhr.send(JSON.stringify({message:text,history:chatHistory.slice(0,-1),aiMode:aiMode,pageUrl:window.location.href,pageTitle:document.title}));
+   xhr.send(JSON.stringify({message:text,history:chatHistory.slice(0,-1),aiMode:aiMode,ragOnly:ragMode,pageUrl:window.location.href,pageTitle:document.title}));
 }
 /* Escape to close */
 document.addEventListener("keydown",function(ev){
@@ -718,6 +742,7 @@ document.getElementById("na-reset").onclick=function(){
 
 /* AI toggle events */
 document.getElementById("na-ai").onclick=toggleAI;
+document.getElementById("na-rag").onclick=toggleRAG;
 
 /* Close button */
 document.getElementById("na-close").onclick=function(){
@@ -761,8 +786,9 @@ document.getElementById("ni").onkeydown=function(ev){
   if(ev.key==="Escape"&&open){nac.classList.remove("o");selIdx=-1}
 };
 
-/* Init AI UI */
+/* Init UI */
 updateAIUI();
+updateRAGUI();
 
 })();`;
 

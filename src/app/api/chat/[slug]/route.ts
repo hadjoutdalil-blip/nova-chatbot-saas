@@ -396,7 +396,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
   }
 
-  const { message, history, aiMode, sessionType = "client", pageUrl, pageTitle } = await req.json();
+  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle } = await req.json();
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
@@ -437,6 +437,64 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       score: 0,
       suggestions: [],
     }, { headers: corsHeaders });
+  }
+
+  /* ── RAG ONLY MODE : skip KB, go directly to RAG ── */
+  if (ragOnly) {
+    if (!aiMode || !client.apiKey) {
+      return NextResponse.json({
+        messageId,
+        response: "Le mode RAG nécessite une clé API IA. Veuillez activer le mode IA ou désactiver le mode RAG.",
+        source: "fallback",
+        score: 0,
+        suggestions: [],
+      }, { headers: corsHeaders });
+    }
+    const providerInfo = detectProvider(client.apiKey);
+    const model = client.aiModel || "llama-3.1-8b-instant";
+    const siteChunks = parseChunks(client.siteContext || "");
+    const allDocs = await db.read<any>("client_documents");
+    const now = new Date();
+    const clientDocs = allDocs.filter((d: any) =>
+      d.clientId === client.id &&
+      d.status !== "archived" &&
+      (!d.valid_until || new Date(d.valid_until) >= now) &&
+      (!d.valid_from || new Date(d.valid_from) <= now)
+    );
+    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 500));
+    const chunks = [...siteChunks, ...docChunks];
+    const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, 0);
+    if (topChunks.length > 0) {
+      const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
+      try {
+        const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
+        saveConversation(client, history || [], message, text, "rag", providerInfo.label, 0, geoPromise);
+        saveUsage(client.id, providerInfo.id, model, usage);
+        const docMeta = topChunks.filter(c => c.docId).map(c => ({
+          docId: c.docId,
+          name: c.source,
+          version: c.version,
+          source_url: c.source_url,
+          valid_until: c.valid_until,
+        })).filter((v, i, a) => a.findIndex(d => d.docId === v.docId) === i);
+        return NextResponse.json({ messageId, response: text, source: "rag", provider: providerInfo.label, score: 0, chunks: topChunks.map(c => c.source), documents: docMeta }, { headers: corsHeaders });
+      } catch (err: any) {
+        console.error("[Nova Chat] RAG error:", err);
+      }
+    }
+    const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
+    try {
+      const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, escSystem, escUser, client.tempEscalade ?? 0.20, history || [], 800);
+      saveConversation(client, history || [], message, text, "escalade", providerInfo.label, 0, geoPromise);
+      saveUsage(client.id, providerInfo.id, model, usage);
+      return NextResponse.json({ messageId, response: text, source: "escalade", provider: providerInfo.label, score: 0 }, { headers: corsHeaders });
+    } catch (err: any) {
+      const fallbackResp = contactInfo
+        ? `Je n'ai pas pu traiter votre demande pour le moment. 📋\n\n${contactInfo}`
+        : "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer.";
+      saveConversation(client, history || [], message, fallbackResp, "fallback", "", 0, geoPromise);
+      return NextResponse.json({ messageId, response: fallbackResp, source: "fallback", score: 0 }, { headers: corsHeaders });
+    }
   }
 
   /* ── NIVEAU 1 : QA VALIDÉE ── */
