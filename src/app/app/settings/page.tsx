@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson } from "lucide-react";
+import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, RefreshCw } from "lucide-react";
 
 const PROVIDERS = [
   { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
@@ -24,6 +24,7 @@ export default function AppSettingsPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [transferring, setTransferring] = useState(false);
   const [contextChunks, setContextChunks] = useState<{ name: string; index: number; content: string }[]>([]);
   const [viewDoc, setViewDoc] = useState<{ title: string; content: string } | null>(null);
   const [tab, setTab] = useState("ia");
@@ -138,6 +139,22 @@ export default function AppSettingsPage() {
       headers: { Authorization: `Bearer ${token()}` },
     });
     if (res.ok) setDocuments((prev) => prev.filter((d) => d.id !== id));
+  }
+
+  async function handleTransferToKb() {
+    if (!confirm("Transférer tous les documents contextuels et chunks vers la base de connaissances ?")) return;
+    setTransferring(true);
+    const res = await fetch("/api/documents/transfer-to-kb", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token()}` },
+    });
+    const data = await res.json();
+    setTransferring(false);
+    if (res.ok) {
+      alert(`${data.created} entrée(s) ajoutée(s) à la base de connaissances.`);
+    } else {
+      alert(data.error || "Erreur lors du transfert");
+    }
   }
 
   if (!form) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
@@ -373,9 +390,12 @@ export default function AppSettingsPage() {
                 })}
               </div>
             )}
-            <div className="border-t border-gray-100 pt-4">
+            <div className="flex items-center justify-between border-t border-gray-100 pt-4">
               <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
                 <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
+              </button>
+              <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
+                <BookOpen size={15} /> {transferring ? "Transfert..." : "Transférer vers la KB"}
               </button>
             </div>
           </div>
