@@ -36,7 +36,11 @@ export const KB: CETIMEntry[] = [
       "date création cetim",
       "statut juridique cetim",
       "cetim filiale gica",
-      "capital social cetim"
+      "capital social cetim",
+      "plus de detail sur le cetim",
+      "plus de détails sur le cetim",
+      "informations générales cetim",
+      "à propos du cetim"
     ],
     "kw": [
       "CETIM",
@@ -109,7 +113,16 @@ export const KB: CETIMEntry[] = [
       "que propose cetim",
       "offres cetim",
       "domaines d'activité cetim",
-      "catalogue services cetim"
+      "catalogue services cetim",
+      "quels sont les activités du cetim",
+      "quels sont les actvités du cetim",
+      "quelles sont les activités du cetim",
+      "quelles sont les actvités du cetim",
+      "quel sont les activités du cetim",
+      "quel sont les actvités du cetim",
+      "quels sont les services du cetim",
+      "liste des activités cetim",
+      "domaines d'expertise cetim"
     ],
     "kw": [
       "activités",
