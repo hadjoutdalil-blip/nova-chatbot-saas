@@ -27,6 +27,7 @@ export const KB: CETIMEntry[] = [
     "qs": [
       "qu'est ce que le cetim",
       "présentation cetim",
+      "cetim",
       "cetim c'est quoi",
       "cetim algérie",
       "centre technique matériaux construction",

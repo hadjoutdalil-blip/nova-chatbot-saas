@@ -97,7 +97,7 @@ function calcSimilarity(a: string, b: string): number {
 
 function findBestMatch(
   query: string,
-  KB: { question: string; alt_questions: string; answer: string; category: string; keywords: string }[]
+  KB: { tag: string; question: string; alt_questions: string; answer: string; category: string; keywords: string; priority: number }[]
 ): { match: any | null; score: number; isKeyword: boolean } {
   let best: any | null = null;
   let bestScore = 0;
@@ -105,24 +105,24 @@ function findBestMatch(
   const nq = norm(query);
   for (const e of KB) {
     const sq = calcSimilarity(query, e.question);
-    if (sq > bestScore) { bestScore = sq; best = e; isKeyword = false; }
+    if (sq > bestScore || (sq === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sq; best = e; isKeyword = false; }
     if (e.alt_questions) {
       for (const a of e.alt_questions.split(/[,|]+\s*/).map(s => s.trim())) {
         if (!a) continue;
         const sa = calcSimilarity(query, a);
-        if (sa > bestScore) { bestScore = sa; best = e; isKeyword = false; }
+        if (sa > bestScore || (sa === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sa; best = e; isKeyword = false; }
       }
     }
     for (const kw of (e.keywords || "").split(",").map(s => s.trim())) {
       const nkw = norm(kw);
       if (nkw && (nq.includes(nkw) || nkw.includes(nq))) {
         const sk = 0.6;
-        if (sk > bestScore) { bestScore = sk; best = e; isKeyword = true; }
+        if (sk > bestScore || (sk === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sk; best = e; isKeyword = true; }
       }
     }
     const cat = norm(e.category);
     if (cat && (nq.includes(cat) || cat.includes(nq))) {
-      if (0.55 > bestScore) { bestScore = 0.55; best = e; isKeyword = false; }
+      if (0.55 > bestScore || (0.55 === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = 0.55; best = e; isKeyword = false; }
     }
   }
   return { match: best, score: Math.round(Math.min(bestScore, 1) * 100), isKeyword };
@@ -419,11 +419,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const kbEntries = allEntries.filter((k: any) => k.clientId === client.id);
 
   const KB = kbEntries.map((k: any) => ({
+    tag: k.tag,
     question: k.question,
     alt_questions: k.alt_questions || "",
     answer: k.answer,
     category: k.category,
     keywords: k.keywords || "",
+    priority: k.priority ?? 5,
     source: k.source || "",
     source_url: k.source_url || "",
     valid_until: k.valid_until || "",
