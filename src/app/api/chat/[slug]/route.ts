@@ -404,6 +404,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const messageId = randomUUID();
   const trimmed = message.trim();
   const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) {
+    return NextResponse.json({
+      messageId,
+      response: "Votre question est trop courte. Pouvez-vous la reformuler ou préciser votre demande ?",
+      source: "clarification",
+      score: 0,
+      suggestions: [],
+    }, { headers: corsHeaders });
+  }
 
   const ip = extractIP(req);
   const geoPromise = lookupGeo(ip);
@@ -427,17 +436,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { match, score, isKeyword } = findBestMatch(message, KB);
   const kbThreshold = isKeyword ? 50 : (client.kbThreshold ?? 80);
   const ragThreshold = client.ragThreshold ?? 72;
-
-  /* ── Short query guard (only if no good KB match) ── */
-  if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || score < kbThreshold)) {
-    return NextResponse.json({
-      messageId,
-      response: "Votre question est trop courte. Pouvez-vous la reformuler ou préciser votre demande ?",
-      source: "clarification",
-      score: 0,
-      suggestions: [],
-    }, { headers: corsHeaders });
-  }
 
   /* ── NIVEAU 1 : QA VALIDÉE ── */
   if (match && score >= kbThreshold) {

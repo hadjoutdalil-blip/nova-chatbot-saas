@@ -2286,6 +2286,6 @@ export const KB: CETIMEntry[] = [
       "coucou"
     ],
     "short_resp": "👋 Bonjour ! Comment puis-je vous aider ?",
-    "resp": "👋 **Bonjour et bienvenue sur l'assistant virtuel du CETIM !**\n\nJe suis là pour vous renseigner sur nos **prestations**, **laboratoires**, **métrologie**, **certifications**, et bien plus encore.\n\n💡 **Quelques exemples de questions :**\n- \"Quels sont les activités du CETIM ?\"\n- \"Où se trouve le CETIM ?\"\n- \"Comment contacter le CETIM ?\"\n- \"Liste des laboratoires accrédités\"\n- \"Tarifs des essais\"\n\nN'hésitez pas à me poser votre question ! 😊\n\n📞 Pour une urgence : 024 79 10 09"
+    "resp": "👋 **Bonjour et bienvenue sur l'assistant virtuel du CETIM !**\n\nJe suis là pour vous renseigner sur nos prestations, laboratoires, métrologie, certifications, et bien plus encore.\n\n💡 **Exemples de questions :**\n\n| Thème | Exemple de question |\n|---|---|\n| 🏢 Présentation | \"Qu'est-ce que le CETIM ?\" |\n| ⚙️ Activités | \"Quels sont les services du CETIM ?\" |\n| 🧪 Laboratoires | \"Liste des laboratoires accrédités\" |\n| 📏 Métrologie | \"Quels sont les tarifs d'étalonnage ?\" |\n| 📞 Contact | \"Comment contacter le CETIM ?\" |\n| 📍 Adresse | \"Où se trouve le CETIM ?\" |\n\nN'hésitez pas à me poser votre question ! 😊\n\n📞 Pour une urgence : 024 79 10 09"
   }
 ];
