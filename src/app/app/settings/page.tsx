@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, PanelRightClose, Upload, FileText, Trash2, Eye, Download, X } from "lucide-react";
+import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson } from "lucide-react";
 
 const PROVIDERS = [
   { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
   { id: "cerebras", name: "Cerebras (gratuit)", models: ["llama3.1-8b", "llama3.1-70b"] },
   { id: "xai", name: "xAI Grok", models: ["grok-2-latest", "grok-3-beta"] },
+];
+
+const TABS = [
+  { id: "ia", label: "Configuration IA", icon: Brain },
+  { id: "documents", label: "Documents contextuels", icon: FileJson },
 ];
 
 export default function AppSettingsPage() {
@@ -21,6 +26,7 @@ export default function AppSettingsPage() {
   const [uploading, setUploading] = useState(false);
   const [contextChunks, setContextChunks] = useState<{ name: string; index: number; content: string }[]>([]);
   const [viewDoc, setViewDoc] = useState<{ title: string; content: string } | null>(null);
+  const [tab, setTab] = useState("ia");
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -141,155 +147,201 @@ export default function AppSettingsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Paramètres</h1>
-      <p className="text-gray-500 mb-8">Configurez l&apos;intelligence artificielle de votre chatbot.</p>
+      <p className="text-gray-500 mb-6">Configurez votre assistant virtuel.</p>
 
-      <div className="space-y-5 max-w-2xl">
-        <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-            <Brain size={18} className="text-purple-600" />
-            <h2 className="font-semibold text-gray-900">Configuration IA</h2>
-          </div>
+      <div className="flex gap-1 mb-6 bg-gray-100/80 rounded-xl p-1 w-fit">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                tab === t.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Icon size={16} />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Fournisseur</label>
-              <select value={form.aiProvider} onChange={(e) => setForm({ ...form, aiProvider: e.target.value, aiModel: "" })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
-                {PROVIDERS.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-              </select>
+      {tab === "ia" && (
+        <div className="space-y-5 max-w-2xl">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
+              <Brain size={18} className="text-purple-600" />
+              <h2 className="font-semibold text-gray-900">Fournisseur & Modèle</h2>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Modèle</label>
-              <select value={form.aiModel} onChange={(e) => setForm({ ...form, aiModel: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
-                <option value="">— Sélectionner —</option>
-                {models.map((m) => (<option key={m} value={m}>{m}</option>))}
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-              <Key size={14} /> Clé API (détection auto : Grok=xai- / Cerebras=csk_ / autre=Groq)
-            </label>
-            <div className="flex gap-2">
-              <input value={form.apiKey} onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }} type="password" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
-              <button type="button" onClick={testKey} disabled={keyTest.loading || !form.apiKey} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-white/80 transition-all disabled:opacity-50">
-                <TestTube size={15} /> {keyTest.loading ? "Test..." : "Tester"}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fournisseur</label>
+                <select value={form.aiProvider} onChange={(e) => setForm({ ...form, aiProvider: e.target.value, aiModel: "" })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
+                  {PROVIDERS.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Modèle</label>
+                <select value={form.aiModel} onChange={(e) => setForm({ ...form, aiModel: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
+                  <option value="">— Sélectionner —</option>
+                  {models.map((m) => (<option key={m} value={m}>{m}</option>))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                <Key size={14} /> Clé API (détection auto : Grok=xai- / Cerebras=csk_ / autre=Groq)
+              </label>
+              <div className="flex gap-2">
+                <input value={form.apiKey} onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }} type="password" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
+                <button type="button" onClick={testKey} disabled={keyTest.loading || !form.apiKey} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-white/80 transition-all disabled:opacity-50">
+                  <TestTube size={15} /> {keyTest.loading ? "Test..." : "Tester"}
+                </button>
+              </div>
+              {keyTest.valid === true && <p className="text-green-600 text-xs mt-1.5 flex items-center gap-1">✓ Clé valide ({keyTest.error || form.aiProvider})</p>}
+              {keyTest.valid === false && <p className="text-red-500 text-xs mt-1.5">✗ {keyTest.error}</p>}
+            </div>
+
+            <div className="border-t border-gray-100 pt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <SlidersHorizontal size={16} className="text-purple-600" />
+                <h2 className="font-semibold text-gray-900">Seuils de confiance</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                    Seuil QA (N1) : {form.kbThreshold ?? 80}%
+                  </label>
+                  <input type="range" min={10} max={100} value={form.kbThreshold ?? 80} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full accent-purple-600" />
+                  <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                    Seuil RAG (N2) : {form.ragThreshold ?? 72}%
+                  </label>
+                  <input type="range" min={10} max={100} value={form.ragThreshold ?? 72} onChange={(e) => setForm({ ...form, ragThreshold: +e.target.value })} className="w-full accent-purple-600" />
+                  <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors">
+                <Thermometer size={14} /> Paramètres avancés {showAdvanced ? "▲" : "▼"}
               </button>
             </div>
-            {keyTest.valid === true && <p className="text-green-600 text-xs mt-1.5 flex items-center gap-1">✓ Clé valide ({keyTest.error || form.aiProvider})</p>}
-            {keyTest.valid === false && <p className="text-red-500 text-xs mt-1.5">✗ {keyTest.error}</p>}
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            {showAdvanced && (
+              <div className="space-y-4 pl-4 border-l-2 border-purple-100">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Temp. QA (N1)</label>
+                    <input type="number" step={0.01} min={0} max={1} value={form.tempQA ?? 0.05} onChange={(e) => setForm({ ...form, tempQA: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Temp. RAG (N2)</label>
+                    <input type="number" step={0.01} min={0} max={1} value={form.tempRAG ?? 0.10} onChange={(e) => setForm({ ...form, tempRAG: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Temp. Escalade (N3)</label>
+                    <input type="number" step={0.01} min={0} max={1} value={form.tempEscalade ?? 0.20} onChange={(e) => setForm({ ...form, tempEscalade: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Taille chunk (car.)</label>
+                    <input type="number" min={100} max={5000} step={100} value={form.chunkSize ?? 500} onChange={(e) => setForm({ ...form, chunkSize: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Top N chunks RAG</label>
+                    <input type="number" min={1} max={20} value={form.topNChunks ?? 3} onChange={(e) => setForm({ ...form, topNChunks: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <SlidersHorizontal size={14} /> Seuil QA (N1) : {form.kbThreshold ?? 80}%
+                <MessageSquareText size={14} /> Relance IA
               </label>
-              <input type="range" min={10} max={100} value={form.kbThreshold ?? 80} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full accent-purple-600" />
-              <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
+              <select value={form.relanceActive ? "true" : "false"} onChange={(e) => setForm({ ...form, relanceActive: e.target.value === "true" })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
+                <option value="true">Active</option>
+                <option value="false">Désactivée</option>
+              </select>
             </div>
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <Layers size={14} /> Seuil RAG (N2) : {form.ragThreshold ?? 72}%
-              </label>
-              <input type="range" min={10} max={100} value={form.ragThreshold ?? 72} onChange={(e) => setForm({ ...form, ragThreshold: +e.target.value })} className="w-full accent-purple-600" />
-              <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
-            </div>
-          </div>
 
-          <div>
-            <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors">
-              <Thermometer size={14} /> Paramètres avancés {showAdvanced ? "▲" : "▼"}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Texte de relance personnalisé</label>
+              <textarea value={form.relanceText || ""} onChange={(e) => setForm({ ...form, relanceText: e.target.value })} rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Exemple : Souhaitez-vous plus de détails ?" />
+            </div>
+
+            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
+              <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
             </button>
           </div>
 
-          {showAdvanced && (
-            <div className="space-y-4 pl-4 border-l-2 border-purple-100">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Temp. QA (N1)</label>
-                  <input type="number" step={0.01} min={0} max={1} value={form.tempQA ?? 0.05} onChange={(e) => setForm({ ...form, tempQA: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Temp. RAG (N2)</label>
-                  <input type="number" step={0.01} min={0} max={1} value={form.tempRAG ?? 0.10} onChange={(e) => setForm({ ...form, tempRAG: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Temp. Escalade (N3)</label>
-                  <input type="number" step={0.01} min={0} max={1} value={form.tempEscalade ?? 0.20} onChange={(e) => setForm({ ...form, tempEscalade: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Taille chunk (car.)</label>
-                  <input type="number" min={100} max={5000} step={100} value={form.chunkSize ?? 500} onChange={(e) => setForm({ ...form, chunkSize: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Top N chunks RAG</label>
-                  <input type="number" min={1} max={20} value={form.topNChunks ?? 3} onChange={(e) => setForm({ ...form, topNChunks: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
-                </div>
-              </div>
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6">
+            <button onClick={() => { localStorage.removeItem("token"); router.push("/login"); }} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-sm font-medium transition-colors">
+              <LogOut size={16} /> Déconnexion
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === "documents" && (
+        <div className="space-y-5 max-w-2xl">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
+              <Building2 size={18} className="text-purple-600" />
+              <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
             </div>
-          )}
-
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-              <MessageSquareText size={14} /> Relance IA
-            </label>
-            <select value={form.relanceActive ? "true" : "false"} onChange={(e) => setForm({ ...form, relanceActive: e.target.value === "true" })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
-              <option value="true">Active</option>
-              <option value="false">Désactivée</option>
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Description de l&apos;activité (importée automatiquement en chunks)</label>
+              {contextChunks.length > 0 && (
+                <div className="mb-3 space-y-1.5">
+                  <p className="text-xs text-gray-400 mb-1.5">{contextChunks.length} fichier(s) importé(s) :</p>
+                  {contextChunks.map((chunk, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText size={14} className="text-purple-500 shrink-0" />
+                        <span className="text-sm text-gray-700 truncate">{chunk.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => downloadContent(chunk.content, chunk.name)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
+                          <Download size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <textarea value={form.siteContext || ""} onChange={(e) => { setForm({ ...form, siteContext: e.target.value }); setContextChunks(parseContextChunks(e.target.value)); }} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Texte de relance personnalisé</label>
-            <textarea value={form.relanceText || ""} onChange={(e) => setForm({ ...form, relanceText: e.target.value })} rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Exemple : Souhaitez-vous plus de détails ?" />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-              <Building2 size={14} /> Contexte de l&apos;entreprise (importé automatiquement en chunks)
-            </label>
-            {contextChunks.length > 0 && (
-              <div className="mb-3 space-y-1.5">
-                <p className="text-xs text-gray-400 mb-1.5">{contextChunks.length} fichier(s) importé(s) :</p>
-                {contextChunks.map((chunk, i) => (
-                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText size={14} className="text-purple-500 shrink-0" />
-                      <span className="text-sm text-gray-700 truncate">{chunk.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
-                        <Eye size={14} />
-                      </button>
-                      <button onClick={() => downloadContent(chunk.content, chunk.name)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
-                        <Download size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-2">
+                <FileText size={18} className="text-purple-600" />
+                <h2 className="font-semibold text-gray-900">Documents téléchargés</h2>
               </div>
-            )}
-            <textarea value={form.siteContext || ""} onChange={(e) => { setForm({ ...form, siteContext: e.target.value }); setContextChunks(parseContextChunks(e.target.value)); }} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
-          </div>
-
-          <div className="border-t border-gray-100 pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700"><FileText size={14} /> Documents contextuels</h3>
               <label className="flex items-center gap-2 text-xs font-medium text-purple-600 hover:text-purple-700 cursor-pointer transition-colors">
                 <Upload size={14} /> {uploading ? "Upload..." : "Ajouter un fichier"}
                 <input type="file" accept=".txt,.csv,.json,.md" className="hidden" onChange={handleUpload} disabled={uploading} />
               </label>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Formats supportés : .txt, .csv, .json, .md (max 5 Mo). Gestion des versions et dates de validité.</p>
+            <p className="text-xs text-gray-400">Formats supportés : .txt, .csv, .json, .md (max 5 Mo). Gestion des versions et dates de validité.</p>
             {documents.length === 0 ? (
               <p className="text-sm text-gray-400 italic">Aucun document uploadé.</p>
             ) : (
               <div className="space-y-2">
                 {documents.map((doc) => {
-                  const isValid = doc.valid_until ? new Date(doc.valid_until) >= new Date() : true;
                   const isExpired = doc.valid_until ? new Date(doc.valid_until) < new Date() : false;
                   return (
                     <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
@@ -321,19 +373,14 @@ export default function AppSettingsPage() {
                 })}
               </div>
             )}
+            <div className="border-t border-gray-100 pt-4">
+              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
+                <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
           </div>
-
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
-            <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
-          </button>
         </div>
-
-        <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6">
-          <button onClick={() => { localStorage.removeItem("token"); router.push("/login"); }} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-sm font-medium transition-colors">
-            <LogOut size={16} /> Déconnexion
-          </button>
-        </div>
-      </div>
+      )}
 
       {viewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
