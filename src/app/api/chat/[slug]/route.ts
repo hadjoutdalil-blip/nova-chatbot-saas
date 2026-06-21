@@ -384,6 +384,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
 
+  const trimmed = message.trim();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) {
+    return NextResponse.json({
+      response: "Votre question est trop courte. Pouvez-vous la reformuler ou préciser votre demande ?",
+      source: "clarification",
+      score: 0,
+      suggestions: [],
+    }, { headers: corsHeaders });
+  }
+
   const ip = extractIP(req);
   const geoPromise = lookupGeo(ip);
 
