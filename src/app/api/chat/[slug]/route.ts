@@ -432,8 +432,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || score < kbThreshold)) {
     return NextResponse.json({
       messageId,
-      response: "Votre question est trop courte. Pouvez-vous la reformuler ou préciser votre demande ?",
-      source: "clarification",
+      response: "",
+      source: "skip",
       score: 0,
       suggestions: [],
     }, { headers: corsHeaders });

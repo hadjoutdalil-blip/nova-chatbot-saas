@@ -683,6 +683,7 @@ function sendMessage(text){
     if(xhr.status>=500){addMsg("Service temporairement indisponible. Veuillez r\u00e9essayer.","bot","fallback");return}
     try{
       var resp=JSON.parse(xhr.responseText);
+      if(resp.source==="skip"){setLoading(false);return}
       addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until,resp.documents,resp.messageId);
       chatHistory.push({role:"assistant",content:resp.response});
       if(chatHistory.length>e.maxHistoryLength) chatHistory=chatHistory.slice(-e.maxHistoryLength);
