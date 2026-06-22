@@ -441,6 +441,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── RAG ONLY MODE : skip KB, go directly to RAG ── */
   if (ragOnly) {
+    /* Toujours respecter les matchs exacts KB */
+    if (match && score === 100) {
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      return NextResponse.json({
+        messageId,
+        response: match.answer,
+        source: "kb",
+        score,
+        source_url: match.source_url || "",
+        valid_until: match.valid_until || "",
+        suggestions: findRelated(match, KB, 3),
+      }, { headers: corsHeaders });
+    }
     if (!aiMode || !client.apiKey) {
       return NextResponse.json({
         messageId,
