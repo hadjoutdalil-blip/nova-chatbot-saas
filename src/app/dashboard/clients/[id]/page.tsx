@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Building2, Brain, BarChart3, BookOpen, FlaskConical,
+  Building2, Brain, BarChart3, BookOpen, FlaskConical, CheckSquare,
   Download, Plus, Search, FileText, Inbox, Edit3, Trash2, Thermometer, Layers, PanelRightClose,
 } from "lucide-react";
 import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
@@ -42,6 +42,7 @@ const TABS = [
   { id: "stats", label: "Stats", icon: <BarChart3 size={16} /> },
   { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
   { id: "test", label: "Test", icon: <FlaskConical size={16} /> },
+  { id: "evaluation", label: "Évaluation", icon: <CheckSquare size={16} /> },
 ];
 
 export default function EditClientPage() {
@@ -639,6 +640,28 @@ export default function EditClientPage() {
                     Endpoint : <code className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-mono">/api/chat/{form.slug}</code>
                   </p>
                 </div>
+              </div>
+            </Card>
+          </div>
+        )}
+        {/* ── Évaluation ── */}
+        {tab === "evaluation" && (
+          <div className="max-w-2xl">
+            <Card>
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                <CheckSquare size={18} className="text-purple-600" />
+                <h2 className="font-semibold text-gray-900">Évaluation des réponses</h2>
+              </div>
+              <p className="text-gray-500 text-sm mb-5 leading-relaxed">
+                Analyse des questions/réponses avec leurs scores de correspondance KB. Permet d&apos;identifier les questions mal matchées.
+              </p>
+              <div className="flex gap-3">
+                <a
+                  href={`/dashboard/clients/${id}/evaluation`}
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-purple-600 text-white shadow-sm hover:bg-purple-700 active:bg-purple-800 px-6 py-2.5 text-sm rounded-xl"
+                >
+                  Ouvrir la page d&apos;évaluation
+                </a>
               </div>
             </Card>
           </div>

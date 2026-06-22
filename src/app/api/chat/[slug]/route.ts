@@ -361,11 +361,12 @@ async function saveConversation(client: any, history: any[], userMsg: string, ai
   try {
     const geo = geoPromise ? await geoPromise : { ip: "", country: "", city: "" };
     const all = await db.read<any>("conversations");
+    const msgId = randomUUID();
     const allMsgs = [...(history || []), { role: "user", content: userMsg }, { role: "assistant", content: aiMsg, source, provider, score }];
     const title = (history?.[0]?.content?.slice(0, 80)) || userMsg.slice(0, 80);
 
     all.push({
-      id: randomUUID(),
+      id: msgId,
       title,
       messages: JSON.stringify(allMsgs),
       clientId: client.id,
@@ -377,6 +378,25 @@ async function saveConversation(client: any, history: any[], userMsg: string, ai
     });
 
     await db.write("conversations", all);
+
+    /* Log Q&A pair for evaluation */
+    const qaMsgId = randomUUID();
+    await db.prisma.messageFeedback.create({
+      data: {
+        id: qaMsgId,
+        clientId: client.id,
+        messageId: qaMsgId,
+        conversationId: msgId,
+        rating: 0,
+        question: userMsg,
+        response: aiMsg,
+        source,
+        score,
+        provider,
+        comment: "",
+        pageUrl: "",
+      },
+    });
   } catch (err) {
     console.error("[Nova Chat] Failed to save conversation:", err);
   }
