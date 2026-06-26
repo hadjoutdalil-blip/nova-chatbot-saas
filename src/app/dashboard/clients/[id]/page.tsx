@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Building2, Brain, BarChart3, BookOpen, FlaskConical, CheckSquare,
   Download, Plus, Search, FileText, Inbox, Edit3, Trash2, Thermometer, Layers, PanelRightClose,
+  Globe, MessageSquare, ThumbsUp,
 } from "lucide-react";
 import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
@@ -20,6 +21,7 @@ const PROVIDERS = [
   { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
   { id: "cerebras", name: "Cerebras (gratuit)", models: ["llama3.1-8b", "llama3.1-70b"] },
   { id: "xai", name: "xAI Grok", models: ["grok-2-latest", "grok-3-beta"] },
+  { id: "gemini", name: "Google Gemini", models: ["gemini-2.5-flash"] },
 ];
 
 interface KBEntry {
@@ -36,10 +38,22 @@ interface KBEntry {
   icon: string;
 }
 
+interface AnalyticsData {
+  conversations: { total: number };
+  connectionsByLocation: { country: string; city: string; count: number }[];
+  satisfaction: { total: number; avgRating: number; distribution: Record<string, number> };
+  recentConversations: {
+    id: string; title: string; country: string; city: string;
+    messages: { role: string; content: string }[];
+    createdAt: string;
+  }[];
+}
+
 const TABS = [
   { id: "general", label: "Général", icon: <Building2 size={16} /> },
   { id: "ai", label: "IA", icon: <Brain size={16} /> },
   { id: "stats", label: "Stats", icon: <BarChart3 size={16} /> },
+  { id: "analytics", label: "Analytiques", icon: <BarChart3 size={16} /> },
   { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
   { id: "test", label: "Test", icon: <FlaskConical size={16} /> },
   { id: "evaluation", label: "Évaluation", icon: <CheckSquare size={16} /> },
@@ -62,6 +76,9 @@ export default function EditClientPage() {
   const [editingEntry, setEditingEntry] = useState<KBEntry | null>(null);
   const [kbImporting, setKbImporting] = useState(false);
 
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   // widget tab removed — config gérée depuis /app/widget
 
   function token() { return localStorage.getItem("token") || ""; }
@@ -73,6 +90,16 @@ export default function EditClientPage() {
       .then((data) => setForm(data));
     loadKb();
   }, [id]);
+
+  useEffect(() => {
+    if (tab !== "analytics" || !id) return;
+    setAnalyticsLoading(true);
+    fetch(`/api/clients/${id}/analytics`)
+      .then((r) => r.json())
+      .then((data) => setAnalytics(data))
+      .catch(() => setAnalytics(null))
+      .finally(() => setAnalyticsLoading(false));
+  }, [tab, id]);
 
   async function loadKb() {
     const t = token();
@@ -467,6 +494,131 @@ export default function EditClientPage() {
             <StatCard label="Entrées KB" value={stats.entries} icon={BookOpen} color="from-purple-500 to-purple-400" />
             <StatCard label="Catégories" value={stats.categories} icon={BarChart3} color="from-blue-500 to-blue-400" />
             <StatCard label="Priorité moyenne" value={stats.avgPriority} icon={BarChart3} color="from-emerald-500 to-emerald-400" />
+          </div>
+        )}
+
+        {/* ── Analytics ── */}
+        {tab === "analytics" && (
+          <div className="space-y-6">
+            {analyticsLoading && (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-gray-400 text-sm">Chargement des données...</p>
+              </div>
+            )}
+            {!analyticsLoading && !analytics && (
+              <Card padding="lg" className="text-center">
+                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                  <BarChart3 size={24} className="text-gray-400" />
+                </div>
+                <p className="text-gray-400 text-sm">Aucune donnée disponible.</p>
+              </Card>
+            )}
+            {analytics && (
+              <>
+                <div className="grid grid-cols-3 gap-5">
+                  <StatCard label="Conversations" value={analytics.conversations.total} icon={MessageSquare} color="from-purple-500 to-purple-400" />
+                  <StatCard label="Taux satisfaction" value={analytics.satisfaction.total > 0 ? `${analytics.satisfaction.avgRating}/5` : "—"} icon={ThumbsUp} color="from-emerald-500 to-emerald-400" />
+                  <StatCard label="Localisations" value={analytics.connectionsByLocation.length} icon={Globe} color="from-blue-500 to-blue-400" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <Card>
+                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                      <Globe size={18} className="text-blue-600" />
+                      <h2 className="font-semibold text-gray-900">Connexions par localisation</h2>
+                    </div>
+                    {analytics.connectionsByLocation.length === 0 ? (
+                      <p className="text-gray-400 text-sm text-center py-6">Aucune donnée de localisation.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {analytics.connectionsByLocation.map((loc: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{loc.country === "Inconnu" && loc.city === "Inconnu" ? "🌍" : "📍"}</span>
+                              <span className="text-sm text-gray-700">
+                                {loc.city !== "Inconnu" ? loc.city : ""}{loc.city !== "Inconnu" && loc.country !== "Inconnu" ? ", " : ""}{loc.country !== "Inconnu" ? loc.country : "Inconnu"}
+                              </span>
+                            </div>
+                            <span className="text-sm font-semibold text-gray-900">{loc.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+
+                  <Card>
+                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                      <ThumbsUp size={18} className="text-emerald-600" />
+                      <h2 className="font-semibold text-gray-900">Satisfaction par vote</h2>
+                    </div>
+                    {analytics.satisfaction.total === 0 ? (
+                      <p className="text-gray-400 text-sm text-center py-6">Aucun vote utilisateur.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const count = analytics.satisfaction.distribution[String(star)] || 0;
+                          const pct = analytics.satisfaction.total > 0 ? (count / analytics.satisfaction.total) * 100 : 0;
+                          const colors = ["", "bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-lime-400", "bg-emerald-400"];
+                          const labels = ["", "Très mauvais", "Mauvais", "Moyen", "Bien", "Excellent"];
+                          return (
+                            <div key={star} className="flex items-center gap-3">
+                              <span className="text-sm font-medium w-24 text-gray-600">{labels[star]}</span>
+                              <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full transition-all duration-300 ${colors[star]}`} style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="text-sm font-semibold text-gray-900 w-10 text-right">{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Card>
+                </div>
+
+                <Card>
+                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                    <MessageSquare size={18} className="text-purple-600" />
+                    <h2 className="font-semibold text-gray-900">Conversations récentes</h2>
+                  </div>
+                  {analytics.recentConversations.length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-6">Aucune conversation.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-gray-500 border-b border-gray-100">
+                            <th className="pb-2 font-medium">Titre</th>
+                            <th className="pb-2 font-medium">Localisation</th>
+                            <th className="pb-2 font-medium">Messages</th>
+                            <th className="pb-2 font-medium">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics.recentConversations.map((c: any) => (
+                            <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                              <td className="py-2.5 pr-4">
+                                <span className="text-gray-900 font-medium truncate block max-w-[200px]">{c.title || "Sans titre"}</span>
+                              </td>
+                              <td className="py-2.5 pr-4">
+                                <span className="text-gray-500 text-xs">
+                                  {[c.city, c.country].filter(Boolean).join(", ") || "—"}
+                                </span>
+                              </td>
+                              <td className="py-2.5 pr-4">
+                                <span className="text-gray-700">{c.messages?.length || 0}</span>
+                              </td>
+                              <td className="py-2.5">
+                                <span className="text-gray-400 text-xs">{new Date(c.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              </>
+            )}
           </div>
         )}
 

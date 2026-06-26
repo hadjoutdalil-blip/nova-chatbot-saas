@@ -103,7 +103,9 @@ export default function NewClientPage() {
             <label className="block text-sm font-medium mb-1">Fournisseur IA</label>
             <select value={form.aiProvider} onChange={(e) => setForm({ ...form, aiProvider: e.target.value })} className="w-full border rounded-lg px-3 py-2">
               <option value="groq">Groq</option>
-              <option value="openai">OpenAI</option>
+              <option value="cerebras">Cerebras</option>
+              <option value="xai">xAI Grok</option>
+              <option value="gemini">Google Gemini</option>
             </select>
           </div>
           <div>

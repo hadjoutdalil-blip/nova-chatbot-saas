@@ -8,6 +8,7 @@ const PROVIDERS = [
   { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
   { id: "cerebras", name: "Cerebras (gratuit)", models: ["llama3.1-8b", "llama3.1-70b"] },
   { id: "xai", name: "xAI Grok", models: ["grok-2-latest", "grok-3-beta"] },
+  { id: "gemini", name: "Google Gemini", models: ["gemini-2.5-flash"] },
 ];
 
 const TABS = [
@@ -210,7 +211,7 @@ export default function AppSettingsPage() {
 
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <Key size={14} /> Clé API (détection auto : Grok=xai- / Cerebras=csk_ / autre=Groq)
+                <Key size={14} /> Clé API (détection auto : xAI=xai- / Cerebras=csk_ / Gemini=AIza / autre=Groq)
               </label>
               <div className="flex gap-2">
                 <input value={form.apiKey} onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }} type="password" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />

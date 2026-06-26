@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 const PROVIDER_MODELS: Record<string, string[]> = {
   groq: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"],
   cerebras: ["llama3.1-8b", "llama3.1-70b"],
+  xai: ["grok-2-latest", "grok-3-beta"],
+  gemini: ["gemini-2.5-flash"],
 };
 
 export default function SettingsPage() {
@@ -54,6 +56,8 @@ export default function SettingsPage() {
             >
               <option value="groq">Groq</option>
               <option value="cerebras">Cerebras</option>
+              <option value="xai">xAI Grok</option>
+              <option value="gemini">Google Gemini</option>
             </select>
           </div>
           <div>

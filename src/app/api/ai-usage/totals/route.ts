@@ -17,6 +17,9 @@ const DEFAULT_MONTHLY_LIMITS: Record<string, Record<string, number>> = {
     "grok-2-latest": 500_000,
     "grok-3-beta": 200_000,
   },
+  gemini: {
+    "gemini-2.5-flash": 1_000_000,
+  },
 };
 
 export async function GET(req: NextRequest) {

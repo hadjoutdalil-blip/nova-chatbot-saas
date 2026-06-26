@@ -4,11 +4,13 @@ const PROVIDERS: Record<string, { endpoint: string; model: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", model: "llama-3.1-8b-instant" },
   cerebras: { endpoint: "https://api.cerebras.ai/v1/chat/completions", model: "llama3.1-8b" },
   xai: { endpoint: "https://api.x.ai/v1/chat/completions", model: "grok-2-latest" },
+  gemini: { endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", model: "gemini-2.5-flash" },
 };
 
 function detectProvider(key: string): string {
   if (key.startsWith("csk_")) return "cerebras";
   if (key.startsWith("xai-")) return "xai";
+  if (key.startsWith("AIza")) return "gemini";
   return "groq";
 }
 
