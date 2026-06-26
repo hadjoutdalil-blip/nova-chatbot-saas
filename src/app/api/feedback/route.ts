@@ -5,6 +5,16 @@ import { findClientBySlug } from "@/lib/auth";
 
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function OPTIONS() {
   return NextResponse.json(null, { headers: corsHeaders });
 }
@@ -42,6 +52,41 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
     });
     await db.write("message_feedback", all);
+
+    /* Auto-create KB entry from good RAG exchanges */
+    if (rating >= 4 && source === "rag" && response) {
+      const allKb = await db.read<any>("kb_entries");
+      const clientKb = allKb.filter((k: any) => k.clientId === client.id);
+      const nq = norm(question);
+      const exists = clientKb.some(k =>
+        norm(k.question) === nq ||
+        norm(k.question).includes(nq) ||
+        nq.includes(norm(k.question))
+      );
+      if (!exists) {
+        allKb.push({
+          id: randomUUID(),
+          tag: "auto-rag",
+          question,
+          alt_questions: "",
+          short_resp: "",
+          answer: response,
+          category: "",
+          keywords: "",
+          priority: 3,
+          related_tags: "",
+          icon: "",
+          source: "auto-rag",
+          source_url: "",
+          valid_until: "",
+          clientId: client.id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        await db.write("kb_entries", allKb);
+        console.log(`[Feedback] KB auto-créée depuis RAG: "${question.slice(0, 80)}"`);
+      }
+    }
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (err: any) {
