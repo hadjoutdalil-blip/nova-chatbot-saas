@@ -144,27 +144,29 @@ function findRelated(match: any | null, KB: any[], count: number): string[] {
 /* ── CHUNK PARSING ─────────────────────────── */
 interface ChunkMeta { source: string; content: string; docId?: string; version?: number; source_url?: string; valid_until?: string; }
 
-function chunkDocument(doc: any, chunkSize: number): ChunkMeta[] {
+function chunkDocument(doc: any, maxChars = 600): ChunkMeta[] {
   const chunks: ChunkMeta[] = [];
   const text = doc.content;
   if (!text) return chunks;
-  let start = 0;
+  const overlap = Math.round(maxChars * 0.2);
+  const sections = text.split(/\n{2,}|\n(?=#{1,3}\s)/);
   let idx = 0;
-  while (start < text.length) {
-    const end = Math.min(start + chunkSize, text.length);
-    const chunk = text.slice(start, end).trim();
-    if (chunk) {
-      chunks.push({
-        source: `${doc.originalName} (partie ${idx + 1})`,
-        content: chunk,
-        docId: doc.id,
-        version: doc.version ?? 1,
-        source_url: doc.source_url || "",
-        valid_until: doc.valid_until || null,
-      });
+  for (const section of sections) {
+    const trimmed = section.trim();
+    if (!trimmed) continue;
+    if (trimmed.length <= maxChars) {
+      chunks.push({ source: `${doc.originalName} (partie ${idx + 1})`, content: trimmed, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
       idx++;
+    } else {
+      const step = maxChars - overlap;
+      for (let i = 0; i < trimmed.length; i += step) {
+        const content = trimmed.slice(i, i + maxChars).trim();
+        if (content) {
+          chunks.push({ source: `${doc.originalName} (partie ${idx + 1})`, content, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
+          idx++;
+        }
+      }
     }
-    start = end;
   }
   return chunks;
 }
@@ -496,7 +498,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       (!d.valid_until || new Date(d.valid_until) >= now) &&
       (!d.valid_from || new Date(d.valid_from) <= now)
     );
-    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 500));
+    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
     const chunks = [...siteChunks, ...docChunks];
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, 0);
     if (topChunks.length > 0) {
@@ -597,7 +599,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       (!d.valid_until || new Date(d.valid_until) >= now) &&
       (!d.valid_from || new Date(d.valid_from) <= now)
     );
-    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 500));
+    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
     const chunks = [...siteChunks, ...docChunks];
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
 

@@ -2,23 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 
-function chunkText(text: string, fileName: string, chunkSize: number): string {
+function chunkText(text: string, fileName: string, maxChars = 600): string {
   const cleaned = text.trim();
   if (!cleaned) return "";
+  const overlap = Math.round(maxChars * 0.2);
+  const sections = cleaned.split(/\n{2,}|\n(?=#{1,3}\s)/);
 
   const chunks: string[] = [];
-  const paragraphs = cleaned.split(/\n{2,}/);
-
-  let current = "";
-  for (const para of paragraphs) {
-    if ((current + "\n\n" + para).length <= chunkSize) {
-      current = current ? current + "\n\n" + para : para;
+  for (const section of sections) {
+    const trimmed = section.trim();
+    if (!trimmed) continue;
+    if (trimmed.length <= maxChars) {
+      chunks.push(trimmed);
     } else {
-      if (current) chunks.push(current);
-      current = para;
+      const step = maxChars - overlap;
+      for (let i = 0; i < trimmed.length; i += step) {
+        const content = trimmed.slice(i, i + maxChars).trim();
+        if (content) chunks.push(content);
+      }
     }
   }
-  if (current) chunks.push(current);
 
   if (chunks.length === 0) return "";
 
@@ -45,7 +48,7 @@ export async function POST(
   if (idx === -1)
     return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
-  const chunkSize = clients[idx].chunkSize ?? 500;
+  const chunkSize = clients[idx].chunkSize ?? 600;
   const chunked = chunkText(text, fileName, chunkSize);
   if (!chunked) {
     return NextResponse.json({ error: "Le fichier est vide" }, { status: 400 });
