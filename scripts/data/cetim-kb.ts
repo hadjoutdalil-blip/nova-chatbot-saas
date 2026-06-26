@@ -26,6 +26,10 @@ export const KB: CETIMEntry[] = [
     ],
     "qs": [
       "qu'est ce que le cetim",
+      "qui est cetim",
+      "c'est quoi le cetim",
+      "c'est quoi cetim",
+      "que fait le cetim",
       "présentation cetim",
       "cetim",
       "cetim c'est quoi",

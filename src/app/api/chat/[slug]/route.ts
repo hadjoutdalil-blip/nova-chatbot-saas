@@ -519,6 +519,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         console.error("[Nova Chat] RAG error:", err);
       }
     }
+    /* Fallback KB si la RAG n'a rien trouvé */
+    if (match && score >= kbThreshold) {
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      return NextResponse.json({
+        messageId,
+        response: match.answer,
+        source: "kb",
+        score,
+        source_url: match.source_url || "",
+        valid_until: match.valid_until || "",
+        suggestions: findRelated(match, KB, 3),
+      }, { headers: corsHeaders });
+    }
     const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
     try {
       const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, escSystem, escUser, client.tempEscalade ?? 0.20, history || [], 800);
