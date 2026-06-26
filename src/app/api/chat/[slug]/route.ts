@@ -3,6 +3,7 @@ import { findClientBySlug } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { extractIP, lookupGeo } from "@/lib/geo";
+import { extractKeywords, keywordMatch } from "@/lib/chunk-utils";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -142,7 +143,7 @@ function findRelated(match: any | null, KB: any[], count: number): string[] {
 }
 
 /* ── CHUNK PARSING ─────────────────────────── */
-interface ChunkMeta { source: string; content: string; docId?: string; version?: number; source_url?: string; valid_until?: string; }
+interface ChunkMeta { id: string; source: string; section: string; keywords: string[]; content: string; docId?: string; version?: number; source_url?: string; valid_until?: string; }
 
 function chunkDocument(doc: any, maxChars = 600): ChunkMeta[] {
   const chunks: ChunkMeta[] = [];
@@ -154,15 +155,19 @@ function chunkDocument(doc: any, maxChars = 600): ChunkMeta[] {
   for (const section of sections) {
     const trimmed = section.trim();
     if (!trimmed) continue;
+    const sectionTitle = trimmed.startsWith("#")
+      ? trimmed.split("\n")[0].replace(/^#+\s*/, "")
+      : "";
+    const keywords = extractKeywords(trimmed);
     if (trimmed.length <= maxChars) {
-      chunks.push({ source: `${doc.originalName} (partie ${idx + 1})`, content: trimmed, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
+      chunks.push({ id: `chunk_${String(idx + 1).padStart(3, "0")}`, source: doc.originalName, section: sectionTitle, keywords, content: trimmed, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
       idx++;
     } else {
       const step = maxChars - overlap;
       for (let i = 0; i < trimmed.length; i += step) {
         const content = trimmed.slice(i, i + maxChars).trim();
         if (content) {
-          chunks.push({ source: `${doc.originalName} (partie ${idx + 1})`, content, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
+          chunks.push({ id: `chunk_${String(idx + 1).padStart(3, "0")}`, source: doc.originalName, section: sectionTitle, keywords, content, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
           idx++;
         }
       }
@@ -173,21 +178,60 @@ function chunkDocument(doc: any, maxChars = 600): ChunkMeta[] {
 
 function parseChunks(siteContext: string): ChunkMeta[] {
   if (!siteContext) return [];
-  const chunks: { source: string; content: string }[] = [];
+  const chunks: ChunkMeta[] = [];
   const regex = /\[CHUNK:([^\]]+)\]([\s\S]*?)(?=\[CHUNK:|$)/g;
   let match;
   while ((match = regex.exec(siteContext)) !== null) {
-    const content = match[2].trim();
-    if (content) chunks.push({ source: match[1], content });
+    const raw = match[2].trim();
+    if (!raw) continue;
+    let content = raw;
+    let section = "";
+    let keywords: string[] = [];
+    const nl = raw.indexOf("\n");
+    if (nl > 0) {
+      try {
+        const meta = JSON.parse(raw.slice(0, nl));
+        if (meta.section) section = meta.section;
+        if (meta.keywords) keywords = meta.keywords;
+        content = raw.slice(nl + 1).trim();
+      } catch {
+        const lines = raw.split("\n");
+        section = lines[0].startsWith("#")
+          ? lines[0].replace(/^#+\s*/, "")
+          : "";
+        keywords = extractKeywords(raw);
+      }
+    } else {
+      keywords = extractKeywords(raw);
+    }
+    chunks.push({
+      id: `chunk_${String(chunks.length + 1).padStart(3, "0")}`,
+      source: match[1],
+      section,
+      keywords,
+      content: content || raw,
+    });
   }
   if (chunks.length === 0 && siteContext.trim()) {
-    chunks.push({ source: "contexte.txt", content: siteContext.trim() });
+    const trimmed = siteContext.trim();
+    chunks.push({
+      id: "chunk_001",
+      source: "contexte.txt",
+      section: "",
+      keywords: extractKeywords(trimmed),
+      content: trimmed,
+    });
   }
   return chunks;
 }
 
 function findBestChunks(question: string, chunks: ChunkMeta[], topN: number, threshold: number) {
-  const scored = chunks.map(c => ({ ...c, score: calcSimilarity(question, c.content) }));
+  const scored = chunks.map(c => ({
+    ...c,
+    score: calcSimilarity(question, c.content) * 0.6
+      + calcSimilarity(question, c.section) * 0.2
+      + keywordMatch(question, c.keywords) * 0.2,
+  }));
   const sorted = scored.sort((a, b) => b.score - a.score);
   return sorted.filter(c => c.score * 100 >= threshold).slice(0, topN);
 }
@@ -226,10 +270,13 @@ ${question}`;
   return { system, user };
 }
 
-function buildRAGPrompt(client: any, chunks: { source: string; content: string }[], question: string, pageUrl?: string, pageTitle?: string) {
-  const docs = chunks.map((c, i) =>
-    `[Extrait #${i + 1} — Source : ${c.source}]\n${c.content}`
-  ).join("\n\n");
+function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, pageUrl?: string, pageTitle?: string) {
+  const docs = chunks.map((c, i) => {
+    const meta = [`Source : ${c.source}`];
+    if (c.section) meta.push(`Section : ${c.section}`);
+    if (c.keywords?.length) meta.push(`Mots-clés : ${c.keywords.join(", ")}`);
+    return `[Extrait #${i + 1} — ${meta.join(" | ")}]\n${c.content}`;
+  }).join("\n\n");
 
   const system = `Tu es l'assistant officiel de ${client.name}.
 Tu réponds en te basant UNIQUEMENT sur les extraits de documentation ci-dessous.${buildContext(client, pageUrl, pageTitle)}

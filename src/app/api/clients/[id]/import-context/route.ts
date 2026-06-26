@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
+import { extractKeywords } from "@/lib/chunk-utils";
 
 function chunkText(text: string, fileName: string, maxChars = 600): string {
   const cleaned = text.trim();
@@ -8,26 +9,31 @@ function chunkText(text: string, fileName: string, maxChars = 600): string {
   const overlap = Math.round(maxChars * 0.2);
   const sections = cleaned.split(/\n{2,}|\n(?=#{1,3}\s)/);
 
-  const chunks: string[] = [];
+  const result: string[] = [];
   for (const section of sections) {
     const trimmed = section.trim();
     if (!trimmed) continue;
+    const sectionTitle = trimmed.startsWith("#")
+      ? trimmed.split("\n")[0].replace(/^#+\s*/, "")
+      : "";
+    const keywords = extractKeywords(trimmed);
+    const meta = JSON.stringify({ section: sectionTitle, keywords });
+
     if (trimmed.length <= maxChars) {
-      chunks.push(trimmed);
+      result.push(`[CHUNK:${fileName}:${result.length}]\n${meta}\n${trimmed}`);
     } else {
       const step = maxChars - overlap;
       for (let i = 0; i < trimmed.length; i += step) {
         const content = trimmed.slice(i, i + maxChars).trim();
-        if (content) chunks.push(content);
+        if (content) {
+          result.push(`[CHUNK:${fileName}:${result.length}]\n${meta}\n${content}`);
+        }
       }
     }
   }
 
-  if (chunks.length === 0) return "";
-
-  return chunks
-    .map((c, i) => `[CHUNK:${fileName}:${i}]\n${c}`)
-    .join("\n\n");
+  if (result.length === 0) return "";
+  return result.join("\n\n");
 }
 
 export async function POST(
