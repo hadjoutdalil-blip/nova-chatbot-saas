@@ -143,7 +143,7 @@ function findRelated(match: any | null, KB: any[], count: number): string[] {
 }
 
 /* ── CHUNK PARSING ─────────────────────────── */
-interface ChunkMeta { id: string; source: string; section: string; keywords: string[]; content: string; docId?: string; version?: number; source_url?: string; valid_until?: string; }
+interface ChunkMeta { id: string; source: string; section: string; keywords: string[]; content: string; score?: number; docId?: string; version?: number; source_url?: string; valid_until?: string; }
 
 function chunkDocument(doc: any, maxChars = 600): ChunkMeta[] {
   const chunks: ChunkMeta[] = [];
@@ -271,6 +271,20 @@ ${question}`;
 }
 
 function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, pageUrl?: string, pageTitle?: string) {
+  const docMap = new Map<string, { chunks: ChunkMeta[]; maxScore: number }>();
+  for (const c of chunks) {
+    const key = c.source;
+    if (!docMap.has(key)) docMap.set(key, { chunks: [], maxScore: 0 });
+    const entry = docMap.get(key)!;
+    entry.chunks.push(c);
+    if ((c.score ?? 0) > entry.maxScore) entry.maxScore = c.score ?? 0;
+  }
+  const docRanking = [...docMap.entries()]
+    .sort((a, b) => b[1].maxScore - a[1].maxScore)
+    .map(([docName, info], i) =>
+      `  ${i + 1}. ${docName} (pertinence : ${Math.round(info.maxScore * 100)}%) — ${info.chunks.length} extrait${info.chunks.length > 1 ? "s" : ""}`
+    ).join("\n");
+
   const docs = chunks.map((c, i) => {
     const meta = [`Source : ${c.source}`];
     if (c.section) meta.push(`Section : ${c.section}`);
@@ -293,6 +307,9 @@ RÈGLES ABSOLUES :
 - Ajoute : "Cette réponse est basée sur la documentation disponible. Pour confirmation officielle, contactez un expert."`;
 
   const user = `NIVEAU : RAG DOCUMENTAIRE
+
+DOCUMENTS CONSULTÉS (classés par pertinence) :
+${docRanking}
 
 EXTRAITS DISPONIBLES :
 ${docs}
