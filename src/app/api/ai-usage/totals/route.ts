@@ -53,12 +53,12 @@ export async function GET(req: NextRequest) {
 
   // Aggregated usage for this client (current month)
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const allLogs = await db.read<any>("ai_usage_logs");
-  console.log("[AI Usage Totals] user.clientId:", user.clientId, "monthStart:", monthStart, "totalLogs:", allLogs.length);
+  console.log("[AI Usage Totals] user.clientId:", user.clientId, "monthStart:", monthStart.toISOString(), "totalLogs:", allLogs.length);
   const clientLogs = allLogs.filter(
-    (l: any) => l.clientId === user.clientId && l.createdAt >= monthStart
+    (l: any) => l.clientId === user.clientId && new Date(l.createdAt) >= monthStart
   );
   console.log("[AI Usage Totals] clientLogs:", clientLogs.length);
 
