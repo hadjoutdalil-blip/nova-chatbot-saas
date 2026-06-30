@@ -5,10 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Building2, Brain, BarChart3, BookOpen, FlaskConical, CheckSquare,
   Download, Plus, Search, FileText, Inbox, Edit3, Trash2, Thermometer, Layers, PanelRightClose,
-  Globe, MessageSquare, ThumbsUp,
+  Globe, MessageSquare, ThumbsUp, Shield,
 } from "lucide-react";
 import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
+import ApiKeysManager from "@/components/admin/ApiKeysManager";
 
 const PLANS = [
   { id: "ecommerce", name: "Chatbot E-commerce", price: "$299/mois" },
@@ -52,6 +53,7 @@ interface AnalyticsData {
 const TABS = [
   { id: "general", label: "Général", icon: <Building2 size={16} /> },
   { id: "ai", label: "IA", icon: <Brain size={16} /> },
+  { id: "keys", label: "Clés API", icon: <Shield size={16} /> },
   { id: "stats", label: "Stats", icon: <BarChart3 size={16} /> },
   { id: "analytics", label: "Analytiques", icon: <BarChart3 size={16} /> },
   { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
@@ -486,6 +488,15 @@ export default function EditClientPage() {
               <Button type="submit">Enregistrer</Button>
             </div>
           </form>
+        )}
+
+        {/* ── Stats ── */}
+        {tab === "keys" && (
+          <div className="max-w-2xl">
+            <Card>
+              <ApiKeysManager clientId={id} token={token} />
+            </Card>
+          </div>
         )}
 
         {/* ── Stats ── */}

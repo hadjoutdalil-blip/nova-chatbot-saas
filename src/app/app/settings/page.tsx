@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, RefreshCw } from "lucide-react";
+import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, RefreshCw, Shield } from "lucide-react";
+import ApiKeysManager from "@/components/admin/ApiKeysManager";
 
 const PROVIDERS = [
   { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
@@ -13,6 +14,7 @@ const PROVIDERS = [
 
 const TABS = [
   { id: "ia", label: "Configuration IA", icon: Brain },
+  { id: "keys", label: "Clés API", icon: Shield },
   { id: "documents", label: "Documents contextuels", icon: FileJson },
 ];
 
@@ -305,6 +307,14 @@ export default function AppSettingsPage() {
             <button onClick={() => { localStorage.removeItem("token"); router.push("/login"); }} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-sm font-medium transition-colors">
               <LogOut size={16} /> Déconnexion
             </button>
+          </div>
+        </div>
+      )}
+
+      {tab === "keys" && client && (
+        <div className="max-w-2xl">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6">
+            <ApiKeysManager clientId={client.id} token={token} />
           </div>
         </div>
       )}
