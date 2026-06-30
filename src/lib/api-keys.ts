@@ -14,13 +14,20 @@ export async function selectApiKey(clientId: string, provider: string): Promise<
     orderBy: { priority: "asc" },
   });
 
-  if (keys.length === 0) {
+  const anyKeysExist = await db.prisma.apiKey.findFirst({
+    where: { clientId, provider },
+    select: { id: true },
+  });
+
+  if (!anyKeysExist) {
     const client = await db.prisma.client.findUnique({ where: { id: clientId } });
     if (client?.apiKey && detectProvider(client.apiKey).id === provider) {
       return { id: "deprecated", key: client.apiKey, model: client.aiModel };
     }
     return null;
   }
+
+  if (keys.length === 0) return null;
 
   const now = new Date();
   const currentMonth = now.getMonth();
