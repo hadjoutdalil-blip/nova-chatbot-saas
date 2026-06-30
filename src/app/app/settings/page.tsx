@@ -2,15 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, TestTube, LogOut, Brain, Key, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, RefreshCw, Shield } from "lucide-react";
+import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, RefreshCw, Shield } from "lucide-react";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
-
-const PROVIDERS = [
-  { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
-  { id: "cerebras", name: "Cerebras (gratuit)", models: ["llama3.1-8b", "llama3.1-70b"] },
-  { id: "xai", name: "xAI Grok", models: ["grok-2-latest", "grok-3-beta"] },
-  { id: "gemini", name: "Google Gemini", models: ["gemini-2.5-flash"] },
-];
 
 const TABS = [
   { id: "ia", label: "Configuration IA", icon: Brain },
@@ -22,7 +15,6 @@ export default function AppSettingsPage() {
   const router = useRouter();
   const [client, setClient] = useState<any>(null);
   const [form, setForm] = useState<any>(null);
-  const [keyTest, setKeyTest] = useState<{ loading?: boolean; valid?: boolean; error?: string }>({});
   const [saving, setSaving] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -83,9 +75,6 @@ export default function AppSettingsPage() {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
       body: JSON.stringify({
-        apiKey: form.apiKey,
-        aiProvider: form.aiProvider,
-        aiModel: form.aiModel,
         kbThreshold: form.kbThreshold,
         ragThreshold: form.ragThreshold,
         tempQA: form.tempQA,
@@ -100,17 +89,6 @@ export default function AppSettingsPage() {
     });
     setSaving(false);
     if (res.ok) alert("Configuration enregistrée");
-  }
-
-  async function testKey() {
-    setKeyTest({ loading: true });
-    const res = await fetch("/api/chat/test-key", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: form.apiKey }),
-    });
-    const data = await res.json();
-    setKeyTest({ loading: false, valid: data.valid, error: data.error });
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -162,8 +140,6 @@ export default function AppSettingsPage() {
 
   if (!form) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
 
-  const models = PROVIDERS.find((p) => p.id === form.aiProvider)?.models || PROVIDERS[0].models;
-
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Paramètres</h1>
@@ -190,41 +166,6 @@ export default function AppSettingsPage() {
       {tab === "ia" && (
         <div className="space-y-5 max-w-2xl">
           <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
-            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-              <Brain size={18} className="text-purple-600" />
-              <h2 className="font-semibold text-gray-900">Fournisseur & Modèle</h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fournisseur</label>
-                <select value={form.aiProvider} onChange={(e) => setForm({ ...form, aiProvider: e.target.value, aiModel: "" })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
-                  {PROVIDERS.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Modèle</label>
-                <select value={form.aiModel} onChange={(e) => setForm({ ...form, aiModel: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
-                  <option value="">— Sélectionner —</option>
-                  {models.map((m) => (<option key={m} value={m}>{m}</option>))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <Key size={14} /> Clé API (détection auto : xAI=xai- / Cerebras=csk_ / Gemini=AIza / autre=Groq)
-              </label>
-              <div className="flex gap-2">
-                <input value={form.apiKey} onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }} type="password" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
-                <button type="button" onClick={testKey} disabled={keyTest.loading || !form.apiKey} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-white/80 transition-all disabled:opacity-50">
-                  <TestTube size={15} /> {keyTest.loading ? "Test..." : "Tester"}
-                </button>
-              </div>
-              {keyTest.valid === true && <p className="text-green-600 text-xs mt-1.5 flex items-center gap-1">✓ Clé valide ({keyTest.error || form.aiProvider})</p>}
-              {keyTest.valid === false && <p className="text-red-500 text-xs mt-1.5">✗ {keyTest.error}</p>}
-            </div>
-
             <div className="border-t border-gray-100 pt-4">
               <div className="flex items-center gap-2 mb-4">
                 <SlidersHorizontal size={16} className="text-purple-600" />

@@ -18,13 +18,6 @@ const PLANS = [
   { id: "custom", name: "Sur Mesure", price: "Devis" },
 ];
 
-const PROVIDERS = [
-  { id: "groq", name: "Groq (gratuit)", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
-  { id: "cerebras", name: "Cerebras (gratuit)", models: ["llama3.1-8b", "llama3.1-70b"] },
-  { id: "xai", name: "xAI Grok", models: ["grok-2-latest", "grok-3-beta"] },
-  { id: "gemini", name: "Google Gemini", models: ["gemini-2.5-flash"] },
-];
-
 interface KBEntry {
   id: string;
   tag?: string;
@@ -67,7 +60,6 @@ export default function EditClientPage() {
   const [tab, setTab] = useState("general");
   const [form, setForm] = useState<any>(null);
   const [error, setError] = useState("");
-  const [keyTest, setKeyTest] = useState<{ loading?: boolean; valid?: boolean; error?: string }>({});
   const [importing, setImporting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -141,17 +133,6 @@ export default function EditClientPage() {
     const data = await res.json();
     if (!res.ok) { setError(data.error); return; }
     router.push("/dashboard/clients");
-  }
-
-  async function testKey() {
-    setKeyTest({ loading: true });
-    const res = await fetch("/api/chat/test-key", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: form.apiKey, provider: form.aiProvider }),
-    });
-    const data = await res.json();
-    setKeyTest({ loading: false, valid: data.valid, error: data.error });
   }
 
   async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -238,8 +219,6 @@ export default function EditClientPage() {
     setKbImporting(false);
     e.target.value = "";
   }
-
-  const models = PROVIDERS.find((p) => p.id === form?.aiProvider)?.models || PROVIDERS[0].models;
 
   if (!form) return (
     <div className="flex items-center justify-center h-64">
@@ -358,45 +337,6 @@ export default function EditClientPage() {
                 <h2 className="font-semibold text-gray-900">Configuration IA</h2>
               </div>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Fournisseur</label>
-                    <select
-                      value={form.aiProvider}
-                      onChange={(e) => setForm({ ...form, aiProvider: e.target.value, aiModel: "" })}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
-                    >
-                      {PROVIDERS.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Modèle</label>
-                    <select
-                      value={form.aiModel}
-                      onChange={(e) => setForm({ ...form, aiModel: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
-                    >
-                      <option value="">— Sélectionner —</option>
-                      {models.map((m) => (<option key={m} value={m}>{m}</option>))}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Clé API (détection auto)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={form.apiKey}
-                      onChange={(e) => { setForm({ ...form, apiKey: e.target.value }); setKeyTest({}); }}
-                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
-                    />
-                    <Button variant="secondary" type="button" onClick={testKey} disabled={keyTest.loading || !form.apiKey}>
-                      {keyTest.loading ? "Test..." : "Tester"}
-                    </Button>
-                  </div>
-                  {keyTest.valid === true && <p className="text-green-600 text-xs mt-1.5">✓ Clé valide ({form.aiProvider})</p>}
-                  {keyTest.valid === false && <p className="text-red-500 text-xs mt-1.5">✗ {keyTest.error}</p>}
-                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
