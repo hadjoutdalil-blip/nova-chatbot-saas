@@ -22,6 +22,7 @@ function getDelegate(collection: string) {
     client_documents: "clientDocument",
     conversations: "conversation",
     message_feedback: "messageFeedback",
+    api_keys: "apiKey",
     global_configs: "globalConfig",
   };
   const key = map[collection];

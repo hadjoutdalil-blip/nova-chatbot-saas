@@ -37,6 +37,7 @@ model Client {
   aiUsageLogs     AIUsageLog[]
   conversations   Conversation[]
   messageFeedback MessageFeedback[]
+  apiKeys         ApiKey[]
 }
 
 model User {
@@ -149,6 +150,25 @@ model MessageFeedback {
   createdAt      DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model ApiKey {
+  id           String   @id @default(uuid())
+  clientId     String
+  provider     String
+  label        String   @default("")
+  key          String
+  isActive     Boolean  @default(true)
+  priority     Int      @default(0)
+  monthlyLimit Int      @default(0)
+  usedTokens   Int      @default(0)
+  lastResetAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, priority])
 }
 
 model GlobalConfig {

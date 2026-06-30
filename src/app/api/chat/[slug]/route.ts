@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { extractIP, lookupGeo } from "@/lib/geo";
 import { extractKeywords, keywordMatch } from "@/lib/chunk-utils";
+import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -12,11 +13,8 @@ const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   gemini: { endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", label: "Gemini" },
 };
 
-function detectProvider(key: string): { id: string; label: string } {
-  if (key.startsWith("csk_")) return { id: "cerebras", label: "Cerebras" };
-  if (key.startsWith("xai-")) return { id: "xai", label: "xAI Grok" };
-  if (key.startsWith("AIza")) return { id: "gemini", label: "Gemini" };
-  return { id: "groq", label: "Groq" };
+function providerLabel(id: string): string {
+  return PROVIDERS[id]?.label || id;
 }
 
 function norm(s: string): string {
@@ -551,7 +549,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         suggestions: [],
       }, { headers: corsHeaders });
     }
-    const providerInfo = detectProvider(client.apiKey);
+    const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+    const apiKey = keyEntry?.key || client.apiKey;
+    const providerInfo = detectProvider(apiKey);
     const model = client.aiModel || "llama-3.1-8b-instant";
     const siteChunks = parseChunks(client.siteContext || "");
     const allDocs = await db.read<any>("client_documents");
@@ -568,9 +568,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
       try {
-        const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
+        const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, 0, geoPromise);
         saveUsage(client.id, providerInfo.id, model, usage);
+        await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
         const docMeta = topChunks.filter(c => c.docId).map(c => ({
           docId: c.docId,
           name: c.source,
@@ -598,9 +599,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
     const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
     try {
-      const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, escSystem, escUser, client.tempEscalade ?? 0.20, history || [], 800);
+      const { text, usage } = await callAI(apiKey, providerInfo.id, model, escSystem, escUser, client.tempEscalade ?? 0.20, history || [], 800);
       saveConversation(client, history || [], message, text, "escalade", providerInfo.label, 0, geoPromise);
       saveUsage(client.id, providerInfo.id, model, usage);
+      await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
       return NextResponse.json({ messageId, response: text, source: "escalade", provider: providerInfo.label, score: 0 }, { headers: corsHeaders });
     } catch (err: any) {
       const fallbackResp = contactInfo
@@ -628,10 +630,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
     const { system, user } = buildQAPrompt(client, match, score, message, pageUrl, pageTitle);
     try {
-      const providerInfo = detectProvider(client.apiKey);
-      const { text, usage } = await callAI(client.apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
+      const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+      const apiKey = keyEntry?.key || client.apiKey;
+      const providerInfo = detectProvider(apiKey);
+      const { text, usage } = await callAI(apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
       saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
       saveUsage(client.id, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", usage);
+      await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
       return NextResponse.json({ messageId, response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     } catch {
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
@@ -662,7 +667,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }, { headers: corsHeaders });
   }
 
-  const providerInfo = detectProvider(client.apiKey);
+  const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+  const apiKey = keyEntry?.key || client.apiKey;
+  const providerInfo = detectProvider(apiKey);
   const model = client.aiModel || "llama-3.1-8b-instant";
 
   /* ── NIVEAU 2 : RAG — contexte documentaire ── */
@@ -683,9 +690,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
       try {
-        const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
+        const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, score, geoPromise);
         saveUsage(client.id, providerInfo.id, model, usage);
+        await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
         const docMeta = topChunks.filter(c => c.docId).map(c => ({
           docId: c.docId,
           name: c.source,
@@ -704,10 +712,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const kbMatch = match ? findRelated(match, KB, 3) : [];
   const { system, user, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
   try {
-    const { text, usage } = await callAI(client.apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
+    const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
     saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score, geoPromise);
     saveUsage(client.id, providerInfo.id, model, usage);
+    await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
     return NextResponse.json({ messageId, response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
