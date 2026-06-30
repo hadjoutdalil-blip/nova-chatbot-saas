@@ -552,7 +552,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
     const apiKey = keyEntry?.key || client.apiKey;
     const providerInfo = detectProvider(apiKey);
-    const model = client.aiModel || "llama-3.1-8b-instant";
+    const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
     const siteChunks = parseChunks(client.siteContext || "");
     const allDocs = await db.read<any>("client_documents");
     const now = new Date();
@@ -633,9 +633,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
       const apiKey = keyEntry?.key || client.apiKey;
       const providerInfo = detectProvider(apiKey);
-      const { text, usage } = await callAI(apiKey, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", system, user, client.tempQA ?? 0.05, history || []);
+      const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
+      const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
       saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
-      saveUsage(client.id, providerInfo.id, client.aiModel || "llama-3.1-8b-instant", usage);
+      saveUsage(client.id, providerInfo.id, model, usage);
       await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
       return NextResponse.json({ messageId, response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     } catch {
@@ -670,7 +671,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
   const apiKey = keyEntry?.key || client.apiKey;
   const providerInfo = detectProvider(apiKey);
-  const model = client.aiModel || "llama-3.1-8b-instant";
+  const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
 
   /* ── NIVEAU 2 : RAG — contexte documentaire ── */
   if (score >= ragThreshold) {

@@ -8,7 +8,7 @@ export function detectProvider(key: string): { id: string; label: string } {
   return { id: "groq", label: "Groq" };
 }
 
-export async function selectApiKey(clientId: string, provider: string): Promise<{ id: string; key: string } | null> {
+export async function selectApiKey(clientId: string, provider: string): Promise<{ id: string; key: string; model?: string | null } | null> {
   const keys = await db.prisma.apiKey.findMany({
     where: { clientId, provider, isActive: true },
     orderBy: { priority: "asc" },
@@ -17,7 +17,7 @@ export async function selectApiKey(clientId: string, provider: string): Promise<
   if (keys.length === 0) {
     const client = await db.prisma.client.findUnique({ where: { id: clientId } });
     if (client?.apiKey && detectProvider(client.apiKey).id === provider) {
-      return { id: "deprecated", key: client.apiKey };
+      return { id: "deprecated", key: client.apiKey, model: client.aiModel };
     }
     return null;
   }
@@ -36,7 +36,7 @@ export async function selectApiKey(clientId: string, provider: string): Promise<
       key.usedTokens = 0;
     }
     if (key.monthlyLimit > 0 && key.usedTokens >= key.monthlyLimit) continue;
-    return { id: key.id, key: key.key };
+    return { id: key.id, key: key.key, model: key.model };
   }
 
   return null;

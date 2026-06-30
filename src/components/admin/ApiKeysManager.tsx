@@ -5,16 +5,17 @@ import { Plus, Key, Trash2, Edit3, Power, PowerOff, GripVertical, Save, X, Refre
 import { Button, Card, Badge } from "@/components/ui";
 
 const PROVIDERS = [
-  { id: "groq", name: "Groq", color: "blue" },
-  { id: "cerebras", name: "Cerebras", color: "purple" },
-  { id: "xai", name: "xAI Grok", color: "green" },
-  { id: "gemini", name: "Google Gemini", color: "yellow" },
+  { id: "groq", name: "Groq", color: "blue", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"] },
+  { id: "cerebras", name: "Cerebras", color: "purple", models: ["llama3.1-8b", "llama3.1-70b"] },
+  { id: "xai", name: "xAI Grok", color: "green", models: ["grok-2-latest", "grok-3-beta"] },
+  { id: "gemini", name: "Google Gemini", color: "yellow", models: ["gemini-2.5-flash"] },
 ] as const;
 
 interface ApiKeyEntry {
   id: string;
   clientId: string;
   provider: string;
+  model?: string | null;
   label: string;
   key: string;
   isActive: boolean;
@@ -35,7 +36,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
   const [keys, setKeys] = useState<ApiKeyEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ open: boolean; edit?: ApiKeyEntry }>({ open: false });
-  const [form, setForm] = useState({ key: "", label: "", provider: "", monthlyLimit: 0, isActive: true });
+  const [form, setForm] = useState({ key: "", label: "", provider: "", model: "", monthlyLimit: 0, isActive: true });
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<{ loading?: boolean; valid?: boolean; error?: string }>({});
   const [showKeys, setShowKeys] = useState<Set<string>>(new Set());
@@ -48,13 +49,13 @@ export default function ApiKeysManager({ clientId, token }: Props) {
   useEffect(() => { loadKeys().finally(() => setLoading(false)); }, [clientId]);
 
   function openAdd() {
-    setForm({ key: "", label: "", provider: "", monthlyLimit: 0, isActive: true });
+    setForm({ key: "", label: "", provider: "", model: "", monthlyLimit: 0, isActive: true });
     setTestResult({});
     setModal({ open: true });
   }
 
   function openEdit(entry: ApiKeyEntry) {
-    setForm({ key: entry.key, label: entry.label, provider: entry.provider, monthlyLimit: entry.monthlyLimit, isActive: entry.isActive });
+    setForm({ key: entry.key, label: entry.label, provider: entry.provider, model: entry.model || "", monthlyLimit: entry.monthlyLimit, isActive: entry.isActive });
     setTestResult({});
     setModal({ open: true, edit: entry });
   }
@@ -65,8 +66,8 @@ export default function ApiKeysManager({ clientId, token }: Props) {
     const url = isEdit ? `/api/keys/${modal.edit!.id}` : "/api/keys";
     const method = isEdit ? "PUT" : "POST";
     const body: any = isEdit
-      ? { label: form.label, isActive: form.isActive, monthlyLimit: form.monthlyLimit, key: form.key, provider: form.provider }
-      : { key: form.key, label: form.label, provider: form.provider, monthlyLimit: form.monthlyLimit, isActive: form.isActive, clientId };
+      ? { label: form.label, isActive: form.isActive, monthlyLimit: form.monthlyLimit, key: form.key, provider: form.provider, model: form.model || null }
+      : { key: form.key, label: form.label, provider: form.provider, monthlyLimit: form.monthlyLimit, isActive: form.isActive, clientId, model: form.model || null };
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
@@ -175,6 +176,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant={providerColor(entry.provider)}>{providerLabel(entry.provider)}</Badge>
                       <span className="font-medium text-sm text-gray-900">{entry.label}</span>
+                      {entry.model && <code className="text-xs text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded font-mono">{entry.model}</code>}
                       {!entry.isActive && <Badge variant="red">Désactivée</Badge>}
                       {entry.priority === 0 && <Badge variant="yellow">Principale</Badge>}
                     </div>
@@ -249,7 +251,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Fournisseur</label>
                   <select
                     value={form.provider}
-                    onChange={(e) => setForm({ ...form, provider: e.target.value })}
+                    onChange={(e) => { setForm({ ...form, provider: e.target.value, model: "" }); setTestResult({}); }}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                   >
                     <option value="">Détection auto</option>
@@ -265,6 +267,17 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                     placeholder="Ex: Clé principale"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Modèle associé <span className="text-gray-400 font-normal">(optionnel — utilise le modèle par défaut du client si vide)</span></label>
+                <select
+                  value={form.model}
+                  onChange={(e) => setForm({ ...form, model: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                >
+                  <option value="">Modèle par défaut du client</option>
+                  {(PROVIDERS.find(p => p.id === form.provider)?.models || []).map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">

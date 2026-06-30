@@ -23,6 +23,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (body.monthlyLimit !== undefined) update.monthlyLimit = body.monthlyLimit;
   if (body.key !== undefined) update.key = body.key;
   if (body.provider !== undefined) update.provider = body.provider;
+  if (body.model !== undefined) update.model = body.model;
 
   const updated = await db.prisma.apiKey.update({ where: { id }, data: update });
   return NextResponse.json(updated);

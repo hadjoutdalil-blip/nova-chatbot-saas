@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
     id: randomUUID(),
     clientId,
     provider,
+    model: body.model || null,
     label: body.label || `Clé ${provider} #${nextPriority + 1}`,
     key: body.key,
     isActive: body.isActive !== false,

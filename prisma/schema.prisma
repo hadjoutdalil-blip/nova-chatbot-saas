@@ -156,6 +156,7 @@ model ApiKey {
   id           String   @id @default(uuid())
   clientId     String
   provider     String
+  model        String?
   label        String   @default("")
   key          String
   isActive     Boolean  @default(true)
