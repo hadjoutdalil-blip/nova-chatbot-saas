@@ -550,7 +550,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }, { headers: corsHeaders });
     }
     const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
-    const apiKey = keyEntry?.key || client.apiKey;
+    const apiKey = keyEntry?.key || "";
     const providerInfo = detectProvider(apiKey);
     const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
     const siteChunks = parseChunks(client.siteContext || "");
@@ -631,7 +631,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const { system, user } = buildQAPrompt(client, match, score, message, pageUrl, pageTitle);
     try {
       const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
-      const apiKey = keyEntry?.key || client.apiKey;
+      const apiKey = keyEntry?.key || "";
       const providerInfo = detectProvider(apiKey);
       const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
@@ -669,7 +669,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
-  const apiKey = keyEntry?.key || client.apiKey;
+  const apiKey = keyEntry?.key || "";
   const providerInfo = detectProvider(apiKey);
   const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
 
