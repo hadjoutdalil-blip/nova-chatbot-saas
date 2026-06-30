@@ -32,7 +32,7 @@ export default function NewClientPage() {
     plan: "support",
     primaryColor: "#7c3aed",
     aiProvider: "groq",
-    aiModel: "llama-3.1-8b-instant",
+    aiModel: "openai/gpt-oss-20b",
     apiKey: "",
     kbThreshold: 60,
   });

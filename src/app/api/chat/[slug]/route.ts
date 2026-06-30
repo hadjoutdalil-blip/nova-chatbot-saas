@@ -552,7 +552,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
     const apiKey = keyEntry?.key || "";
     const providerInfo = detectProvider(apiKey);
-    const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
+    const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
     const siteChunks = parseChunks(client.siteContext || "");
     const allDocs = await db.read<any>("client_documents");
     const now = new Date();
@@ -633,7 +633,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
       const apiKey = keyEntry?.key || "";
       const providerInfo = detectProvider(apiKey);
-      const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
+      const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
       saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
       saveUsage(client.id, providerInfo.id, model, usage);
@@ -671,7 +671,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
   const apiKey = keyEntry?.key || "";
   const providerInfo = detectProvider(apiKey);
-  const model = keyEntry?.model || client.aiModel || "llama-3.1-8b-instant";
+  const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
 
   /* ── NIVEAU 2 : RAG — contexte documentaire ── */
   if (score >= ragThreshold) {

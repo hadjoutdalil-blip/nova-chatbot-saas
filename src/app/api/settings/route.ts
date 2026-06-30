@@ -4,7 +4,7 @@ import { getAuthUser } from "@/lib/api-auth";
 
 const DEFAULTS: Record<string, string> = {
   defaultAiProvider: "groq",
-  defaultAiModel: "llama-3.1-8b-instant",
+  defaultAiModel: "openai/gpt-oss-20b",
   defaultKbThreshold: "60",
   defaultRelanceActive: "true",
 };

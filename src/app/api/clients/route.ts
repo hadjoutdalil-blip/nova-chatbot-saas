@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     logo: body.logo || "",
     primaryColor: body.primaryColor || "#7c3aed",
     apiKey: body.apiKey || "",
-    aiModel: body.aiModel || def("defaultAiModel", "llama-3.1-8b-instant"),
+    aiModel: body.aiModel || def("defaultAiModel", "openai/gpt-oss-20b"),
     aiProvider: body.aiProvider || def("defaultAiProvider", "groq"),
     kbThreshold: body.kbThreshold ?? +def("defaultKbThreshold", "60"),
     relanceActive: body.relanceActive ?? def("defaultRelanceActive", "true") === "true",

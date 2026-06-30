@@ -6,8 +6,11 @@ const DEFAULT_MONTHLY_LIMITS: Record<string, Record<string, number>> = {
   groq: {
     "llama-3.1-8b-instant": 1_000_000,
     "llama-3.3-70b-versatile": 500_000,
-    "mixtral-8x7b-32768": 500_000,
-    "gemma2-9b-it": 1_000_000,
+    "openai/gpt-oss-20b": 1_000_000,
+    "openai/gpt-oss-120b": 500_000,
+    "qwen/qwen3-32b": 500_000,
+    "qwen/qwen3.6-27b": 500_000,
+    "meta-llama/llama-4-scout-17b-16e-instruct": 500_000,
   },
   cerebras: {
     "llama3.1-8b": 1_000_000,
