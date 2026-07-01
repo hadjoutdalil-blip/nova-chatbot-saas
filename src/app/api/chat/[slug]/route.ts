@@ -256,12 +256,16 @@ RÈGLES ABSOLUES :
 - Reformule légèrement l'introduction et la transition, mais conserve le contenu structuré (listes, tableaux, puces)
 - Conserve les emojis, le gras, les listes numérotées et les tableaux markdown
 - Réponds toujours en français, professionnel et concis
+- Si un document source est disponible pour téléchargement, inclus un lien cliquable markdown : [Télécharger le fichier](URL)
 - Termine par : [Source : Base de connaissance ${client.name}]`;
 
   const user = `NIVEAU : QA VALIDÉE (score ${score}%)
 
 RÉPONSE OFFICIELLE À UTILISER :
 ${match.answer}
+
+LIEN DU DOCUMENT SOURCE :
+${match.source_url || "Aucun"}
 
 QUESTION DU CLIENT :
 ${question}`;
@@ -288,6 +292,7 @@ function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, page
     const meta = [`Source : ${c.source}`];
     if (c.section) meta.push(`Section : ${c.section}`);
     if (c.keywords?.length) meta.push(`Mots-clés : ${c.keywords.join(", ")}`);
+    if (c.source_url) meta.push(`Lien : ${c.source_url}`);
     return `[Extrait #${i + 1} — ${meta.join(" | ")}]\n${c.content}`;
   }).join("\n\n");
 
@@ -472,6 +477,12 @@ async function saveConversation(client: any, history: any[], userMsg: string, ai
 /* ── MAIN HANDLER ───────────────────────────────────── */
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
+function filterResponse(data: any, isVisitor: boolean): any {
+  if (!isVisitor) return data;
+  const { source_url, valid_until, suggestions, chunks, documents, ...rest } = data;
+  return rest;
+}
+
 export async function OPTIONS() {
   return NextResponse.json(null, { headers: corsHeaders });
 }
@@ -483,7 +494,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
   }
 
-  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle } = await req.json();
+  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor = false } = await req.json();
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
@@ -517,13 +528,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── Short query guard (only if no good KB match) ── */
   if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || score < kbThreshold)) {
-    return NextResponse.json({
+    return NextResponse.json(filterResponse({
       messageId,
       response: "",
       source: "skip",
       score: 0,
       suggestions: [],
-    }, { headers: corsHeaders });
+    }, isVisitor), { headers: corsHeaders });
   }
 
   /* ── RAG ONLY MODE : skip KB, go directly to RAG ── */
@@ -531,7 +542,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     /* Toujours respecter les matchs exacts KB */
     if (match && score === 100) {
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
-      return NextResponse.json({
+      return NextResponse.json(filterResponse({
         messageId,
         response: match.answer,
         source: "kb",
@@ -539,16 +550,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         source_url: match.source_url || "",
         valid_until: match.valid_until || "",
         suggestions: findRelated(match, KB, 3),
-      }, { headers: corsHeaders });
+      }, isVisitor), { headers: corsHeaders });
     }
     if (!aiMode || !client.apiKey) {
-      return NextResponse.json({
+      return NextResponse.json(filterResponse({
         messageId,
         response: "Le mode RAG nécessite une clé API IA. Veuillez activer le mode IA ou désactiver le mode RAG.",
         source: "fallback",
         score: 0,
         suggestions: [],
-      }, { headers: corsHeaders });
+      }, isVisitor), { headers: corsHeaders });
     }
     const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
     const apiKey = keyEntry?.key || "";
@@ -580,7 +591,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           source_url: c.source_url,
           valid_until: c.valid_until,
         })).filter((v, i, a) => a.findIndex(d => d.docId === v.docId) === i);
-        return NextResponse.json({ messageId, response: text, source: "rag", provider: providerInfo.label, score: 0, chunks: topChunks.map(c => c.source), documents: docMeta }, { headers: corsHeaders });
+        return NextResponse.json(filterResponse({ messageId, response: text, source: "rag", provider: providerInfo.label, score: 0, chunks: topChunks.map(c => c.source), documents: docMeta }, isVisitor), { headers: corsHeaders });
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
       }
@@ -588,7 +599,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     /* Fallback KB si la RAG n'a rien trouvé */
     if (match && score >= kbThreshold) {
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
-      return NextResponse.json({
+      return NextResponse.json(filterResponse({
         messageId,
         response: match.answer,
         source: "kb",
@@ -596,7 +607,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         source_url: match.source_url || "",
         valid_until: match.valid_until || "",
         suggestions: findRelated(match, KB, 3),
-      }, { headers: corsHeaders });
+      }, isVisitor), { headers: corsHeaders });
     }
     const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
     try {
@@ -621,7 +632,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (match && score >= kbThreshold) {
     if (score === 100 || !aiMode || !client.apiKey) {
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
-      return NextResponse.json({
+      return NextResponse.json(filterResponse({
         messageId,
         response: match.answer,
         source: "kb",
@@ -629,7 +640,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         source_url: match.source_url || "",
         valid_until: match.valid_until || "",
         suggestions: findRelated(match, KB, 3),
-      }, { headers: corsHeaders });
+      }, isVisitor), { headers: corsHeaders });
     }
 
     const { system, user } = buildQAPrompt(client, match, score, message, pageUrl, pageTitle);
@@ -663,7 +674,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       resp = "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.";
     }
     saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score, geoPromise);
-    return NextResponse.json({
+    return NextResponse.json(filterResponse({
       messageId,
       response: resp,
       source: match?.answer ? "kb" : "fallback",
@@ -671,7 +682,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       source_url: match?.source_url || "",
       valid_until: match?.valid_until || "",
       suggestions: match ? findRelated(match, KB, 3) : [],
-    }, { headers: corsHeaders });
+    }, isVisitor), { headers: corsHeaders });
   }
 
   const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
@@ -727,26 +738,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (qaResponse && ragResponse) {
     const heuristicWinner = compareWithHeuristic(qaResponse, ragResponse);
     if (heuristicWinner === "rag") {
-      return NextResponse.json({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, { headers: corsHeaders });
+      return NextResponse.json(filterResponse({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, isVisitor), { headers: corsHeaders });
     }
     if (heuristicWinner === "kb") {
-      return NextResponse.json({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+      return NextResponse.json(filterResponse({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, isVisitor), { headers: corsHeaders });
     }
     try {
       const aiWinner = await compareWithAI(message, qaResponse, ragResponse, apiKey, providerInfo.id, model);
       if (aiWinner === "rag") {
-        return NextResponse.json({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, { headers: corsHeaders });
+        return NextResponse.json(filterResponse({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, isVisitor), { headers: corsHeaders });
       }
     } catch { /* fallback to QA */ }
-    return NextResponse.json({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+    return NextResponse.json(filterResponse({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, isVisitor), { headers: corsHeaders });
   }
 
   if (qaResponse) {
-    return NextResponse.json({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+    return NextResponse.json(filterResponse({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, isVisitor), { headers: corsHeaders });
   }
 
   if (ragResponse) {
-    return NextResponse.json({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, { headers: corsHeaders });
+    return NextResponse.json(filterResponse({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, isVisitor), { headers: corsHeaders });
   }
 
   /* ── NIVEAU 3 : ESCALADE ── */
@@ -758,19 +769,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score, geoPromise);
     saveUsage(client.id, providerInfo.id, model, usage);
     await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
-    return NextResponse.json({ messageId, response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, { headers: corsHeaders });
+    return NextResponse.json(filterResponse({ messageId, response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, isVisitor), { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
     const fallbackResp = contactInfo
       ? `Je n'ai pas pu traiter votre demande pour le moment. 📋\n\nN'hésitez pas à nous contacter directement, notre équipe se fera un plaisir de vous renseigner :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`
       : "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.";
     saveConversation(client, history || [], message, fallbackResp, "fallback", "", score, geoPromise);
-    return NextResponse.json({
+    return NextResponse.json(filterResponse({
       messageId,
       response: fallbackResp,
       source: "fallback",
       score,
       suggestions: kbMatch,
-    }, { headers: corsHeaders });
+    }, isVisitor), { headers: corsHeaders });
   }
 }
