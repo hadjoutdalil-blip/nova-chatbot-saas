@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { extractIP, lookupGeo } from "@/lib/geo";
 import { extractKeywords, keywordMatch } from "@/lib/chunk-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
+import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -613,6 +614,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
   }
 
+  let qaResponse: string | null = null;
+  let qaProvider = "";
+
   /* ── NIVEAU 1 : QA VALIDÉE ── */
   if (match && score >= kbThreshold) {
     if (score === 100 || !aiMode || !client.apiKey) {
@@ -638,10 +642,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
       saveUsage(client.id, providerInfo.id, model, usage);
       await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
-      return NextResponse.json({ messageId, response: text, source: "qa", provider: providerInfo.label, score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+      qaResponse = text;
+      qaProvider = providerInfo.label;
     } catch {
+      qaResponse = match.answer;
+      qaProvider = "";
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
-      return NextResponse.json({ messageId, response: match.answer, source: "kb", score, source_url: match.source_url || "", valid_until: match.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
     }
   }
 
@@ -673,6 +679,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const providerInfo = detectProvider(apiKey);
   const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
 
+  let ragResponse: string | null = null;
+  let ragProvider = "";
+  let ragChunks: any[] = [];
+  let ragDocMeta: any[] = [];
+
   /* ── NIVEAU 2 : RAG — contexte documentaire ── */
   if (score >= ragThreshold) {
     const siteChunks = parseChunks(client.siteContext || "");
@@ -702,11 +713,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           source_url: c.source_url,
           valid_until: c.valid_until,
         })).filter((v, i, a) => a.findIndex(d => d.docId === v.docId) === i);
-        return NextResponse.json({ messageId, response: text, source: "rag", provider: providerInfo.label, score, chunks: topChunks.map(c => c.source), documents: docMeta }, { headers: corsHeaders });
+        ragResponse = text;
+        ragProvider = providerInfo.label;
+        ragChunks = topChunks.map(c => c.source);
+        ragDocMeta = docMeta;
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
       }
     }
+  }
+
+  /* ── COMPARAISON QA vs RAG ── */
+  if (qaResponse && ragResponse) {
+    const heuristicWinner = compareWithHeuristic(qaResponse, ragResponse);
+    if (heuristicWinner === "rag") {
+      return NextResponse.json({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, { headers: corsHeaders });
+    }
+    if (heuristicWinner === "kb") {
+      return NextResponse.json({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+    }
+    try {
+      const aiWinner = await compareWithAI(message, qaResponse, ragResponse, apiKey, providerInfo.id, model);
+      if (aiWinner === "rag") {
+        return NextResponse.json({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, { headers: corsHeaders });
+      }
+    } catch { /* fallback to QA */ }
+    return NextResponse.json({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+  }
+
+  if (qaResponse) {
+    return NextResponse.json({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, { headers: corsHeaders });
+  }
+
+  if (ragResponse) {
+    return NextResponse.json({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, { headers: corsHeaders });
   }
 
   /* ── NIVEAU 3 : ESCALADE ── */
