@@ -826,8 +826,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   let ragChunks: any[] = [];
   let ragDocMeta: any[] = [];
 
-  /* ── NIVEAU 2 : RAG — contexte documentaire ── */
-  if (score >= ragThreshold) {
+  /* ── NIVEAU 2 : RAG — recherche documentaire (sauf si réponse KB exacte) ── */
+  const hasSiteContext = !!(client.siteContext?.trim());
+  const hasAnyDoc = hasSiteContext || !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+  if (score < 100 && hasAnyDoc) {
     const siteChunks = parseChunks(client.siteContext || "");
     const now = new Date();
     const clientDocs = await db.prisma.clientDocument.findMany({
