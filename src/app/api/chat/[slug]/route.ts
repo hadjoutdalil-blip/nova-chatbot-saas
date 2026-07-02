@@ -538,7 +538,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const ragThreshold = client.ragThreshold ?? 75;
 
   /* ── Short query guard (only if no good KB match) ── */
-  if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || score < kbThreshold)) {
+  if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || score < Math.max(kbThreshold, 80))) {
     return NextResponse.json(filterResponse({
       messageId,
       response: "",

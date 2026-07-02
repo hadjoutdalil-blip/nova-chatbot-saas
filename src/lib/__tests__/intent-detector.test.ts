@@ -63,5 +63,6 @@ assertIntent("certificat conformité", "Comment obtenir un certificat ?", "REQUE
 assertIntent("chaîne vide", "", "SMALL_TALK");
 assertIntent("comment sava", "comment sava", "REQUETE_METIER");
 assertIntent("comment fonctionne le mode ia", "Comment fonctionne le mode IA ?", "REQUETE_METIER");
+assertIntent("ce seul", "ce", "REQUETE_METIER");
 
 console.log("\n✅ Tous les tests passés !");
