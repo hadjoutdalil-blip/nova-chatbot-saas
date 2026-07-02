@@ -548,7 +548,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         suggestions: findRelated(match, KB, 3),
       }, isVisitor), { headers: corsHeaders });
     }
-    if (!aiMode || !client.apiKey) {
+    if (!aiMode) {
       return NextResponse.json(filterResponse({
         messageId,
         response: "Le mode RAG nécessite une clé API IA. Veuillez activer le mode IA ou désactiver le mode RAG.",
@@ -558,7 +558,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }, isVisitor), { headers: corsHeaders });
     }
     const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
-    const apiKey = keyEntry?.key || "";
+    if (!keyEntry?.key) {
+      return NextResponse.json(filterResponse({
+        messageId,
+        response: "Aucune clé API disponible pour le mode RAG. Veuillez configurer une clé API.",
+        source: "fallback",
+        score: 0,
+        suggestions: [],
+      }, isVisitor), { headers: corsHeaders });
+    }
+    const apiKey = keyEntry.key;
     const providerInfo = detectProvider(apiKey);
     const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
     const siteChunks = parseChunks(client.siteContext || "");
@@ -629,7 +638,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 1 : QA VALIDÉE ── */
   if (match && score >= kbThreshold) {
-    if (score === 100 || !aiMode || !client.apiKey) {
+    if (score === 100 || !aiMode) {
       saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
       return NextResponse.json(filterResponse({
         messageId,
@@ -662,7 +671,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   /* ── PAS D'IA → fallback avec contacts KB ── */
-  if (!aiMode || !client.apiKey) {
+  if (!aiMode) {
     const contactInfo = findContactEntry(KB);
     let resp: string;
     if (match?.answer && score >= kbThreshold) {
