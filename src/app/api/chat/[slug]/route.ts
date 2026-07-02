@@ -6,7 +6,7 @@ import { extractIP, lookupGeo } from "@/lib/geo";
 import { extractKeywords, keywordMatch } from "@/lib/chunk-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
-import { detectIntent } from "@/lib/intent-detector";
+import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -546,6 +546,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       score: 0,
       suggestions: [],
     }, isVisitor), { headers: corsHeaders });
+  }
+
+  /* ── AI Intent check : classification AI si les regex n'ont pas suffi ── */
+  if (aiMode && intent.intent === "REQUETE_METIER") {
+    const aiProviderId = client.aiProvider || detectProvider(client.apiKey || "").id;
+    const keyEntry = await selectApiKey(client.id, aiProviderId);
+    if (keyEntry?.key) {
+      const provider = PROVIDERS[aiProviderId];
+      if (provider) {
+        try {
+          const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
+          const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel);
+          if (aiIntent.intent !== "REQUETE_METIER") {
+            console.log(`[Nova Chat] AI Intent="${aiIntent.intent}" confidence=${aiIntent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
+            saveConversation(client, history || [], message, aiIntent.response || "", aiIntent.intent.toLowerCase(), "", 0, geoPromise);
+            return NextResponse.json(filterResponse({
+              messageId,
+              response: aiIntent.response || "",
+              source: aiIntent.intent.toLowerCase(),
+              score: 0,
+              suggestions: [],
+            }, isVisitor), { headers: corsHeaders });
+          }
+        } catch (err) {
+          console.error("[Nova Chat] AI Intent error:", err);
+        }
+      }
+    }
   }
 
   /* ── RAG ONLY MODE : skip KB, go directly to RAG ── */
