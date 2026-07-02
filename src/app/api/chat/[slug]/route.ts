@@ -118,14 +118,22 @@ function findBestMatch(
     }
     for (const kw of (e.keywords || "").split(",").map(s => s.trim())) {
       const nkw = norm(kw);
-      if (nkw && nkw.length > 2 && (nq.includes(nkw) || nkw.includes(nq))) {
-        const sk = 0.6;
-        if (sk > bestScore || (sk === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sk; best = e; isKeyword = true; }
+      if (nkw) {
+        const kwRegex = new RegExp("\\b" + nkw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+        const qRegex = new RegExp("\\b" + nq.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+        if (kwRegex.test(nq) || qRegex.test(nkw)) {
+          const sk = 0.6;
+          if (sk > bestScore || (sk === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sk; best = e; isKeyword = true; }
+        }
       }
     }
     const cat = norm(e.category);
-    if (cat && (nq.includes(cat) || cat.includes(nq))) {
-      if (0.55 > bestScore || (0.55 === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = 0.55; best = e; isKeyword = false; }
+    if (cat) {
+      const catRegex = new RegExp("\\b" + cat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+      const qRegex = new RegExp("\\b" + nq.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+      if (catRegex.test(nq) || qRegex.test(cat)) {
+        if (0.55 > bestScore || (0.55 === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = 0.55; best = e; isKeyword = false; }
+      }
     }
   }
   return { match: best, score: Math.round(Math.min(bestScore, 1) * 100), isKeyword };

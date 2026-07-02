@@ -303,7 +303,11 @@ export const KB: CETIMEntry[] = [
       "structure organisationnelle cetim",
       "directions cetim",
       "organisation cetim",
-      "hiérarchie cetim"
+      "hiérarchie cetim",
+      "c'est qui le pdg du cetim",
+      "qui est le directeur général du cetim",
+      "qui dirige le cetim",
+      "direction générale cetim"
     ],
     "kw": [
       "organigramme",
@@ -312,7 +316,10 @@ export const KB: CETIMEntry[] = [
       "structure",
       "hiérarchie",
       "DG",
-      "DGA"
+      "DGA",
+      "pdg",
+      "direction générale",
+      "directeur général"
     ],
     "short_resp": "🗂️ DG → 4 directions techniques + DTC + DAF",
     "resp": "🗂️ **Schéma organisationnel CETIM** :\n\n👑 **Conseil d'Administration**\n↳ **Direction Générale**\n  ├── Ass. Audit & Contrôle Gestion\n  ├── Resp. HSE / SIE\n  ├── **DGA chargée du Technique**\n  │   ├── Direction Études Appui Production (DEAP)\n  │   ├── Direction des Laboratoires\n  │   ├── Direction Développement Industriel\n  │   └── Direction Métrologie, Qualité & Informatique\n  ├── **Direction Technico-Commerciale**\n  │   ├── S/D Ventes\n  │   ├── S/D Planification & Prospection\n  │   └── S/D Marketing & Communication\n  └── **Direction Administration & Finances**\n      ├── S/D Finance & Comptabilité\n      ├── S/D Ressources Humaines\n      └── S/D Logistique"
