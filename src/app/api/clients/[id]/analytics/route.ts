@@ -3,12 +3,10 @@ import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const clients = await db.read<any>("clients");
-  const client = clients.find((c: any) => c.id === id);
+  const client = await db.prisma.client.findUnique({ where: { id } });
   if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
-  const conversations = await db.read<any>("conversations");
-  const clientConvos = conversations.filter((c: any) => c.clientId === id);
+  const clientConvos = await db.prisma.conversation.findMany({ where: { clientId: id } });
 
   const locMap = new Map<string, { country: string; city: string; count: number }>();
   for (const c of clientConvos) {
@@ -18,11 +16,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   const connectionsByLocation = [...locMap.values()].sort((a, b) => b.count - a.count);
 
-  const allFeedback = await db.read<any>("message_feedback");
-  const ratedFeedback = allFeedback.filter((f: any) => f.rating > 0);
+  const allFeedback = await db.prisma.messageFeedback.findMany();
+  const ratedFeedback = allFeedback.filter((f) => f.rating > 0);
   const totalRatings = ratedFeedback.length;
   const avgRating = totalRatings > 0
-    ? Math.round((ratedFeedback.reduce((s: number, f: any) => s + f.rating, 0) / totalRatings) * 10) / 10
+    ? Math.round((ratedFeedback.reduce((s, f) => s + f.rating, 0) / totalRatings) * 10) / 10
     : 0;
   const distribution: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
   for (const f of ratedFeedback) {
@@ -30,9 +28,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const recentConvos = clientConvos
-    .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
     .slice(0, 30)
-    .map((c: any) => ({
+    .map((c) => ({
       id: c.id,
       title: c.title,
       country: c.country || "",

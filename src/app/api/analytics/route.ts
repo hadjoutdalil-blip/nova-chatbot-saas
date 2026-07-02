@@ -285,12 +285,10 @@ export async function GET(req: NextRequest) {
   const days = daysParam ? Math.max(1, Math.min(90, parseInt(daysParam) || 30)) : 30;
 
   const clientId = user.clientId;
-  const allClients = await db.read<any>("clients");
-  const client = allClients.find((c: any) => c.id === clientId);
+  const client = await db.prisma.client.findUnique({ where: { id: clientId } });
   if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
-  const allKb = await db.read<any>("kb_entries");
-  const clientKb = allKb.filter((k: any) => k.clientId === clientId);
+  const clientKb = await db.prisma.kBEntry.findMany({ where: { clientId } });
   const kbCategories = [...new Set(clientKb.map((k: any) => k.category).filter(Boolean))];
 
   const sessions = generateClientAnalytics(clientId, clientKb.length, kbCategories, days);

@@ -7,13 +7,13 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const [allLogs, allClients, allConversations, allKb] = await Promise.all([
-    db.read<any>("ai_usage_logs"),
-    db.read<any>("clients"),
-    db.read<any>("conversations"),
-    db.read<any>("kb_entries"),
+    db.prisma.aIUsageLog.findMany(),
+    db.prisma.client.findMany(),
+    db.prisma.conversation.findMany(),
+    db.prisma.kBEntry.findMany(),
   ]);
 
-  const clientNameMap = new Map(allClients.map((c: any) => [c.id, c.name]));
+  const clientNameMap = new Map(allClients.map((c) => [c.id, c.name]));
 
   // Per-provider/model aggregation
   const agg: Record<string, { provider: string; model: string; promptTokens: number; completionTokens: number; totalTokens: number; calls: number }> = {};

@@ -14,21 +14,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Entrées requises" }, { status: 400 });
   }
 
-  let allEntries = await db.read<any>("kb_entries");
-
   if (replace) {
-    allEntries = allEntries.filter((k: any) => k.clientId !== targetClientId);
+    await db.prisma.kBEntry.deleteMany({ where: { clientId: targetClientId } });
   }
 
   const newEntries = entries.map((e: any) => {
-    // CETIM format (qs[], resp, short_resp, cat, kw[], related_tags[])
     const isCetim = Array.isArray(e.qs);
-    const tag = isCetim ? (e.tag || "") : (e.tag || "");
+    const tag = e.tag || "";
     const question = isCetim ? e.qs[0] : e.question;
     const altQuestions = isCetim
       ? (e.qs.slice(1).join(" || ") || "")
       : (e.alt_questions || "");
-    const shortResp = isCetim ? (e.short_resp || "") : (e.short_resp || "");
+    const shortResp = e.short_resp || "";
     const answer = isCetim ? (e.resp || "") : e.answer;
     const category = isCetim ? (e.cat || "") : (e.category || "");
     const keywords = isCetim
@@ -54,11 +51,9 @@ export async function POST(req: NextRequest) {
       valid_until: e.valid_until || "",
       icon: e.icon || "",
       clientId: targetClientId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
   });
 
-  await db.write("kb_entries", [...allEntries, ...newEntries]);
+  await db.prisma.kBEntry.createMany({ data: newEntries });
   return NextResponse.json({ imported: newEntries.length });
 }

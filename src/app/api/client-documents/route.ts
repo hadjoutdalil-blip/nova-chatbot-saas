@@ -15,27 +15,40 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const clientId = getTargetClientId(req, user);
-  const all = await db.read<any>("client_documents");
-  const docs = all
-    .filter((d: any) => d.clientId === clientId && d.status !== "archived")
-    .map((d: any) => ({
-      id: d.id,
-      originalName: d.originalName,
-      mimeType: d.mimeType,
-      fileSize: d.fileSize || d.content?.length || 0,
-      description: d.description || "",
-      tags: d.tags || "",
-      category: d.category || "",
-      author: d.author || "",
-      version: d.version ?? 1,
-      status: d.status || "active",
-      valid_from: d.valid_from || null,
-      valid_until: d.valid_until || null,
-      source_url: d.source_url || "",
-      createdAt: d.createdAt,
-      updatedAt: d.updatedAt,
-    }));
-  return NextResponse.json(docs);
+  const docs = await db.prisma.clientDocument.findMany({
+    where: { clientId, status: { not: "archived" } },
+    select: {
+      id: true,
+      originalName: true,
+      mimeType: true,
+      fileSize: true,
+      description: true,
+      tags: true,
+      category: true,
+      author: true,
+      version: true,
+      status: true,
+      valid_from: true,
+      valid_until: true,
+      source_url: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  const mapped = docs.map((d) => ({
+    ...d,
+    fileSize: d.fileSize || 0,
+    description: d.description || "",
+    tags: d.tags || "",
+    category: d.category || "",
+    author: d.author || "",
+    version: d.version ?? 1,
+    status: d.status || "active",
+    valid_from: d.valid_from || null,
+    valid_until: d.valid_until || null,
+    source_url: d.source_url || "",
+  }));
+  return NextResponse.json(mapped);
 }
 
 export async function POST(req: NextRequest) {
@@ -67,30 +80,27 @@ export async function POST(req: NextRequest) {
   const valid_from = form.get("valid_from")?.toString() || "";
   const valid_until = form.get("valid_until")?.toString() || "";
 
-  const all = await db.read<any>("client_documents");
-  const doc = {
-    id: randomUUID(),
-    clientId,
-    originalName: file.name,
-    mimeType: file.type || "text/plain",
-    content,
-    fileSize: file.size,
-    description,
-    tags,
-    category,
-    author,
-    version: 1,
-    previousVersionId: "",
-    source_url: `/api/client-documents/${randomUUID()}/download`,
-    valid_from: valid_from || null,
-    valid_until: valid_until || null,
-    status: "active",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  doc.source_url = `/api/client-documents/${doc.id}/download`;
-  all.push(doc);
-  await db.write("client_documents", all);
+  const docId = randomUUID();
+  const doc = await db.prisma.clientDocument.create({
+    data: {
+      id: docId,
+      clientId,
+      originalName: file.name,
+      mimeType: file.type || "text/plain",
+      content,
+      fileSize: file.size,
+      description,
+      tags,
+      category,
+      author,
+      version: 1,
+      previousVersionId: "",
+      source_url: `/api/client-documents/${docId}/download`,
+      valid_from: valid_from || null,
+      valid_until: valid_until || null,
+      status: "active",
+    },
+  });
 
   return NextResponse.json({
     id: doc.id,

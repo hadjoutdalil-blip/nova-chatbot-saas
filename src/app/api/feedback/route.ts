@@ -35,55 +35,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
     }
 
-    const all = await db.read<any>("message_feedback");
-    all.push({
-      id: randomUUID(),
-      clientId: client.id,
-      messageId,
-      conversationId: conversationId || "",
-      rating,
-      question,
-      response: response || "",
-      source: source || "",
-      score: score || 0,
-      provider: provider || "",
-      comment: comment || "",
-      pageUrl: pageUrl || "",
-      createdAt: new Date().toISOString(),
+    await db.prisma.messageFeedback.create({
+      data: {
+        id: randomUUID(),
+        clientId: client.id,
+        messageId,
+        conversationId: conversationId || "",
+        rating,
+        question,
+        response: response || "",
+        source: source || "",
+        score: score || 0,
+        provider: provider || "",
+        comment: comment || "",
+        pageUrl: pageUrl || "",
+      },
     });
-    await db.write("message_feedback", all);
 
     /* Auto-create KB entry from good RAG exchanges */
     if (rating >= 4 && source === "rag" && response) {
-      const allKb = await db.read<any>("kb_entries");
-      const clientKb = allKb.filter((k: any) => k.clientId === client.id);
       const nq = norm(question);
+      const clientKb = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
       const exists = clientKb.some(k =>
         norm(k.question) === nq ||
         norm(k.question).includes(nq) ||
         nq.includes(norm(k.question))
       );
       if (!exists) {
-        allKb.push({
-          id: randomUUID(),
-          tag: "auto-rag",
-          question,
-          alt_questions: "",
-          short_resp: "",
-          answer: response,
-          category: "",
-          keywords: "",
-          priority: 3,
-          related_tags: "",
-          icon: "",
-          source: "auto-rag",
-          source_url: "",
-          valid_until: "",
-          clientId: client.id,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+        await db.prisma.kBEntry.create({
+          data: {
+            id: randomUUID(),
+            tag: "auto-rag",
+            question,
+            alt_questions: "",
+            short_resp: "",
+            answer: response,
+            category: "",
+            keywords: "",
+            priority: 3,
+            related_tags: "",
+            icon: "",
+            source: "auto-rag",
+            source_url: "",
+            valid_until: "",
+            clientId: client.id,
+          },
         });
-        await db.write("kb_entries", allKb);
         console.log(`[Feedback] KB auto-créée depuis RAG: "${question.slice(0, 80)}"`);
       }
     }
@@ -99,20 +96,19 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get("slug");
-    const all = await db.read<any>("message_feedback");
 
-    let feedbacks = all;
+    let feedbacks = await db.prisma.messageFeedback.findMany();
     if (slug) {
       const client = await findClientBySlug(slug);
-      if (client) feedbacks = feedbacks.filter((f: any) => f.clientId === client.id);
+      if (client) feedbacks = feedbacks.filter((f) => f.clientId === client.id);
     }
 
-    feedbacks.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    feedbacks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const total = feedbacks.length;
     const ratings = [0, 0, 0, 0, 0];
     for (const f of feedbacks) ratings[f.rating - 1]++;
-    const avgRating = total > 0 ? feedbacks.reduce((s: number, f: any) => s + f.rating, 0) / total : 0;
+    const avgRating = total > 0 ? feedbacks.reduce((s, f) => s + f.rating, 0) / total : 0;
 
     return NextResponse.json({
       total,

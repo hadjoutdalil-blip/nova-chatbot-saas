@@ -42,24 +42,22 @@ export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const clients = await db.read<any>("clients");
-  const client = clients.find((c: any) => c.id === user.clientId);
+  const client = await db.prisma.client.findUnique({ where: { id: user.clientId } });
   if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
-  const allEntries = await db.read<any>("kb_entries");
-  const kbEntries = allEntries.filter((k: any) => k.clientId === client.id);
+  const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
   let created = 0;
+  const newEntries: any[] = [];
 
   // Transfer siteContext chunks
   const chunks = parseSiteChunks(client.siteContext || "");
   for (const chunk of chunks) {
-    const exists = kbEntries.some((k: any) => k.answer === chunk.content);
+    const exists = kbEntries.some((k) => k.answer === chunk.content);
     if (exists) continue;
-    const q = `Document : ${chunk.name}`;
-    allEntries.push({
+    newEntries.push({
       id: randomUUID(),
       tag: "import_document",
-      question: q,
+      question: `Document : ${chunk.name}`,
       alt_questions: "",
       short_resp: "",
       answer: chunk.content,
@@ -72,23 +70,21 @@ export async function POST(req: NextRequest) {
       source_url: "",
       valid_until: "",
       clientId: client.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     });
     created++;
   }
 
   // Transfer GED documents
-  const allDocs = await db.read<any>("client_documents");
-  const clientDocs = allDocs.filter((d: any) => d.clientId === client.id && d.status !== "archived");
+  const clientDocs = await db.prisma.clientDocument.findMany({
+    where: { clientId: client.id, status: { not: "archived" } },
+  });
   for (const doc of clientDocs) {
-    const exists = kbEntries.some((k: any) => k.answer === doc.content);
+    const exists = kbEntries.some((k) => k.answer === doc.content);
     if (exists) continue;
-    const q = `Document : ${doc.originalName}`;
-    allEntries.push({
+    newEntries.push({
       id: randomUUID(),
       tag: "import_ged",
-      question: q,
+      question: `Document : ${doc.originalName}`,
       alt_questions: "",
       short_resp: "",
       answer: doc.content,
@@ -101,12 +97,12 @@ export async function POST(req: NextRequest) {
       source_url: doc.source_url || "",
       valid_until: doc.valid_until || "",
       clientId: client.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     });
     created++;
   }
 
-  await db.write("kb_entries", allEntries);
+  if (newEntries.length > 0) {
+    await db.prisma.kBEntry.createMany({ data: newEntries });
+  }
   return NextResponse.json({ success: true, created });
 }

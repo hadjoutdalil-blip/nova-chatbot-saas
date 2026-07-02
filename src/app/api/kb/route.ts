@@ -15,8 +15,7 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const clientId = getTargetClientId(req, user);
-  const allEntries = await db.read<any>("kb_entries");
-  const entries = allEntries.filter((k) => k.clientId === clientId);
+  const entries = await db.prisma.kBEntry.findMany({ where: { clientId } });
   return NextResponse.json(entries);
 }
 
@@ -31,28 +30,24 @@ export async function POST(req: NextRequest) {
 
   const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
 
-  const entries = await db.read<any>("kb_entries");
-  const entry = {
-    id: randomUUID(),
-    tag: body.tag || "",
-    question: body.question,
-    alt_questions: body.alt_questions || "",
-    short_resp: body.short_resp || "",
-    answer: body.answer,
-    category: body.category || "",
-    keywords: body.keywords || "",
-    priority: body.priority ?? 5,
-    related_tags: body.related_tags || "",
-    icon: body.icon || "",
-    source: body.source || "",
-    source_url: body.source_url || "",
-    valid_until: body.valid_until || "",
-    clientId,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  entries.push(entry);
-  await db.write("kb_entries", entries);
+  const entry = await db.prisma.kBEntry.create({
+    data: {
+      id: randomUUID(),
+      clientId,
+      tag: body.tag || "",
+      question: body.question,
+      alt_questions: body.alt_questions || "",
+      short_resp: body.short_resp || "",
+      answer: body.answer,
+      category: body.category || "",
+      keywords: body.keywords || "",
+      priority: body.priority ?? 5,
+      related_tags: body.related_tags || "",
+      icon: body.icon || "",
+      source: body.source || "",
+      source_url: body.source_url || "",
+      valid_until: body.valid_until || "",
+    },
+  });
   return NextResponse.json(entry, { status: 201 });
 }

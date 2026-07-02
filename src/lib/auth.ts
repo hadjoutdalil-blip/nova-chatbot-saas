@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db } from "./db";
+import { prisma } from "./db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 
@@ -25,11 +25,9 @@ export function verifyToken(token: string): { userId: string; clientId: string; 
 }
 
 export async function findUserByEmail(email: string) {
-  const users = await db.read<any>("users");
-  return users.find((u) => u.email === email) || null;
+  return prisma.user.findUnique({ where: { email } });
 }
 
 export async function findClientBySlug(slug: string) {
-  const clients = await db.read<any>("clients");
-  return clients.find((c) => c.slug === slug) || null;
+  return prisma.client.findUnique({ where: { slug } });
 }

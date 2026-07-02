@@ -8,9 +8,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const docs = await db.read<any>("client_documents");
-  const doc = docs.find((d: any) => d.id === id && (d.clientId === user.clientId || user.role === "admin"));
-  if (!doc) return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
+  const doc = await db.prisma.clientDocument.findUnique({ where: { id } });
+  if (!doc || (doc.clientId !== user.clientId && user.role !== "admin")) {
+    return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
+  }
 
   return NextResponse.json({
     id: doc.id,
@@ -39,15 +40,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const docs = await db.read<any>("client_documents");
-  const idx = docs.findIndex((d: any) => d.id === id && (d.clientId === user.clientId || user.role === "admin"));
-  if (idx === -1) return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
+  const existing = await db.prisma.clientDocument.findUnique({ where: { id } });
+  if (!existing || (existing.clientId !== user.clientId && user.role !== "admin")) {
+    return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
+  }
 
   const form = await req.formData();
   const file = form.get("file") as File | null;
-  const existing = docs[idx];
 
-  const update: any = { ...existing, updatedAt: new Date().toISOString() };
+  const update: any = {};
 
   const description = form.get("description")?.toString();
   const tags = form.get("tags")?.toString();
@@ -77,34 +78,77 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const text = await file.text();
     if (!text.trim()) return NextResponse.json({ error: "Fichier vide" }, { status: 400 });
 
-    update.previousVersionId = existing.id;
-    update.id = randomUUID();
-    update.version = (existing.version || 1) + 1;
-    update.originalName = file.name;
-    update.mimeType = file.type || "text/plain";
-    update.content = file.type === "application/json" ? JSON.stringify(JSON.parse(text), null, 2) : text;
-    update.fileSize = file.size;
-    update.createdAt = new Date().toISOString();
-    update.source_url = `/api/client-documents/${update.id}/download`;
-    update.status = "active";
+    await db.prisma.clientDocument.update({
+      where: { id },
+      data: { status: "archived" },
+    });
 
-    docs[idx].status = "archived";
-    docs.push(update);
+    const newId = randomUUID();
+    const newDoc = await db.prisma.clientDocument.create({
+      data: {
+        id: newId,
+        clientId: existing.clientId,
+        originalName: file.name,
+        mimeType: file.type || "text/plain",
+        content: file.type === "application/json" ? JSON.stringify(JSON.parse(text), null, 2) : text,
+        fileSize: file.size,
+        description: update.description || existing.description || "",
+        tags: update.tags || existing.tags || "",
+        category: update.category || existing.category || "",
+        author: update.author || existing.author || "",
+        version: (existing.version || 1) + 1,
+        previousVersionId: id,
+        source_url: `/api/client-documents/${newId}/download`,
+        valid_from: update.valid_from ?? existing.valid_from,
+        valid_until: update.valid_until ?? existing.valid_until,
+        status: "active",
+      },
+    });
+
+    return NextResponse.json({
+      id: newDoc.id,
+      originalName: newDoc.originalName,
+      version: newDoc.version,
+      fileSize: newDoc.fileSize,
+      source_url: newDoc.source_url,
+      description: newDoc.description,
+      tags: newDoc.tags,
+      category: newDoc.category,
+      valid_from: newDoc.valid_from,
+      valid_until: newDoc.valid_until,
+      status: newDoc.status,
+    });
   }
 
-  await db.write("client_documents", docs);
+  if (Object.keys(update).length > 0) {
+    const updated = await db.prisma.clientDocument.update({ where: { id }, data: update });
+    return NextResponse.json({
+      id: updated.id,
+      originalName: updated.originalName,
+      version: updated.version,
+      fileSize: updated.fileSize,
+      source_url: updated.source_url,
+      description: updated.description,
+      tags: updated.tags,
+      category: updated.category,
+      valid_from: updated.valid_from,
+      valid_until: updated.valid_until,
+      status: updated.status,
+    });
+  }
+
   return NextResponse.json({
-    id: update.id,
-    originalName: update.originalName,
-    version: update.version,
-    fileSize: update.fileSize,
-    source_url: update.source_url,
-    description: update.description,
-    tags: update.tags,
-    category: update.category,
-    valid_from: update.valid_from,
-    valid_until: update.valid_until,
-    status: update.status,
+    id: existing.id,
+    originalName: existing.originalName,
+    version: existing.version,
+    fileSize: existing.fileSize,
+    source_url: existing.source_url,
+    description: existing.description,
+    tags: existing.tags,
+    category: existing.category,
+    valid_from: existing.valid_from,
+    valid_until: existing.valid_until,
+    status: existing.status,
   });
 }
 
@@ -113,12 +157,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const docs = await db.read<any>("client_documents");
-  const idx = docs.findIndex((d: any) => d.id === id && (d.clientId === user.clientId || user.role === "admin"));
-  if (idx === -1) return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
+  const existing = await db.prisma.clientDocument.findUnique({ where: { id } });
+  if (!existing || (existing.clientId !== user.clientId && user.role !== "admin")) {
+    return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
+  }
 
-  docs[idx].status = "archived";
-  docs[idx].updatedAt = new Date().toISOString();
-  await db.write("client_documents", docs);
+  await db.prisma.clientDocument.update({
+    where: { id },
+    data: { status: "archived" },
+  });
   return NextResponse.json({ message: "Document archivé" });
 }

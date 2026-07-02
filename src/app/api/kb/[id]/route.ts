@@ -7,21 +7,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const entries = await db.read<any>("kb_entries");
-  const idx = entries.findIndex((k) => k.id === id && (k.clientId === user.clientId || user.role === "admin"));
-  if (idx === -1) return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
+  const existing = await db.prisma.kBEntry.findUnique({ where: { id } });
+  if (!existing || (existing.clientId !== user.clientId && user.role !== "admin")) {
+    return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
+  }
 
   const body = await req.json();
-  entries[idx] = {
-    ...entries[idx],
-    ...body,
-    id,
-    clientId: entries[idx].clientId,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await db.write("kb_entries", entries);
-  return NextResponse.json(entries[idx]);
+  const { clientId, id: bodyId, createdAt, updatedAt, ...clean } = body;
+  const updated = await db.prisma.kBEntry.update({
+    where: { id },
+    data: { ...clean, updatedAt: new Date().toISOString() },
+  });
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,11 +26,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  let entries = await db.read<any>("kb_entries");
-  const idx = entries.findIndex((k) => k.id === id && (k.clientId === user.clientId || user.role === "admin"));
-  if (idx === -1) return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
+  const existing = await db.prisma.kBEntry.findUnique({ where: { id } });
+  if (!existing || (existing.clientId !== user.clientId && user.role !== "admin")) {
+    return NextResponse.json({ error: "Entrée introuvable" }, { status: 404 });
+  }
 
-  entries = entries.filter((k) => k.id !== id);
-  await db.write("kb_entries", entries);
+  await db.prisma.kBEntry.delete({ where: { id } });
   return NextResponse.json({ message: "Entrée supprimée" });
 }

@@ -10,8 +10,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const clientId = url.searchParams.get("clientId") || user.clientId;
 
-  const allEntries = await db.read<any>("kb_entries");
-  const entries = allEntries.filter((k: any) => k.clientId === clientId);
+  const entries = await db.prisma.kBEntry.findMany({ where: { clientId } });
 
   const doc = new PDFDocument({ margin: 50, info: { Title: "Base de connaissances" } });
   const buffers: Buffer[] = [];

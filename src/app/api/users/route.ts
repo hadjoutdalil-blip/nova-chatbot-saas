@@ -8,11 +8,13 @@ export async function GET(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const allUsers = await db.read<any>("users");
-  const allClients = await db.read<any>("clients");
-  const clientMap = new Map(allClients.map((c: any) => [c.id, c.name]));
+  const [allUsers, allClients] = await Promise.all([
+    db.prisma.user.findMany(),
+    db.prisma.client.findMany(),
+  ]);
+  const clientMap = new Map(allClients.map((c) => [c.id, c.name]));
 
-  const result = allUsers.map((u: any) => ({
+  const result = allUsers.map((u) => ({
     id: u.id,
     email: u.email,
     name: u.name,
@@ -33,23 +35,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email, mot de passe, nom et client requis" }, { status: 400 });
   }
 
-  const allUsers = await db.read<any>("users");
-  if (allUsers.find((u: any) => u.email === body.email)) {
+  const existing = await db.prisma.user.findUnique({ where: { email: body.email } });
+  if (existing) {
     return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
   }
 
   const hashed = await hashPassword(body.password);
-  const newUser = {
-    id: randomUUID(),
-    email: body.email,
-    password: hashed,
-    name: body.name,
-    role: body.role === "admin" ? "admin" : "client",
-    clientId: body.clientId,
-  };
-
-  allUsers.push(newUser);
-  await db.write("users", allUsers);
+  const newUser = await db.prisma.user.create({
+    data: {
+      id: randomUUID(),
+      email: body.email,
+      password: hashed,
+      name: body.name,
+      role: body.role === "admin" ? "admin" : "client",
+      clientId: body.clientId,
+    },
+  });
 
   const { password: _, ...safe } = newUser;
   return NextResponse.json(safe, { status: 201 });

@@ -3,24 +3,45 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 
-function getTargetClientId(req: NextRequest, user: { userId: string; clientId: string; role: string }): string {
-  const url = new URL(req.url);
-  const param = url.searchParams.get("clientId");
-  if (param && user.role === "admin") return param;
-  return user.clientId;
-}
-
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const body = await req.json();
   const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
-  const configs = await db.read<any>("widget_configs");
-  const existing = configs.find((w: any) => w.clientId === clientId);
+  const existing = await db.prisma.widgetConfig.findFirst({ where: { clientId } });
 
   if (existing) {
-    Object.assign(existing, {
+    const updated = await db.prisma.widgetConfig.update({
+      where: { id: existing.id },
+      data: {
+        welcomeTitle: body.welcomeTitle ?? undefined,
+        welcomeSub: body.welcomeSub ?? undefined,
+        showBrand: body.showBrand ?? undefined,
+        position: body.position ?? undefined,
+        marginBottom: body.marginBottom ?? undefined,
+        marginRight: body.marginRight ?? undefined,
+        avatarIcon: body.avatarIcon ?? undefined,
+        proactiveEnabled: body.proactiveEnabled === true,
+        autoOpenDelay: body.autoOpenDelay ?? undefined,
+        showNotification: body.showNotification ?? undefined,
+        notificationText: body.notificationText ?? undefined,
+        sendGreeting: body.sendGreeting ?? undefined,
+        scrollTrigger: body.scrollTrigger ?? undefined,
+        exitIntent: body.exitIntent ?? undefined,
+        buttonAnimation: body.buttonAnimation ?? undefined,
+        buttonLabel: body.buttonLabel ?? undefined,
+        buttonLabelDuration: body.buttonLabelDuration ?? undefined,
+        buttonIcon: body.buttonIcon ?? undefined,
+      },
+    });
+    return NextResponse.json(updated);
+  }
+
+  const config = await db.prisma.widgetConfig.create({
+    data: {
+      id: randomUUID(),
+      clientId,
       welcomeTitle: body.welcomeTitle || "Bienvenue !",
       welcomeSub: body.welcomeSub || "",
       showBrand: body.showBrand ?? true,
@@ -39,36 +60,8 @@ export async function POST(req: NextRequest) {
       buttonLabel: body.buttonLabel || "",
       buttonLabelDuration: body.buttonLabelDuration ?? 8,
       buttonIcon: body.buttonIcon ?? "",
-    });
-    await db.write("widget_configs", configs);
-    return NextResponse.json(existing);
-  }
-
-  const config = {
-    id: randomUUID(),
-    welcomeTitle: body.welcomeTitle || "Bienvenue !",
-    welcomeSub: body.welcomeSub || "",
-    showBrand: body.showBrand ?? true,
-    position: body.position || "right",
-    marginBottom: body.marginBottom ?? 20,
-    marginRight: body.marginRight ?? 20,
-    avatarIcon: body.avatarIcon || "robot",
-    proactiveEnabled: body.proactiveEnabled === true,
-    autoOpenDelay: body.autoOpenDelay ?? 5,
-    showNotification: body.showNotification !== false,
-    notificationText: body.notificationText || "",
-    sendGreeting: body.sendGreeting === true,
-    scrollTrigger: body.scrollTrigger ?? 0,
-    exitIntent: body.exitIntent === true,
-    buttonAnimation: body.buttonAnimation || "pulse",
-    buttonLabel: body.buttonLabel || "",
-    buttonLabelDuration: body.buttonLabelDuration ?? 8,
-    buttonIcon: body.buttonIcon ?? "",
-    clientId,
-  };
-
-  configs.push(config);
-  await db.write("widget_configs", configs);
+    },
+  });
   return NextResponse.json(config, { status: 201 });
 }
 
@@ -78,59 +71,59 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json();
   const clientId = body.clientId && user.role === "admin" ? body.clientId : user.clientId;
-  const configs = await db.read<any>("widget_configs");
-  const idx = configs.findIndex((w) => w.clientId === clientId);
+  const existing = await db.prisma.widgetConfig.findFirst({ where: { clientId } });
 
-  if (idx === -1) {
+  if (!existing) {
     if (user.role !== "admin") return NextResponse.json({ error: "Configuration introuvable" }, { status: 404 });
-    const config = {
-      id: randomUUID(),
-      welcomeTitle: body.welcomeTitle || "Bienvenue !",
-      welcomeSub: body.welcomeSub || "",
-      showBrand: body.showBrand ?? true,
-      position: body.position || "right",
-      marginBottom: body.marginBottom ?? 20,
-      marginRight: body.marginRight ?? 20,
-      avatarIcon: body.avatarIcon || "robot",
-      proactiveEnabled: body.proactiveEnabled === true,
-      autoOpenDelay: body.autoOpenDelay ?? 5,
-      showNotification: body.showNotification !== false,
-      notificationText: body.notificationText || "",
-      sendGreeting: body.sendGreeting === true,
-      scrollTrigger: body.scrollTrigger ?? 0,
-      exitIntent: body.exitIntent === true,
-      buttonAnimation: body.buttonAnimation || "pulse",
-      buttonLabel: body.buttonLabel || "",
-      buttonLabelDuration: body.buttonLabelDuration ?? 8,
-      buttonIcon: body.buttonIcon ?? "",
-      clientId,
-    };
-    configs.push(config);
+    const config = await db.prisma.widgetConfig.create({
+      data: {
+        id: randomUUID(),
+        clientId,
+        welcomeTitle: body.welcomeTitle || "Bienvenue !",
+        welcomeSub: body.welcomeSub || "",
+        showBrand: body.showBrand ?? true,
+        position: body.position || "right",
+        marginBottom: body.marginBottom ?? 20,
+        marginRight: body.marginRight ?? 20,
+        avatarIcon: body.avatarIcon || "robot",
+        proactiveEnabled: body.proactiveEnabled === true,
+        autoOpenDelay: body.autoOpenDelay ?? 5,
+        showNotification: body.showNotification !== false,
+        notificationText: body.notificationText || "",
+        sendGreeting: body.sendGreeting === true,
+        scrollTrigger: body.scrollTrigger ?? 0,
+        exitIntent: body.exitIntent === true,
+        buttonAnimation: body.buttonAnimation || "pulse",
+        buttonLabel: body.buttonLabel || "",
+        buttonLabelDuration: body.buttonLabelDuration ?? 8,
+        buttonIcon: body.buttonIcon ?? "",
+      },
+    });
     return NextResponse.json(config);
   }
 
-  configs[idx] = {
-    ...configs[idx],
-    welcomeTitle: body.welcomeTitle ?? configs[idx].welcomeTitle,
-    welcomeSub: body.welcomeSub ?? configs[idx].welcomeSub,
-    showBrand: body.showBrand ?? configs[idx].showBrand,
-    position: body.position ?? configs[idx].position,
-    marginBottom: body.marginBottom ?? configs[idx].marginBottom,
-    marginRight: body.marginRight ?? configs[idx].marginRight,
-    avatarIcon: body.avatarIcon ?? configs[idx].avatarIcon,
-    proactiveEnabled: body.proactiveEnabled === true,
-    autoOpenDelay: body.autoOpenDelay ?? configs[idx].autoOpenDelay ?? 5,
-    showNotification: body.showNotification !== false,
-    notificationText: body.notificationText ?? configs[idx].notificationText ?? "",
-    sendGreeting: body.sendGreeting === true,
-    scrollTrigger: body.scrollTrigger ?? configs[idx].scrollTrigger ?? 0,
-    exitIntent: body.exitIntent === true,
-    buttonAnimation: body.buttonAnimation ?? configs[idx].buttonAnimation ?? "pulse",
-    buttonLabel: body.buttonLabel ?? configs[idx].buttonLabel ?? "",
-    buttonLabelDuration: body.buttonLabelDuration ?? configs[idx].buttonLabelDuration ?? 8,
-    buttonIcon: body.buttonIcon ?? configs[idx].buttonIcon ?? "",
-  };
-
-  await db.write("widget_configs", configs);
-  return NextResponse.json(configs[idx]);
+  const updated = await db.prisma.widgetConfig.update({
+    where: { id: existing.id },
+    data: {
+      welcomeTitle: body.welcomeTitle ?? undefined,
+      welcomeSub: body.welcomeSub ?? undefined,
+      showBrand: body.showBrand ?? undefined,
+      position: body.position ?? undefined,
+      marginBottom: body.marginBottom ?? undefined,
+      marginRight: body.marginRight ?? undefined,
+      avatarIcon: body.avatarIcon ?? undefined,
+      proactiveEnabled: body.proactiveEnabled === true,
+      autoOpenDelay: body.autoOpenDelay ?? undefined,
+      showNotification: body.showNotification ?? undefined,
+      notificationText: body.notificationText ?? undefined,
+      sendGreeting: body.sendGreeting ?? undefined,
+      scrollTrigger: body.scrollTrigger ?? undefined,
+      exitIntent: body.exitIntent ?? undefined,
+      buttonAnimation: body.buttonAnimation ?? undefined,
+      buttonLabel: body.buttonLabel ?? undefined,
+      buttonLabelDuration: body.buttonLabelDuration ?? undefined,
+      buttonIcon: body.buttonIcon ?? undefined,
+    },
+  });
+  return NextResponse.json(updated);
 }

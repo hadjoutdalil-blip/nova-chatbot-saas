@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
+import { randomUUID } from "crypto";
 
 const DEFAULTS: Record<string, string> = {
   defaultAiProvider: "groq",
@@ -10,7 +11,7 @@ const DEFAULTS: Record<string, string> = {
 };
 
 export async function GET() {
-  const rows = await db.read<any>("global_configs");
+  const rows = await db.prisma.globalConfig.findMany();
   const config: Record<string, string> = { ...DEFAULTS };
   for (const row of rows) {
     config[row.key] = row.value;
@@ -27,24 +28,20 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const allowed = Object.keys(DEFAULTS);
 
-  const existing = await db.read<any>("global_configs");
-  const updated = [...existing];
-
   for (const key of allowed) {
     if (body[key] === undefined) continue;
-    const idx = updated.findIndex((r: any) => r.key === key);
-    if (idx >= 0) {
-      updated[idx] = { ...updated[idx], value: String(body[key]) };
-    } else {
-      const { randomUUID } = await import("crypto");
-      updated.push({ id: randomUUID(), key, value: String(body[key]) });
-    }
+    const existing = await db.prisma.globalConfig.findUnique({ where: { key } });
+    await db.prisma.globalConfig.upsert({
+      where: { key },
+      create: { id: randomUUID(), key, value: String(body[key]) },
+      update: { value: String(body[key]) },
+    });
   }
 
-  await db.write("global_configs", updated);
-  const result: Record<string, string> = { ...DEFAULTS };
-  for (const row of updated) {
-    result[row.key] = row.value;
+  const config: Record<string, string> = { ...DEFAULTS };
+  const rows = await db.prisma.globalConfig.findMany();
+  for (const row of rows) {
+    config[row.key] = row.value;
   }
-  return NextResponse.json(result);
+  return NextResponse.json(config);
 }

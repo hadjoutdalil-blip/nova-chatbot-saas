@@ -9,10 +9,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
-  const configs = await db.read<any>("widget_configs");
-  const widgetConfig = configs.find((w: any) => w.clientId === client.id) || null;
-  const allEntries = await db.read<any>("kb_entries");
-  const kbEntries = allEntries.filter((k: any) => k.clientId === client.id);
+  const widgetConfig = await db.prisma.widgetConfig.findFirst({ where: { clientId: client.id } });
+  const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
 
   const chatUrl = `${req.nextUrl.origin}/api/chat/${slug}`;
   const name = client.name;

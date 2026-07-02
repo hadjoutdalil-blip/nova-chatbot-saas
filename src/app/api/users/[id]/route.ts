@@ -8,26 +8,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!authUser || authUser.role !== "admin") return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const allUsers = await db.read<any>("users");
-  const idx = allUsers.findIndex((u: any) => u.id === id);
-  if (idx === -1) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+  const existing = await db.prisma.user.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
 
   const body = await req.json();
+  const update: any = {};
 
-  if (body.email && body.email !== allUsers[idx].email) {
-    if (allUsers.find((u: any) => u.email === body.email)) {
-      return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
-    }
-    allUsers[idx].email = body.email;
+  if (body.email && body.email !== existing.email) {
+    const emailUser = await db.prisma.user.findUnique({ where: { email: body.email } });
+    if (emailUser) return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
+    update.email = body.email;
   }
-  if (body.name) allUsers[idx].name = body.name;
-  if (body.role) allUsers[idx].role = body.role === "admin" ? "admin" : "client";
-  if (body.clientId) allUsers[idx].clientId = body.clientId;
-  if (body.password) allUsers[idx].password = await hashPassword(body.password);
+  if (body.name) update.name = body.name;
+  if (body.role) update.role = body.role === "admin" ? "admin" : "client";
+  if (body.clientId) update.clientId = body.clientId;
+  if (body.password) update.password = await hashPassword(body.password);
 
-  await db.write("users", allUsers);
-
-  const { password: _, ...safe } = allUsers[idx];
+  const updated = await db.prisma.user.update({ where: { id }, data: update });
+  const { password: _, ...safe } = updated;
   return NextResponse.json(safe);
 }
 
@@ -36,11 +34,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!authUser || authUser.role !== "admin") return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  let allUsers = await db.read<any>("users");
-  const exists = allUsers.find((u: any) => u.id === id);
-  if (!exists) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+  const existing = await db.prisma.user.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
 
-  allUsers = allUsers.filter((u: any) => u.id !== id);
-  await db.write("users", allUsers);
+  await db.prisma.user.delete({ where: { id } });
   return NextResponse.json({ message: "Utilisateur supprimé" });
 }

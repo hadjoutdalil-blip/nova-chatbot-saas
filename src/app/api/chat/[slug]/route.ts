@@ -432,24 +432,21 @@ async function saveUsage(clientId: string, provider: string, model: string, usag
 async function saveConversation(client: any, history: any[], userMsg: string, aiMsg: string, source: string, provider: string, score: number, geoPromise?: Promise<{ ip: string; country: string; city: string }>) {
   try {
     const geo = geoPromise ? await geoPromise : { ip: "", country: "", city: "" };
-    const all = await db.read<any>("conversations");
     const msgId = randomUUID();
     const allMsgs = [...(history || []), { role: "user", content: userMsg }, { role: "assistant", content: aiMsg, source, provider, score }];
     const title = (history?.[0]?.content?.slice(0, 80)) || userMsg.slice(0, 80);
 
-    all.push({
-      id: msgId,
-      title,
-      messages: JSON.stringify(allMsgs),
-      clientId: client.id,
-      ipAddress: geo.ip,
-      country: geo.country,
-      city: geo.city,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    await db.prisma.conversation.create({
+      data: {
+        id: msgId,
+        title,
+        messages: JSON.stringify(allMsgs),
+        clientId: client.id,
+        ipAddress: geo.ip,
+        country: geo.country,
+        city: geo.city,
+      },
     });
-
-    await db.write("conversations", all);
 
     /* Log Q&A pair for evaluation */
     const qaMsgId = randomUUID();
@@ -506,8 +503,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const ip = extractIP(req);
   const geoPromise = lookupGeo(ip);
 
-  const allEntries = await db.read<any>("kb_entries");
-  const kbEntries = allEntries.filter((k: any) => k.clientId === client.id);
+  const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
 
   const KB = kbEntries.map((k: any) => ({
     tag: k.tag,
@@ -566,14 +562,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const providerInfo = detectProvider(apiKey);
     const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
     const siteChunks = parseChunks(client.siteContext || "");
-    const allDocs = await db.read<any>("client_documents");
     const now = new Date();
-    const clientDocs = allDocs.filter((d: any) =>
-      d.clientId === client.id &&
-      d.status !== "archived" &&
-      (!d.valid_until || new Date(d.valid_until) >= now) &&
-      (!d.valid_from || new Date(d.valid_from) <= now)
-    );
+    const clientDocs = await db.prisma.clientDocument.findMany({
+      where: {
+        clientId: client.id,
+        status: { not: "archived" },
+        AND: [
+          { OR: [{ valid_until: null }, { valid_until: { gte: now } }] },
+          { OR: [{ valid_from: null }, { valid_from: { lte: now } }] },
+        ],
+      },
+    });
     const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
     const chunks = [...siteChunks, ...docChunks];
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, 0);
@@ -698,14 +697,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   /* ── NIVEAU 2 : RAG — contexte documentaire ── */
   if (score >= ragThreshold) {
     const siteChunks = parseChunks(client.siteContext || "");
-    const allDocs = await db.read<any>("client_documents");
     const now = new Date();
-    const clientDocs = allDocs.filter((d: any) =>
-      d.clientId === client.id &&
-      d.status !== "archived" &&
-      (!d.valid_until || new Date(d.valid_until) >= now) &&
-      (!d.valid_from || new Date(d.valid_from) <= now)
-    );
+    const clientDocs = await db.prisma.clientDocument.findMany({
+      where: {
+        clientId: client.id,
+        status: { not: "archived" },
+        AND: [
+          { OR: [{ valid_until: null }, { valid_until: { gte: now } }] },
+          { OR: [{ valid_from: null }, { valid_from: { lte: now } }] },
+        ],
+      },
+    });
     const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
     const chunks = [...siteChunks, ...docChunks];
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);

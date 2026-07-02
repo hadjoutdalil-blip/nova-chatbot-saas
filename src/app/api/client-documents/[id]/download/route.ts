@@ -3,8 +3,7 @@ import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const docs = await db.read<any>("client_documents");
-  const doc = docs.find((d: any) => d.id === id);
+  const doc = await db.prisma.clientDocument.findUnique({ where: { id } });
   if (!doc || doc.status === "archived") {
     return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
   }

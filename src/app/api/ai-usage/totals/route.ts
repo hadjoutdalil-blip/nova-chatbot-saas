@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   // Load global config overrides
-  const configs = await db.read<any>("global_configs");
-  const configMap = new Map(configs.map((c: any) => [c.key, c.value]));
+  const configs = await db.prisma.globalConfig.findMany();
+  const configMap = new Map(configs.map((c) => [c.key, c.value]));
 
   // Parse overrides from global config (format: tokenLimit_groq_llama-3.1-8b-instant = "2000000")
   const limits: Record<string, Record<string, number>> = {};
@@ -58,11 +58,11 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const allLogs = await db.read<any>("ai_usage_logs");
+  const allLogs = await db.prisma.aIUsageLog.findMany({
+    where: { clientId: user.clientId, createdAt: { gte: monthStart } },
+  });
   console.log("[AI Usage Totals] user.clientId:", user.clientId, "monthStart:", monthStart.toISOString(), "totalLogs:", allLogs.length);
-  const clientLogs = allLogs.filter(
-    (l: any) => l.clientId === user.clientId && new Date(l.createdAt) >= monthStart
-  );
+  const clientLogs = allLogs;
   console.log("[AI Usage Totals] clientLogs:", clientLogs.length);
 
   const usage: Record<string, { provider: string; model: string; used: number; limit: number; calls: number }> = {};

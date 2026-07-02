@@ -49,22 +49,20 @@ export async function POST(
   if (!text || typeof text !== "string")
     return NextResponse.json({ error: "Texte requis" }, { status: 400 });
 
-  const clients = await db.read<any>("clients");
-  const idx = clients.findIndex((c: any) => c.id === id);
-  if (idx === -1)
+  const client = await db.prisma.client.findUnique({ where: { id } });
+  if (!client)
     return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
-  const chunkSize = clients[idx].chunkSize ?? 600;
+  const chunkSize = client.chunkSize ?? 600;
   const chunked = chunkText(text, fileName, chunkSize);
   if (!chunked) {
     return NextResponse.json({ error: "Le fichier est vide" }, { status: 400 });
   }
 
-  const existing = clients[idx].siteContext || "";
-  const separator = existing ? "\n\n" : "";
-  clients[idx].siteContext = existing + separator + chunked;
-  clients[idx].updatedAt = new Date().toISOString();
-
-  await db.write("clients", clients);
-  return NextResponse.json({ siteContext: clients[idx].siteContext });
+  const separator = client.siteContext ? "\n\n" : "";
+  const updated = await db.prisma.client.update({
+    where: { id },
+    data: { siteContext: (client.siteContext || "") + separator + chunked },
+  });
+  return NextResponse.json({ siteContext: updated.siteContext });
 }

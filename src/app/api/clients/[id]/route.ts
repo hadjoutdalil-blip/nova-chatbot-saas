@@ -7,8 +7,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const clients = await db.read<any>("clients");
-  const client = clients.find((c) => c.id === id);
+  const client = await db.prisma.client.findUnique({ where: { id } });
   if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
   return NextResponse.json(client);
 }
@@ -18,24 +17,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  const clients = await db.read<any>("clients");
-  const idx = clients.findIndex((c) => c.id === id);
-  if (idx === -1) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
+  const existing = await db.prisma.client.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
   const body = await req.json();
-  if (body.slug && clients.find((c) => c.slug === body.slug && c.id !== id)) {
-    return NextResponse.json({ error: "Ce slug est déjà utilisé" }, { status: 409 });
+  if (body.slug) {
+    const slugClient = await db.prisma.client.findUnique({ where: { slug: body.slug } });
+    if (slugClient && slugClient.id !== id) {
+      return NextResponse.json({ error: "Ce slug est déjà utilisé" }, { status: 409 });
+    }
   }
 
-  clients[idx] = {
-    ...clients[idx],
-    ...body,
-    id,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await db.write("clients", clients);
-  return NextResponse.json(clients[idx]);
+  const { id: bodyId, createdAt, updatedAt, ...clean } = body;
+  const client = await db.prisma.client.update({
+    where: { id },
+    data: clean,
+  });
+  return NextResponse.json(client);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -43,11 +41,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const { id } = await params;
-  let clients = await db.read<any>("clients");
-  const exists = clients.find((c) => c.id === id);
-  if (!exists) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
+  const existing = await db.prisma.client.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
-  clients = clients.filter((c) => c.id !== id);
-  await db.write("clients", clients);
+  await db.prisma.client.delete({ where: { id } });
   return NextResponse.json({ message: "Client supprimé" });
 }
