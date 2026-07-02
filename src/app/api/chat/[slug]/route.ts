@@ -6,6 +6,7 @@ import { extractIP, lookupGeo } from "@/lib/geo";
 import { extractKeywords, keywordMatch } from "@/lib/chunk-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
+import { detectIntent } from "@/lib/intent-detector";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -117,7 +118,7 @@ function findBestMatch(
     }
     for (const kw of (e.keywords || "").split(",").map(s => s.trim())) {
       const nkw = norm(kw);
-      if (nkw && (nq.includes(nkw) || nkw.includes(nq))) {
+      if (nkw && nkw.length > 2 && (nq.includes(nkw) || nkw.includes(nq))) {
         const sk = 0.6;
         if (sk > bestScore || (sk === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sk; best = e; isKeyword = true; }
       }
@@ -503,6 +504,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const ip = extractIP(req);
   const geoPromise = lookupGeo(ip);
 
+  /* ── NIVEAU 0 : Détection d'intention ── */
+  const intent = detectIntent(trimmed);
+  if (intent.intent !== "REQUETE_METIER") {
+    console.log(`[Nova Chat] Intent="${intent.intent}" confidence=${intent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
+    saveConversation(client, history || [], message, intent.response || "", intent.intent.toLowerCase(), "", 0, geoPromise);
+    return NextResponse.json(filterResponse({
+      messageId,
+      response: intent.response || "",
+      source: intent.intent.toLowerCase(),
+      score: 0,
+      suggestions: [],
+    }, isVisitor), { headers: corsHeaders });
+  }
+
   const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
 
   const KB = kbEntries.map((k: any) => ({
@@ -520,7 +535,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   const { match, score, isKeyword } = findBestMatch(message, KB);
   const kbThreshold = isKeyword ? 50 : (client.kbThreshold ?? 80);
-  const ragThreshold = client.ragThreshold ?? 72;
+  const ragThreshold = client.ragThreshold ?? 75;
 
   /* ── Short query guard (only if no good KB match) ── */
   if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || score < kbThreshold)) {
@@ -584,7 +599,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     });
     const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
     const chunks = [...siteChunks, ...docChunks];
-    const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, 0);
+    const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
       try {
