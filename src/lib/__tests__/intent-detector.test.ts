@@ -4,7 +4,7 @@ import { detectIntent } from "../intent-detector";
 function assertIntent(
   label: string,
   input: string,
-  expected: "SMALL_TALK" | "HORS_SUJET" | "REQUETE_METIER"
+  expected: "SMALL_TALK" | "HORS_SUJET" | "AVIS" | "REQUETE_METIER"
 ) {
   const result = detectIntent(input);
   const ok = result.intent === expected;
@@ -41,6 +41,11 @@ assertIntent("bonne journée", "Bonne journée !", "SMALL_TALK");
 assertIntent("ok", "Ok", "SMALL_TALK");
 assertIntent("d'accord", "D'accord", "SMALL_TALK");
 assertIntent("compris", "Compris", "SMALL_TALK");
+
+/* ── Avis / Opinion ── */
+assertIntent("avis positif", "CETIM est super !", "AVIS");
+assertIntent("avis négatif", "Je n'aime pas CETIM", "AVIS");
+assertIntent("avis positif variante", "J'aime ce site CETIM", "AVIS");
 
 /* ── Hors-sujet ── */
 assertIntent("météo", "Quel temps fait-il ?", "HORS_SUJET");

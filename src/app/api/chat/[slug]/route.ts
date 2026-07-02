@@ -378,6 +378,31 @@ Consigne : Inspire-toi de l'exemple ci-dessus. Utilise les INFORMATIONS DE CONTA
   return { system, user, contactInfo };
 }
 
+function buildIntentPrompt(client: any, intent: string, message: string, pageUrl?: string, pageTitle?: string) {
+  const ctx = buildContext(client, pageUrl, pageTitle);
+  const rules = intent === "SMALL_TALK"
+    ? `- L'utilisateur te salue ou fait du small talk
+- Réponds avec le même ton (salut → salut, salam → salam aleykoum, bonjour → bonjour)
+- Oriente-le ensuite vers les services CETIM (essais, normes, étalonnage, formations)`
+    : intent === "AVIS"
+      ? `- L'utilisateur exprime son avis sur CETIM ou le chatbot
+- Accueille son retour avec bienveillance
+- Présente les points forts du CETIM : laboratoires accrédités, équipes expertes, services diversifiés
+- Invite-le à découvrir les services qui pourraient l'intéresser`
+      : `- L'utilisateur pose une question hors sujet
+- Réponds poliment que ce domaine n'est pas celui du CETIM
+- Redirige vers les sujets CETIM : essais, normes, certifications, formations`;
+
+  const system = `Tu es l'assistant officiel de ${client.name}.${ctx}
+
+RÈGLES :
+${rules}
+- Réponds toujours en français, chaleureux et professionnel
+- Termine par une question ouverte sur ses besoins CETIM`;
+
+  return { system, user: message };
+}
+
 /* ── AI CALL ────────────────────────────────────────── */
 async function callAI(apiKey: string, providerId: string, model: string, system: string, user: string, temperature: number, history: any[], max_tokens: number = 600) {
   const provider = PROVIDERS[providerId];
@@ -508,13 +533,60 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const intent = detectIntent(trimmed);
   if (intent.intent !== "REQUETE_METIER") {
     console.log(`[Nova Chat] Intent="${intent.intent}" confidence=${intent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
-    saveConversation(client, history || [], message, intent.response || "", intent.intent.toLowerCase(), "", 0, geoPromise);
+    if (!aiMode) {
+      const fallback = intent.intent === "AVIS"
+        ? "Je suis l'assistant CETIM. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?"
+        : intent.intent === "HORS_SUJET"
+          ? "Je suis l'assistant technique du CETIM Algérie. Je suis spécialisé dans les essais, normes et services techniques. Puis-je vous aider avec un de ces sujets ?"
+          : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider ?";
+      saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
+      return NextResponse.json(filterResponse({
+        messageId,
+        response: fallback,
+        source: intent.intent.toLowerCase(),
+        score: 0,
+        suggestions: [],
+      }, isVisitor), { headers: corsHeaders });
+    }
+
+    /* aiMode : laisser l'IA répondre avec le prompt adapté à l'intention */
+    const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+    if (keyEntry?.key) {
+      const providerId = client.aiProvider || detectProvider(keyEntry.key).id;
+      const provider = PROVIDERS[providerId];
+      if (provider) {
+        const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
+        const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle);
+        try {
+          const { text, usage } = await callAI(keyEntry.key, providerId, model, system, user, 0.30, history || [], 300);
+          console.log(`[Nova Chat] AI ${intent.intent} response sent: "${text.slice(0, 80)}..."`);
+          saveConversation(client, history || [], message, text, intent.intent.toLowerCase(), provider.label, 0, geoPromise);
+          saveUsage(client.id, providerId, model, usage);
+          await trackKeyUsage(keyEntry.id, usage.total_tokens || 0);
+          return NextResponse.json(filterResponse({
+            messageId,
+            response: text,
+            source: intent.intent.toLowerCase(),
+            provider: provider.label,
+            score: 0,
+          }, isVisitor), { headers: corsHeaders });
+        } catch (err: any) {
+          console.error(`[Nova Chat] AI ${intent.intent} error:`, err?.message || err);
+        }
+      }
+    }
+    /* Fallback si l'appel AI échoue ou pas de clé */
+    const fallbackText = intent.intent === "AVIS"
+      ? "Merci pour votre retour ! Chez CETIM, nous proposons des services techniques de qualité. Que puis-je vous aider ?"
+      : intent.intent === "HORS_SUJET"
+        ? "Je suis l'assistant technique du CETIM Algérie. Je peux vous renseigner sur nos essais, normes et formations. En quoi puis-je vous être utile ?"
+        : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider avec nos services techniques ?";
+    saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
     return NextResponse.json(filterResponse({
       messageId,
-      response: intent.response || "",
+      response: fallbackText,
       source: intent.intent.toLowerCase(),
       score: 0,
-      suggestions: [],
     }, isVisitor), { headers: corsHeaders });
   }
 
@@ -560,13 +632,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel);
           if (aiIntent.intent !== "REQUETE_METIER") {
             console.log(`[Nova Chat] AI Intent="${aiIntent.intent}" confidence=${aiIntent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
-            saveConversation(client, history || [], message, aiIntent.response || "", aiIntent.intent.toLowerCase(), "", 0, geoPromise);
+            const { system, user } = buildIntentPrompt(client, aiIntent.intent, trimmed, pageUrl, pageTitle);
+            const { text, usage } = await callAI(keyEntry.key, aiProviderId, aiModel, system, user, 0.30, history || [], 300);
+            saveConversation(client, history || [], message, text, aiIntent.intent.toLowerCase(), provider.label, 0, geoPromise);
+            saveUsage(client.id, aiProviderId, aiModel, usage);
+            await trackKeyUsage(keyEntry.id, usage.total_tokens || 0);
             return NextResponse.json(filterResponse({
-              messageId,
-              response: aiIntent.response || "",
-              source: aiIntent.intent.toLowerCase(),
-              score: 0,
-              suggestions: [],
+              messageId, response: text, source: aiIntent.intent.toLowerCase(), provider: provider.label, score: 0,
             }, isVisitor), { headers: corsHeaders });
           }
         } catch (err) {

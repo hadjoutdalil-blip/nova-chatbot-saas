@@ -1,15 +1,10 @@
-import { SMALL_TALK_PATTERNS, HORS_SUJET_PATTERNS, SMALL_TALK_RESPONSES, HORS_SUJET_RESPONSE } from "./intent-messages";
+import { SMALL_TALK_PATTERNS, HORS_SUJET_PATTERNS, AVIS_PATTERNS, HORS_SUJET_RESPONSE } from "./intent-messages";
 
-export type Intent = "SMALL_TALK" | "HORS_SUJET" | "REQUETE_METIER";
+export type Intent = "SMALL_TALK" | "HORS_SUJET" | "AVIS" | "REQUETE_METIER";
 
 export interface IntentResult {
   intent: Intent;
   confidence: number;
-  response?: string;
-}
-
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function regexPass(message: string, patterns: { regex: RegExp }[]): boolean {
@@ -19,21 +14,31 @@ function regexPass(message: string, patterns: { regex: RegExp }[]): boolean {
 export function detectIntent(userMessage: string): IntentResult {
   const msg = userMessage.trim();
   if (!msg) {
-    return { intent: "SMALL_TALK", confidence: 1.0, response: pickRandom(SMALL_TALK_RESPONSES) };
+    return { intent: "SMALL_TALK", confidence: 1.0 };
   }
 
   /* Passe 1 : règles déterministes */
   if (regexPass(msg, SMALL_TALK_PATTERNS)) {
-    return { intent: "SMALL_TALK", confidence: 1.0, response: pickRandom(SMALL_TALK_RESPONSES) };
+    return { intent: "SMALL_TALK", confidence: 1.0 };
   }
 
   if (regexPass(msg, HORS_SUJET_PATTERNS)) {
-    return { intent: "HORS_SUJET", confidence: 0.9, response: HORS_SUJET_RESPONSE };
+    return { intent: "HORS_SUJET", confidence: 0.9 };
   }
 
-  /* Passe 2 : classification par LLM léger — uniquement si aiMode et clé API disponible */
+  if (regexPass(msg, AVIS_PATTERNS)) {
+    return { intent: "AVIS", confidence: 0.9 };
+  }
+
   return { intent: "REQUETE_METIER", confidence: 1.0 };
 }
+
+const CLASSIFICATION_SYSTEM =
+  "Tu es un classifieur d'intention. Réponds UNIQUEMENT par un seul mot : SALUTATION, HORS_SUJET, AVIS, ou METIER.\n\n" +
+  "SALUTATION = salutations, remerciements, au revoir, small talk, comment ça va, qui es-tu\n" +
+  "HORS_SUJET = questions sans rapport avec les activités techniques, normes, essais, laboratoires\n" +
+  "AVIS = expression d'opinion sur CETIM, ses services, le chatbot (j'aime, je n'aime pas, c'est bien/nul)\n" +
+  "METIER = tout ce qui concerne les services techniques, essais, normes, certifications, formations";
 
 export async function classifyIntentWithAI(
   message: string,
@@ -47,18 +52,8 @@ export async function classifyIntentWithAI(
     body: JSON.stringify({
       model,
       messages: [
-        {
-          role: "system",
-          content:
-            "Tu es un classifieur d'intention. Réponds UNIQUEMENT par un seul mot : SALUTATION, HORS_SUJET, ou METIER.\n\n" +
-            "SALUTATION = salutations, remerciements, au revoir, small talk, comment ça va, qui es-tu\n" +
-            "HORS_SUJET = questions sans rapport avec les activités techniques, normes, essais, laboratoires\n" +
-            "METIER = tout ce qui concerne les services techniques, essais, normes, certifications, formations",
-        },
-        {
-          role: "user",
-          content: `Message: "${message}"\n\nClassification :`,
-        },
+        { role: "system", content: CLASSIFICATION_SYSTEM },
+        { role: "user", content: `Message: "${message}"\n\nClassification :` },
       ],
       temperature: 0,
       max_tokens: 10,
@@ -69,7 +64,8 @@ export async function classifyIntentWithAI(
   const data = await resp.json();
   const text = (data.choices?.[0]?.message?.content || "").trim().toUpperCase().replace(/[^A-Z_]/g, "");
 
-  if (text === "SALUTATION") return { intent: "SMALL_TALK", confidence: 0.8, response: pickRandom(SMALL_TALK_RESPONSES) };
-  if (text === "HORS_SUJET") return { intent: "HORS_SUJET", confidence: 0.8, response: HORS_SUJET_RESPONSE };
+  if (text === "SALUTATION") return { intent: "SMALL_TALK", confidence: 0.8 };
+  if (text === "HORS_SUJET") return { intent: "HORS_SUJET", confidence: 0.8 };
+  if (text === "AVIS") return { intent: "AVIS", confidence: 0.8 };
   return { intent: "REQUETE_METIER", confidence: 0.7 };
 }

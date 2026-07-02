@@ -30,6 +30,13 @@ export const HORS_SUJET_PATTERNS: IntentPattern[] = [
   { regex: /(horoscope|astrologie|signe|zodiaque)\b/i, lang: "fr" },
 ];
 
+export const AVIS_PATTERNS: IntentPattern[] = [
+  { regex: /(j'adore|j aime|j'aime|jaim|j'adore|jadore)\s+(cetim|votre|ce site|le bot|le chatbot)\b/i, lang: "fr" },
+  { regex: /(je n'aime pas|je n aime pas|je déteste|je deteste|j'ai horreur|j ai horreur)\s+(cetim|votre|ce site|le bot)\b/i, lang: "fr" },
+  { regex: /cetim\s+(est|c'est|c est)\s+(nul|nulle|super|bien|génial|génial|top|mauvais|excellent|formidable)\b/i, lang: "fr" },
+  { regex: /(c'est|c est|c'était|c etait)\s+(nul|nulle|super|bien|génial|genial|top|mauvais|horrible|incroyable)\s+(cetim|votre)\b/i, lang: "fr" },
+];
+
 export const SMALL_TALK_RESPONSES = [
   "Bonjour ! Je suis l'assistant virtuel de CETIM Algérie. Je suis là pour vous renseigner sur nos essais, normes et services techniques. Comment puis-je vous aider ?",
   "Bonjour et bienvenue ! Je suis l'assistant CETIM. Je peux vous informer sur nos prestations d'essais (béton, sol, eau, etc.), les normes algériennes et internationales, ainsi que nos services d'étalonnage. Que souhaitez-vous savoir ?",
