@@ -428,7 +428,8 @@ export default function AppSettingsPage() {
                   ) : testResults.chunks && testResults.chunks.length > 0 ? (
                     <>
                       <div className="text-sm text-gray-500">
-                        {testResults.totalChunksFound} extraits analysés, {testResults.chunksReturned} trouvés avec un score &ge; seuil RAG.
+                        {testResults.totalChunksFound} extraits analysés, {testResults.chunksReturned} trouvés
+                        {testResults.matchedByKeyword ? " par mot-clé (score < seuil RAG)" : " avec un score ≥ seuil RAG"}.
                       </div>
                       {testResults.documentsUsed && testResults.documentsUsed.length > 0 && (
                         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
@@ -465,7 +466,7 @@ export default function AppSettingsPage() {
                     </>
                   ) : (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
-                      Aucun extrait trouvé pour cette question. Vérifiez que vos documents contiennent des informations pertinentes.
+                      Aucun extrait trouvé pour cette question. Les mots-clés de la question ne figurent dans aucun document ou contexte entreprise.
                     </div>
                   )}
                 </div>

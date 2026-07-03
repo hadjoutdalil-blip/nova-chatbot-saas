@@ -3,6 +3,26 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { chunkDocument, parseChunks, findBestChunks } from "@/lib/rag-utils";
 
+/* ── Recherche par mots-clés en fallback ── */
+function keywordSearch(question: string, chunks: any[]): any[] {
+  const terms = question
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .split(/\s+/)
+    .filter((w: string) => w.length > 2);
+  if (terms.length === 0) return [];
+  return chunks
+    .map(c => {
+      const haystack = (c.content + " " + (c.section || "")).toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const hits = terms.filter((t: string) => haystack.includes(t)).length;
+      return { ...c, _kwScore: hits / terms.length };
+    })
+    .filter(c => c._kwScore > 0)
+    .sort((a, b) => b._kwScore - a._kwScore)
+    .slice(0, 5);
+}
+
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
@@ -34,16 +54,25 @@ export async function POST(req: NextRequest) {
   const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, chunkSize));
   const allChunks = [...siteChunks, ...docChunks];
 
-  const topChunks = findBestChunks(question, allChunks, topNChunks, ragThreshold);
+  let topChunks = findBestChunks(question, allChunks, topNChunks, ragThreshold);
+  let matchedByKeyword = false;
+
+  if (topChunks.length === 0 && allChunks.length > 0) {
+    const kwResults = keywordSearch(question, allChunks);
+    if (kwResults.length > 0) {
+      topChunks = kwResults;
+      matchedByKeyword = true;
+    }
+  }
 
   const seen = new Set<string>();
-  const docsUsed = (clientDocs.filter(d => topChunks.some(c => c.docId === d.id))).map(d => ({
+  const docsUsed = (clientDocs.filter((d: any) => topChunks.some((c: any) => c.docId === d.id))).map((d: any) => ({
     id: d.id,
     originalName: d.originalName,
     fileSize: d.fileSize,
     version: d.version,
     source_url: d.source_url,
-  })).filter(d => {
+  })).filter((d: any) => {
     const key = d.id;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -52,10 +81,11 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     question,
-    chunks: topChunks.map(c => ({
+    matchedByKeyword,
+    chunks: topChunks.map((c: any) => ({
       source: c.source,
       section: c.section,
-      score: Math.round((c.score ?? 0) * 100),
+      score: Math.round(((c.score ?? c._kwScore ?? 0)) * 100),
       content: c.content.slice(0, 300),
       docId: c.docId,
     })),
