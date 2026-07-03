@@ -69,11 +69,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Format non supporté. Utilisez .txt, .csv, .json ou .md" }, { status: 400 });
   }
 
-  const text = await file.text();
+  const text = (await file.text()).replace(/^\uFEFF/, "");
   if (!text.trim()) return NextResponse.json({ error: "Fichier vide" }, { status: 400 });
 
+  const isJson = file.type === "application/json" || file.name.endsWith(".json");
   let content = text;
-  if (file.type === "application/json") {
+  if (isJson) {
     try { content = JSON.stringify(JSON.parse(text), null, 2); }
     catch { return NextResponse.json({ error: "Fichier JSON invalide" }, { status: 400 }); }
   }

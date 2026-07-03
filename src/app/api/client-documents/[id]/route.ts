@@ -75,7 +75,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Format non supporté" }, { status: 400 });
     }
 
-    const text = await file.text();
+    const text = (await file.text()).replace(/^\uFEFF/, "");
     if (!text.trim()) return NextResponse.json({ error: "Fichier vide" }, { status: 400 });
 
     await db.prisma.clientDocument.update({
@@ -84,13 +84,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     const newId = randomUUID();
+    const isJson = file.type === "application/json" || file.name.endsWith(".json");
+    let parsedContent = text;
+    if (isJson) {
+      try { parsedContent = JSON.stringify(JSON.parse(text), null, 2); }
+      catch { return NextResponse.json({ error: "Fichier JSON invalide" }, { status: 400 }); }
+    }
     const newDoc = await db.prisma.clientDocument.create({
       data: {
         id: newId,
         clientId: existing.clientId,
         originalName: file.name,
         mimeType: file.type || "text/plain",
-        content: file.type === "application/json" ? (() => { try { return JSON.stringify(JSON.parse(text), null, 2); } catch { throw new Error("Fichier JSON invalide"); } })() : text,
+        content: parsedContent,
         fileSize: file.size,
         description: update.description || existing.description || "",
         tags: update.tags || existing.tags || "",
