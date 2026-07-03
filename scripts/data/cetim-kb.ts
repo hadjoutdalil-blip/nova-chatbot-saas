@@ -15,7 +15,7 @@ export const KB: CETIMEntry[] = [
     "tag": "presentation",
     "icon": "🏢",
     "cat": "CETIM – Général",
-    "priority": 10,
+    "priority": 5,
     "related_tags": [
       "missions_cetim",
       "activites_cetim",
@@ -48,7 +48,6 @@ export const KB: CETIMEntry[] = [
       "à propos du cetim"
     ],
     "kw": [
-      "CETIM",
       "centre",
       "études",
       "technologiques",
@@ -303,11 +302,7 @@ export const KB: CETIMEntry[] = [
       "structure organisationnelle cetim",
       "directions cetim",
       "organisation cetim",
-      "hiérarchie cetim",
-      "c'est qui le pdg du cetim",
-      "qui est le directeur général du cetim",
-      "qui dirige le cetim",
-      "direction générale cetim"
+      "hiérarchie cetim"
     ],
     "kw": [
       "organigramme",
@@ -316,13 +311,41 @@ export const KB: CETIMEntry[] = [
       "structure",
       "hiérarchie",
       "DG",
-      "DGA",
-      "pdg",
-      "direction générale",
-      "directeur général"
+      "DGA"
     ],
     "short_resp": "🗂️ DG → 4 directions techniques + DTC + DAF",
     "resp": "🗂️ **Schéma organisationnel CETIM** :\n\n👑 **Conseil d'Administration**\n↳ **Direction Générale**\n  ├── Ass. Audit & Contrôle Gestion\n  ├── Resp. HSE / SIE\n  ├── **DGA chargée du Technique**\n  │   ├── Direction Études Appui Production (DEAP)\n  │   ├── Direction des Laboratoires\n  │   ├── Direction Développement Industriel\n  │   └── Direction Métrologie, Qualité & Informatique\n  ├── **Direction Technico-Commerciale**\n  │   ├── S/D Ventes\n  │   ├── S/D Planification & Prospection\n  │   └── S/D Marketing & Communication\n  └── **Direction Administration & Finances**\n      ├── S/D Finance & Comptabilité\n      ├── S/D Ressources Humaines\n      └── S/D Logistique"
+  },
+  {
+    "tag": "pdg_cetim",
+    "icon": "👤",
+    "cat": "Organisation",
+    "priority": 10,
+    "related_tags": [
+      "organigramme_cetim",
+      "presentation"
+    ],
+    "qs": [
+      "c'est qui le pdg du cetim",
+      "qui est le pdg du cetim",
+      "nom du président directeur général du cetim",
+      "nom du pdg du cetim",
+      "qui est le directeur général du cetim",
+      "qui dirige le cetim",
+      "direction générale cetim",
+      "contact direction cetim",
+      "pdg cetim"
+    ],
+    "kw": [
+      "pdg",
+      "lyes madi",
+      "lm.cetim",
+      "directeur général",
+      "direction générale",
+      "président directeur général"
+    ],
+    "short_resp": "👤 PDG : M. Lyes MADI — lm.cetim@gmail.com",
+    "resp": "👤 **Président Directeur Général du CETIM Algérie**\n\n**M. Lyes MADI**\n📧 lm.cetim@gmail.com\n\n📍 CETIM, BP.93, Cité Ibn Khaldoun, Boumerdes 35000, Algérie"
   },
   {
     "tag": "accreditations",
