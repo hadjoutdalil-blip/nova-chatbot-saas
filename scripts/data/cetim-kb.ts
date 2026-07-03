@@ -961,11 +961,14 @@ export const KB: CETIMEntry[] = [
       "liste labos algerac cetim",
       "laboratoires sous accréditation essais",
       "combien de labos accrédités cetim",
-      "laboratoires certifiés iso 17025 cetim"
+      "laboratoires certifiés iso 17025 cetim",
+      "quels sont les labos du cetim"
     ],
     "kw": [
       "unité technique",
       "laboratoire",
+      "labo",
+      "labos",
       "accrédité",
       "certifié",
       "liste",
@@ -996,12 +999,15 @@ export const KB: CETIMEntry[] = [
       "liste des laboratoires cetim",
       "tous vos laboratoires cetim",
       "quels labos disposez-vous cetim",
+      "quels sont les labos du cetim",
       "capacités d'essais cetim",
       "spécialités laboratoire cetim",
       "domaines d'essais cetim"
     ],
     "kw": [
       "laboratoire",
+      "labo",
+      "labos",
       "liste",
       "capacité",
       "essai",
