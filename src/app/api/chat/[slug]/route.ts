@@ -96,7 +96,8 @@ RÈGLES ABSOLUES :
 - Conserve les emojis, le gras, les listes numérotées et les tableaux markdown
 - Réponds toujours en français, professionnel et concis
 - Si un document source est disponible pour téléchargement, inclus un lien cliquable markdown : [Télécharger le fichier](URL)
-- Termine par : [Source : Base de connaissance ${client.name}]`;
+- Termine par : [Source : Base de connaissance ${client.name}]
+- Si la RÉPONSE OFFICIELLE ne répond PAS à la QUESTION DU CLIENT, réponds UNIQUEMENT par le mot exact : NO_MATCH`;
 
   const user = `NIVEAU : QA VALIDÉE (score ${score}%)
 
@@ -619,11 +620,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const providerInfo = detectProvider(apiKey);
       const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
-      saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
-      saveUsage(client.id, providerInfo.id, model, usage);
-      await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
-      qaResponse = text;
-      qaProvider = providerInfo.label;
+      if (text.trim().toUpperCase() === "NO_MATCH") {
+        console.warn(`[Nova Chat] KB mismatch N1: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
+      } else {
+        saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
+        saveUsage(client.id, providerInfo.id, model, usage);
+        await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
+        qaResponse = text;
+        qaProvider = providerInfo.label;
+      }
     } catch {
       qaResponse = match.answer;
       qaProvider = "";
@@ -640,11 +645,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const providerInfo = detectProvider(apiKey);
       const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
-      saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
-      saveUsage(client.id, providerInfo.id, model, usage);
-      await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
-      qaResponse = text;
-      qaProvider = providerInfo.label;
+      if (text.trim().toUpperCase() === "NO_MATCH") {
+        console.warn(`[Nova Chat] KB mismatch N1b: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
+      } else {
+        saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
+        saveUsage(client.id, providerInfo.id, model, usage);
+        await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
+        qaResponse = text;
+        qaProvider = providerInfo.label;
+      }
     } catch {
       qaResponse = match.answer;
       qaProvider = "";
