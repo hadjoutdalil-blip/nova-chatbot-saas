@@ -570,6 +570,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         suggestions: findRelated(match, KB, 3),
       }, isVisitor), { headers: corsHeaders });
     }
+    if (isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      return NextResponse.json(filterResponse({
+        messageId,
+        response: match.answer,
+        source: "kb",
+        score,
+        source_url: match.source_url || "",
+        valid_until: match.valid_until || "",
+        suggestions: findRelated(match, KB, 3),
+      }, isVisitor), { headers: corsHeaders });
+    }
     const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
     try {
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, escSystem, escUser, client.tempEscalade ?? 0.20, history || [], 800);
