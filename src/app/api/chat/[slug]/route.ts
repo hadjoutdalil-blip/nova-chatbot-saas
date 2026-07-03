@@ -368,7 +368,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const geoPromise = lookupGeo(ip);
 
   /* ── NIVEAU 0 : Détection d'intention ── */
-  const intent = detectIntent(trimmed);
+  let intent = detectIntent(trimmed);
+
+  /* Passe 2 : Classification IA (corrige faux positifs/faux négatifs des regex) */
+  if (aiMode) {
+    const aiProviderId = client.aiProvider || detectProvider(client.apiKey || "").id;
+    const keyEntry = await selectApiKey(client.id, aiProviderId);
+    if (keyEntry?.key) {
+      const provider = PROVIDERS[aiProviderId];
+      if (provider) {
+        try {
+          const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
+          const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel);
+          if (aiIntent.intent !== intent.intent) {
+            console.log(`[Nova Chat] Intent override: regex=${intent.intent} → ai=${aiIntent.intent} message="${trimmed.slice(0, 80)}" (${client.name})`);
+            intent = aiIntent;
+          }
+        } catch (err) {
+          console.error("[Nova Chat] AI Intent error:", err);
+        }
+      }
+    }
+  }
+
   if (intent.intent !== "REQUETE_METIER") {
     console.log(`[Nova Chat] Intent="${intent.intent}" confidence=${intent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
     if (!aiMode) {
@@ -448,7 +470,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const ragThreshold = client.ragThreshold ?? 75;
 
   /* ── Short query guard (only if no good KB match) ── */
-  if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || score < Math.max(kbThreshold, 80))) {
+  if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
     return NextResponse.json(filterResponse({
       messageId,
       response: "",
@@ -458,33 +480,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }, isVisitor), { headers: corsHeaders });
   }
 
-  /* ── AI Intent check : classification AI si les regex n'ont pas suffi ── */
-  if (aiMode && intent.intent === "REQUETE_METIER") {
-    const aiProviderId = client.aiProvider || detectProvider(client.apiKey || "").id;
-    const keyEntry = await selectApiKey(client.id, aiProviderId);
-    if (keyEntry?.key) {
-      const provider = PROVIDERS[aiProviderId];
-      if (provider) {
-        try {
-          const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-          const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel);
-          if (aiIntent.intent !== "REQUETE_METIER") {
-            console.log(`[Nova Chat] AI Intent="${aiIntent.intent}" confidence=${aiIntent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
-            const { system, user } = buildIntentPrompt(client, aiIntent.intent, trimmed, pageUrl, pageTitle);
-            const { text, usage } = await callAI(keyEntry.key, aiProviderId, aiModel, system, user, 0.30, history || [], 300);
-            saveConversation(client, history || [], message, text, aiIntent.intent.toLowerCase(), provider.label, 0, geoPromise);
-            saveUsage(client.id, aiProviderId, aiModel, usage);
-            await trackKeyUsage(keyEntry.id, usage.total_tokens || 0);
-            return NextResponse.json(filterResponse({
-              messageId, response: text, source: aiIntent.intent.toLowerCase(), provider: provider.label, score: 0,
-            }, isVisitor), { headers: corsHeaders });
-          }
-        } catch (err) {
-          console.error("[Nova Chat] AI Intent error:", err);
-        }
-      }
-    }
-  }
+
 
   /* ── RAG ONLY MODE : skip KB, go directly to RAG ── */
   if (ragOnly) {

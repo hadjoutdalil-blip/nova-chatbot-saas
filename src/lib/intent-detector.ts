@@ -38,7 +38,7 @@ const CLASSIFICATION_SYSTEM =
   "SALUTATION = salutations, remerciements, au revoir, small talk, comment ça va, qui es-tu\n" +
   "HORS_SUJET = questions sans rapport avec les activités techniques, normes, essais, laboratoires\n" +
   "AVIS = expression d'opinion sur CETIM, ses services, le chatbot (j'aime, je n'aime pas, c'est bien/nul)\n" +
-  "METIER = tout ce qui concerne les services techniques, essais, normes, certifications, formations";
+  "METIER = tout ce qui concerne le CETIM, ses services techniques, essais, normes, certifications, formations, laboratoires, inspection, métrologie, géotechnique, organisation, direction, contact, informations générales";
 
 export async function classifyIntentWithAI(
   message: string,
