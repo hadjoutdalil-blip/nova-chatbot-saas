@@ -90,7 +90,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         clientId: existing.clientId,
         originalName: file.name,
         mimeType: file.type || "text/plain",
-        content: file.type === "application/json" ? JSON.stringify(JSON.parse(text), null, 2) : text,
+        content: file.type === "application/json" ? (() => { try { return JSON.stringify(JSON.parse(text), null, 2); } catch { throw new Error("Fichier JSON invalide"); } })() : text,
         fileSize: file.size,
         description: update.description || existing.description || "",
         tags: update.tags || existing.tags || "",

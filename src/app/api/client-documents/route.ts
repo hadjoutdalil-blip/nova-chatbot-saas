@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
       id: true,
       originalName: true,
       mimeType: true,
+      content: true,
       fileSize: true,
       description: true,
       tags: true,
@@ -71,7 +72,11 @@ export async function POST(req: NextRequest) {
   const text = await file.text();
   if (!text.trim()) return NextResponse.json({ error: "Fichier vide" }, { status: 400 });
 
-  const content = file.type === "application/json" ? JSON.stringify(JSON.parse(text), null, 2) : text;
+  let content = text;
+  if (file.type === "application/json") {
+    try { content = JSON.stringify(JSON.parse(text), null, 2); }
+    catch { return NextResponse.json({ error: "Fichier JSON invalide" }, { status: 400 }); }
+  }
 
   const description = form.get("description")?.toString() || "";
   const tags = form.get("tags")?.toString() || "";
@@ -105,6 +110,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     id: doc.id,
     originalName: doc.originalName,
+    content: doc.content,
     fileSize: doc.fileSize,
     description: doc.description,
     tags: doc.tags,

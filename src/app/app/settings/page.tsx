@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Layers, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, RefreshCw, Shield } from "lucide-react";
+import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, Shield, Search } from "lucide-react";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
 
 const TABS = [
@@ -22,6 +22,10 @@ export default function AppSettingsPage() {
   const [transferring, setTransferring] = useState(false);
   const [contextChunks, setContextChunks] = useState<{ name: string; index: number; content: string }[]>([]);
   const [viewDoc, setViewDoc] = useState<{ title: string; content: string } | null>(null);
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [testQuestion, setTestQuestion] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResults, setTestResults] = useState<any>(null);
   const [tab, setTab] = useState("ia");
 
   function token() { return localStorage.getItem("token") || ""; }
@@ -120,6 +124,20 @@ export default function AppSettingsPage() {
       headers: { Authorization: `Bearer ${token()}` },
     });
     if (res.ok) setDocuments((prev) => prev.filter((d) => d.id !== id));
+  }
+
+  async function handleTestRag() {
+    if (!testQuestion.trim()) return;
+    setTesting(true);
+    setTestResults(null);
+    const res = await fetch("/api/client-documents/test-rag", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+      body: JSON.stringify({ question: testQuestion }),
+    });
+    const data = await res.json();
+    setTestResults(data);
+    setTesting(false);
   }
 
   async function handleTransferToKb() {
@@ -346,6 +364,9 @@ export default function AppSettingsPage() {
               <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
                 <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
               </button>
+              <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-200 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-all">
+                <Search size={15} /> Tester le RAG
+              </button>
               <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
                 <BookOpen size={15} /> {transferring ? "Transfert..." : "Transférer vers la KB"}
               </button>
@@ -370,6 +391,85 @@ export default function AppSettingsPage() {
               <button onClick={() => { downloadContent(viewDoc.content, viewDoc.title); setViewDoc(null); }} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-all">
                 <Download size={14} /> Télécharger
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowTestModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Tester la recherche documentaire (RAG)</h3>
+              <button onClick={() => setShowTestModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6 space-y-4">
+              <p className="text-sm text-gray-500">Posez une question pour vérifier que les documents contextuels sont bien indexés et trouvés par le moteur RAG.</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={testQuestion}
+                  onChange={(e) => setTestQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleTestRag()}
+                  placeholder="Ex: Que contiennent les documents d'entreprise ?"
+                  className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                />
+                <button onClick={handleTestRag} disabled={testing || !testQuestion.trim()} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-all disabled:opacity-50">
+                  <Search size={15} /> {testing ? "Recherche..." : "Tester"}
+                </button>
+              </div>
+
+              {testResults && (
+                <div className="space-y-3">
+                  {testResults.error ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">{testResults.error}</div>
+                  ) : testResults.chunks && testResults.chunks.length > 0 ? (
+                    <>
+                      <div className="text-sm text-gray-500">
+                        {testResults.totalChunksFound} extraits analysés, {testResults.chunksReturned} trouvés avec un score &ge; seuil RAG.
+                      </div>
+                      {testResults.documentsUsed && testResults.documentsUsed.length > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                          <p className="text-xs font-medium text-green-700 mb-1.5">Documents sources utilisés :</p>
+                          <div className="space-y-1">
+                            {testResults.documentsUsed.map((d: any) => (
+                              <div key={d.id} className="flex items-center gap-2 text-sm text-green-800">
+                                <FileText size={14} className="shrink-0" />
+                                <span className="truncate">{d.originalName}</span>
+                                <span className="text-xs text-green-600">({(d.fileSize / 1024).toFixed(1)} Ko)</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Extraits correspondants</p>
+                        {testResults.chunks.map((chunk: any, i: number) => (
+                          <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                <FileText size={14} className="text-purple-500" />
+                                <span>{chunk.source}</span>
+                                {chunk.section && <span className="text-xs text-gray-400">/ {chunk.section}</span>}
+                              </div>
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${chunk.score >= 80 ? "bg-green-100 text-green-700" : chunk.score >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-orange-100 text-orange-700"}`}>
+                                {chunk.score}%
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 leading-relaxed">{chunk.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
+                      Aucun extrait trouvé pour cette question. Vérifiez que vos documents contiennent des informations pertinentes.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

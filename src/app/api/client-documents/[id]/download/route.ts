@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     headers: {
       "Content-Type": contentType,
       "Content-Disposition": `attachment; filename="${filename}"`,
-      "Content-Length": String(doc.content?.length || 0),
+      "Content-Length": String(Buffer.byteLength(doc.content || "")),
     },
   });
 }
