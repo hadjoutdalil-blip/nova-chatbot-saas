@@ -623,6 +623,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
   }
 
+  /* ── NIVEAU 1b : MATCH MOT-CLÉ SOUS SEUIL → reformulation IA ── */
+  if (aiMode && isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
+    const { system, user } = buildQAPrompt(client, match, score, message, pageUrl, pageTitle);
+    try {
+      const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+      const apiKey = keyEntry?.key || "";
+      const providerInfo = detectProvider(apiKey);
+      const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
+      const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
+      saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
+      saveUsage(client.id, providerInfo.id, model, usage);
+      await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
+      qaResponse = text;
+      qaProvider = providerInfo.label;
+    } catch {
+      qaResponse = match.answer;
+      qaProvider = "";
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+    }
+  }
+
   /* ── PAS D'IA → fallback avec contacts KB ── */
   if (!aiMode) {
     const contactInfo = findContactEntry(KB);
