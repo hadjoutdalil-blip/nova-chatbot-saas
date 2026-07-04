@@ -32,6 +32,9 @@ export function keywordMatch(question: string, keywords: string[]): number {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  const hits = keywords.filter(kw => nq.includes(kw)).length;
-  return hits / keywords.length;
+  const hits = keywords.filter(kw => {
+    const nkw = kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return new RegExp("\\b" + nkw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(nq);
+  }).length;
+  return hits / Math.max(keywords.length, 1);
 }

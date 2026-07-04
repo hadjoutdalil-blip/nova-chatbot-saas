@@ -174,10 +174,25 @@ export function parseChunks(siteContext: string): ChunkMeta[] {
 export function findBestChunks(question: string, chunks: ChunkMeta[], topN: number, threshold: number) {
   const scored = chunks.map(c => ({
     ...c,
-    score: calcSimilarity(question, c.content) * 0.6
+    score: calcSimilarity(question, c.content) * 0.5
       + calcSimilarity(question, c.section) * 0.2
-      + keywordMatch(question, c.keywords) * 0.2,
+      + keywordMatch(question, c.keywords) * 0.3,
   }));
-  const sorted = scored.sort((a, b) => b.score - a.score);
-  return sorted.filter(c => c.score * 100 >= threshold).slice(0, topN);
+  let sorted = scored.sort((a, b) => b.score - a.score);
+  let results = sorted.filter(c => c.score * 100 >= threshold).slice(0, topN);
+
+  /* Fallback mot-clé : si pas assez de chunks, chercher par mots de la question */
+  if (results.length < Math.max(1, topN / 2)) {
+    const qWords = norm(question).split(" ").filter(w => w.length > 2);
+    const keywordHits = chunks.map(c => {
+      const nc = norm(c.content);
+      const hits = qWords.filter(w => new RegExp("\\b" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(nc)).length;
+      return { ...c, score: hits / Math.max(qWords.length, 1) };
+    }).filter(c => c.score > 0).sort((a, b) => b.score - a.score).slice(0, topN);
+    if (keywordHits.length > results.length) {
+      results = keywordHits;
+    }
+  }
+
+  return results;
 }
