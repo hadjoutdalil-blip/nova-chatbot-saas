@@ -147,6 +147,7 @@ RÈGLES ABSOLUES :
 - Si AUCUN extrait ne répond à la question, dis-le poliment
 - N'invente JAMAIS d'information
 - Réponds toujours en français, professionnel et concis
+- Si un extrait a un Lien disponible dans ses métadonnées, inclus un lien cliquable markdown : [Télécharger le fichier](URL)
 - Termine par : [Source documentaire : ${chunks.map(c => c.source).join(", ")}]
 - Ajoute : "Cette réponse est basée sur la documentation disponible. Pour confirmation officielle, contactez un expert."`;
 
