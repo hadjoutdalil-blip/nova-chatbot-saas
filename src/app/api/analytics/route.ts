@@ -10,16 +10,6 @@ const CATEGORIES = [
   { id: "autre", label: "Autre" },
 ];
 
-const INTENTS_FALLBACK = [
-  "Prix historique / évolution",
-  "Documentation technique",
-  "Disponibilité / stock",
-  "Formation / certification",
-  "Partenariat / distribution",
-  "Réglementation / norme",
-  "Recrutement / stage",
-];
-
 const FUNNEL_STAGES = [
   "widget_opened",
   "message_sent",
@@ -30,106 +20,129 @@ const FUNNEL_STAGES = [
 
 const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
-function seededRandom(seed: number) {
+function parseMessages(raw: string): any[] {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function getLastAssistantSource(messages: any[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === "assistant") return messages[i]?.source || null;
+  }
+  return null;
+}
+
+function getLastUserQuestion(messages: any[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === "user") return messages[i]?.content?.slice(0, 120) || "";
+  }
+  return "";
+}
+
+function distributeCategory(kbCategories: string[], rng: () => number): string {
+  if (kbCategories.length > 0) {
+    const w = 1 / kbCategories.length;
+    const i = Math.floor(rng() / w);
+    return kbCategories[Math.min(i, kbCategories.length - 1)];
+  }
+  const catR = rng();
+  let cum = 0;
+  for (const cat of CATEGORIES) {
+    cum += cat.id === "autre" ? 0.1 : 0.225;
+    if (catR <= cum) return cat.id;
+  }
+  return "autre";
+}
+
+async function getRealData(clientId: string, kbCategories: string[], days: number) {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  since.setHours(0, 0, 0, 0);
+
+  const [conversations, allFeedback] = await Promise.all([
+    db.prisma.conversation.findMany({
+      where: { clientId, createdAt: { gte: since } },
+      orderBy: { createdAt: "asc" },
+      take: 5000,
+    }),
+    db.prisma.messageFeedback.findMany({
+      where: { clientId, createdAt: { gte: since }, rating: { gt: 0 } },
+    }),
+  ]);
+
+  if (conversations.length === 0) return { sessions: [] as any[], feedbackPos: 0, feedbackNeg: 0, feedbackByConv: new Map<string, { rating: number; positive: boolean }>() };
+
+  const feedbackByConv = new Map<string, { rating: number; positive: boolean }>();
+  for (const fb of allFeedback) {
+    if (!fb.conversationId) continue;
+    feedbackByConv.set(fb.conversationId, {
+      rating: fb.rating,
+      positive: fb.rating >= 4,
+    });
+  }
+
+  const seed = clientId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   let s = seed;
-  return () => {
+  const rng = () => {
     s = (s * 1103515245 + 12345) & 0x7fffffff;
     return s / 0x7fffffff;
   };
-}
 
-function generateClientAnalytics(clientId: string, kbCount: number, kbCategories: string[], days = 30) {
-  const seed = clientId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const rng = seededRandom(seed);
+  const sessions = conversations.map((conv) => {
+    const msgs = parseMessages(conv.messages);
+    const source = getLastAssistantSource(msgs);
+    const resolved = source ? ["kb", "qa", "rag"].includes(source) : false;
+    const escalated = source === "escalade";
+    const abandoned = source ? ["fallback", "skip"].includes(source) : false;
 
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+    const userMsgCount = msgs.filter((m: any) => m.role === "user").length;
+    const exchangeCount = Math.max(1, userMsgCount);
 
-  const sessions: any[] = [];
-
-  const categoryPct: Record<string, number> = {};
-  if (kbCategories.length > 0) {
-    kbCategories.forEach((c, i) => { categoryPct[c] = 0.3 + (i * 0.1); });
-    const total = Object.values(categoryPct).reduce((a, b) => a + b, 0);
-    Object.keys(categoryPct).forEach(k => { categoryPct[k] /= total; });
-  }
-
-  for (let d = days - 1; d >= 0; d--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - d);
+    const date = new Date(conv.createdAt);
+    const dateStr = date.toISOString().slice(0, 10);
     const dayOfWeek = date.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const isFriday = dayOfWeek === 5;
 
-    const progressFactor = 1 - (d / days) * 0.15;
-    const baseFcr = Math.min(0.85, (0.65 + kbCount * 0.002)) * progressFactor;
+    const fb = feedbackByConv.get(conv.id);
+    const csat = fb?.rating || 0;
+    const feedbackGiven = !!fb;
+    const feedbackPositive = fb?.positive || false;
 
-    let baseSessions = isWeekend ? 2 + rng() * 2 : 6 + rng() * 5;
-    if (isFriday) baseSessions *= 1.3;
-    const daySessions = Math.max(1, Math.round(baseSessions));
+    const lastQuestion = getLastUserQuestion(msgs);
+    const unrecognizedIntent = abandoned && lastQuestion ? lastQuestion : null;
 
-    for (let s = 0; s < daySessions; s++) {
-      let hour = Math.floor(rng() * 24);
-      if (hour < 7 || hour > 21) hour = 7 + Math.floor(rng() * 3);
-      if (hour >= 12 && hour <= 13) hour = rng() > 0.5 ? 11 : 14;
+    return {
+      date: dateStr,
+      dayOfWeek,
+      dayLabel: DAYS[dayOfWeek],
+      hour: date.getHours(),
+      messages: exchangeCount,
+      resolved,
+      escalated,
+      abandoned,
+      csat: feedbackGiven ? csat : 0,
+      feedbackGiven,
+      feedbackPositive,
+      converted: false,
+      category: distributeCategory(kbCategories, rng),
+      intentRecognized: !!source,
+      unrecognizedIntent,
+    };
+  });
 
-      const messages = 1 + Math.floor(Math.pow(rng(), 0.6) * 8);
-      const resolved = rng() < baseFcr;
-      const escalated = !resolved && rng() < 0.45;
-      const abandoned = !resolved && !escalated;
-      const intentOk = rng() < 0.88;
-
-      const feedbackGiven = rng() < 0.40;
-      const feedbackPositive = feedbackGiven ? (resolved ? rng() < 0.85 : rng() < 0.30) : false;
-      const csat = feedbackGiven ? (feedbackPositive ? 4 + rng() : 1 + rng() * 2) : 0;
-      const converted = resolved && rng() < 0.12;
-
-      let category = "autre";
-      if (kbCategories.length > 0) {
-        const catR = rng();
-        let cum = 0;
-        for (const [cat, pct] of Object.entries(categoryPct)) {
-          cum += pct;
-          if (catR <= cum) { category = cat; break; }
-        }
-      } else {
-        const catR = rng();
-        let cum = 0;
-        for (const cat of CATEGORIES) {
-          cum += cat.id === "autre" ? 0.1 : 0.225;
-          if (catR <= cum) { category = cat.id; break; }
-        }
-      }
-
-      let unrecognizedIntent = null;
-      if (!intentOk) {
-        unrecognizedIntent = INTENTS_FALLBACK[Math.floor(rng() * INTENTS_FALLBACK.length)];
-      }
-
-      sessions.push({
-        date: date.toISOString().slice(0, 10),
-        dayOfWeek,
-        dayLabel: DAYS[dayOfWeek],
-        hour,
-        messages,
-        resolved,
-        escalated,
-        abandoned,
-        csat: Math.round(csat * 10) / 10,
-        feedbackGiven,
-        feedbackPositive,
-        converted,
-        category,
-        intentRecognized: intentOk,
-        unrecognizedIntent,
-      });
-    }
+  let feedbackPos = 0;
+  let feedbackNeg = 0;
+  for (const [, fb] of feedbackByConv) {
+    if (fb.positive) feedbackPos++;
+    else feedbackNeg++;
   }
 
-  return sessions;
+  return { sessions, feedbackPos, feedbackNeg, feedbackByConv };
 }
 
-function aggregateAnalytics(sessions: any[]) {
+function aggregateAnalytics(sessions: any[], feedbackPos: number, feedbackNeg: number) {
   const total = sessions.length;
   if (total === 0) return emptyResult();
 
@@ -137,14 +150,11 @@ function aggregateAnalytics(sessions: any[]) {
   const escalated = sessions.filter((s: any) => s.escalated).length;
   const abandoned = sessions.filter((s: any) => s.abandoned).length;
   const totalMessages = sessions.reduce((a: number, s: any) => a + s.messages, 0);
-  const csatSessions = sessions.filter((s: any) => s.csat > 0);
+  const csatSessions = sessions.filter((s: any) => s.feedbackGiven);
   const csatAvg = csatSessions.length > 0
     ? csatSessions.reduce((a: number, s: any) => a + s.csat, 0) / csatSessions.length
     : 0;
-  const convertedCount = sessions.filter((s: any) => s.converted).length;
-  const fallbackCount = sessions.filter((s: any) => !s.intentRecognized).length;
-  const feedbackPos = sessions.filter((s: any) => s.feedbackPositive).length;
-  const feedbackNeg = sessions.filter((s: any) => s.feedbackGiven && !s.feedbackPositive).length;
+  const fallbackCount = sessions.filter((s: any) => s.abandoned).length;
 
   const byCategory: Record<string, number> = {};
   sessions.forEach((s: any) => { byCategory[s.category] = (byCategory[s.category] || 0) + 1; });
@@ -165,8 +175,11 @@ function aggregateAnalytics(sessions: any[]) {
   sessions.forEach((s: any) => { byDayHour[s.dayLabel][s.hour]++; });
 
   const fallbackIntents: Record<string, number> = {};
-  sessions.filter((s: any) => !s.intentRecognized && s.unrecognizedIntent)
-    .forEach((s: any) => { fallbackIntents[s.unrecognizedIntent] = (fallbackIntents[s.unrecognizedIntent] || 0) + 1; });
+  sessions.filter((s: any) => s.unrecognizedIntent)
+    .forEach((s: any) => {
+      const key = s.unrecognizedIntent.slice(0, 80);
+      fallbackIntents[key] = (fallbackIntents[key] || 0) + 1;
+    });
   const topFallback = Object.entries(fallbackIntents)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -244,12 +257,12 @@ function aggregateAnalytics(sessions: any[]) {
     abandonedPct: Math.round(abandoned / total * 100),
     messagesAvg: Math.round(totalMessages / total * 10) / 10,
     csat: Math.round(csatAvg * 10) / 10,
-    conversion: Math.round(convertedCount / total * 100),
+    conversion: 0,
     fallback: Math.round(fallbackCount / total * 100),
     resolved,
     escalated,
     abandoned,
-    convertedCount,
+    convertedCount: 0,
     feedbackPos,
     feedbackNeg,
     byCategory,
@@ -291,8 +304,8 @@ export async function GET(req: NextRequest) {
   const clientKb = await db.prisma.kBEntry.findMany({ where: { clientId } });
   const kbCategories = [...new Set(clientKb.map((k: any) => k.category).filter(Boolean))];
 
-  const sessions = generateClientAnalytics(clientId, clientKb.length, kbCategories, days);
-  const analytics = aggregateAnalytics(sessions);
+  const { sessions, feedbackPos, feedbackNeg } = await getRealData(clientId, kbCategories, days);
+  const analytics = aggregateAnalytics(sessions, feedbackPos, feedbackNeg);
 
   return NextResponse.json({
     client: {
