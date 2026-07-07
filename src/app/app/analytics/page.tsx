@@ -45,6 +45,17 @@ const CATEGORY_COLORS: Record<string, string> = {
   autre: "#9ca3af",
 };
 
+const PALETTE = [
+  "#1a56db", "#059669", "#d97706", "#dc2626", "#7c3aed",
+  "#0891b2", "#be123c", "#4f46e5", "#b45309", "#0d9488",
+  "#9333ea", "#0284c7", "#15803d", "#e11d48", "#6366f1",
+  "#0e7490", "#a21caf", "#ca8a04", "#65a30d", "#db2777",
+];
+
+function getCategoryColor(id: string, index: number): string {
+  return CATEGORY_COLORS[id] || PALETTE[index % PALETTE.length];
+}
+
 const METRIC_INFO: Record<string, { title: string; tag: string; tagCls: string; desc: string; good: string; medium: string; bad: string; improve: string }> = {
   sessions: {
     title: "Sessions", tag: "Engagement", tagCls: "bg-blue-100 text-blue-700",
@@ -186,7 +197,7 @@ export default function AnalyticsPage() {
       const cats = filteredData.charts.categories;
       const catLabels = cats.map((c) => CATEGORY_LABELS[c.id] || c.id);
       const catData = cats.map((c) => c.count);
-      const catColors = cats.map((c) => CATEGORY_COLORS[c.id] || "#9ca3af");
+      const catColors = cats.map((c, i) => getCategoryColor(c.id, i));
       const totalSessions = filteredData.kpi.sessions || 1;
       const c3 = new Chart(cat, {
         type: "doughnut",
