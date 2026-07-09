@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Building2, Thermometer, Upload, FileText, Trash2, Eye, Download, X, FileJson, BookOpen, Shield, Search } from "lucide-react";
+import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Thermometer, Shield } from "lucide-react";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
 
 const TABS = [
   { id: "ia", label: "Configuration IA", icon: Brain },
   { id: "keys", label: "Clés API", icon: Shield },
-  { id: "documents", label: "Documents contextuels", icon: FileJson },
 ];
 
 export default function AppSettingsPage() {
@@ -17,47 +16,9 @@ export default function AppSettingsPage() {
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [transferring, setTransferring] = useState(false);
-  const [contextChunks, setContextChunks] = useState<{ name: string; index: number; content: string }[]>([]);
-  const [viewDoc, setViewDoc] = useState<{ title: string; content: string } | null>(null);
-  const [showTestModal, setShowTestModal] = useState(false);
-  const [testQuestion, setTestQuestion] = useState("");
-  const [testing, setTesting] = useState(false);
-  const [testResults, setTestResults] = useState<any>(null);
   const [tab, setTab] = useState("ia");
 
   function token() { return localStorage.getItem("token") || ""; }
-
-  function parseContextChunks(siteContext: string) {
-    if (!siteContext) return [];
-    const regex = /\[CHUNK:([^\]]+)\]([\s\S]*?)(?=\[CHUNK:|$)/g;
-    const chunks: { name: string; index: number; content: string }[] = [];
-    let m;
-    while ((m = regex.exec(siteContext)) !== null) {
-      const parts = m[1].split(":");
-      const name = parts.slice(0, -1).join(":") || parts[0];
-      const idx = parseInt(parts[parts.length - 1], 10);
-      chunks.push({ name, index: isNaN(idx) ? 0 : idx, content: m[2].trim() });
-    }
-    if (chunks.length === 0 && siteContext.trim()) {
-      chunks.push({ name: "contexte.txt", index: 0, content: siteContext.trim() });
-    }
-    return chunks;
-  }
-
-  function downloadContent(content: string, filename: string) {
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
 
   useEffect(() => {
     fetch("/api/clients", { headers: { Authorization: `Bearer ${token()}` } })
@@ -65,11 +26,8 @@ export default function AppSettingsPage() {
       .then((clients) => {
         const payload = JSON.parse(atob(token().split(".")[1]));
         const c = clients.find((c: any) => c.id === payload.clientId);
-        if (c) { setClient(c); setForm({ ...c }); setContextChunks(parseContextChunks(c.siteContext || "")); }
+        if (c) { setClient(c); setForm({ ...c }); }
       });
-    fetch("/api/client-documents", { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => r.json())
-      .then(setDocuments);
   }, []);
 
   async function handleSave() {
@@ -88,72 +46,10 @@ export default function AppSettingsPage() {
         topNChunks: form.topNChunks,
         relanceActive: form.relanceActive,
         relanceText: form.relanceText,
-        siteContext: form.siteContext,
       }),
     });
     setSaving(false);
     if (res.ok) alert("Configuration enregistrée");
-  }
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/client-documents", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token()}` },
-      body: fd,
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setDocuments((prev) => [...prev, data]);
-    } else {
-      const err = await res.json();
-      alert(err.error || "Erreur d'upload");
-    }
-    setUploading(false);
-    e.target.value = "";
-  }
-
-  async function handleDeleteDoc(id: string) {
-    if (!confirm("Supprimer ce document ?")) return;
-    const res = await fetch(`/api/client-documents/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token()}` },
-    });
-    if (res.ok) setDocuments((prev) => prev.filter((d) => d.id !== id));
-  }
-
-  async function handleTestRag() {
-    if (!testQuestion.trim()) return;
-    setTesting(true);
-    setTestResults(null);
-    const res = await fetch("/api/client-documents/test-rag", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-      body: JSON.stringify({ question: testQuestion }),
-    });
-    const data = await res.json();
-    setTestResults(data);
-    setTesting(false);
-  }
-
-  async function handleTransferToKb() {
-    if (!confirm("Transférer tous les documents contextuels et chunks vers la base de connaissances ?")) return;
-    setTransferring(true);
-    const res = await fetch("/api/documents/transfer-to-kb", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token()}` },
-    });
-    const data = await res.json();
-    setTransferring(false);
-    if (res.ok) {
-      alert(`${data.created} entrée(s) ajoutée(s) à la base de connaissances.`);
-    } else {
-      alert(data.error || "Erreur lors du transfert");
-    }
   }
 
   if (!form) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
@@ -274,204 +170,6 @@ export default function AppSettingsPage() {
         <div className="max-w-2xl">
           <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6">
             <ApiKeysManager clientId={client.id} token={token} />
-          </div>
-        </div>
-      )}
-
-      {tab === "documents" && (
-        <div className="space-y-5 max-w-2xl">
-          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
-            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-              <Building2 size={18} className="text-purple-600" />
-              <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Description de l&apos;activité (importée automatiquement en chunks)</label>
-              {contextChunks.length > 0 && (
-                <div className="mb-3 space-y-1.5">
-                  <p className="text-xs text-gray-400 mb-1.5">{contextChunks.length} fichier(s) importé(s) :</p>
-                  {contextChunks.map((chunk, i) => (
-                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText size={14} className="text-purple-500 shrink-0" />
-                        <span className="text-sm text-gray-700 truncate">{chunk.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
-                          <Eye size={14} />
-                        </button>
-                        <button onClick={() => downloadContent(chunk.content, chunk.name)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
-                          <Download size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <textarea value={form.siteContext || ""} onChange={(e) => { setForm({ ...form, siteContext: e.target.value }); setContextChunks(parseContextChunks(e.target.value)); }} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div className="flex items-center gap-2">
-                <FileText size={18} className="text-purple-600" />
-                <h2 className="font-semibold text-gray-900">Documents téléchargés</h2>
-              </div>
-              <label className="flex items-center gap-2 text-xs font-medium text-purple-600 hover:text-purple-700 cursor-pointer transition-colors">
-                <Upload size={14} /> {uploading ? "Upload..." : "Ajouter un fichier"}
-                <input type="file" accept=".txt,.csv,.json,.md" className="hidden" onChange={handleUpload} disabled={uploading} />
-              </label>
-            </div>
-            <p className="text-xs text-gray-400">Formats supportés : .txt, .csv, .json, .md (max 5 Mo). Gestion des versions et dates de validité.</p>
-            {documents.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">Aucun document uploadé.</p>
-            ) : (
-              <div className="space-y-2">
-                {documents.map((doc) => {
-                  const isExpired = doc.valid_until ? new Date(doc.valid_until) < new Date() : false;
-                  return (
-                    <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={16} className="text-purple-500 shrink-0" />
-                        <span className="text-sm text-gray-700 truncate">{doc.originalName}</span>
-                        <span className="text-xs text-gray-400 shrink-0">{(doc.fileSize / 1024).toFixed(1)} Ko</span>
-                        {doc.version > 1 && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">v{doc.version}</span>}
-                        {doc.valid_from && <span className="text-xs text-gray-400 shrink-0">Du {new Date(doc.valid_from).toLocaleDateString("fr")}</span>}
-                        {doc.valid_until ? (
-                          <span className={"text-xs shrink-0 " + (isExpired ? "text-red-500" : "text-green-600")}>
-                            {isExpired ? "Expiré" : "Valide jusqu'au " + new Date(doc.valid_until).toLocaleDateString("fr")}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button onClick={() => setViewDoc({ title: doc.originalName, content: doc.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
-                          <Eye size={14} />
-                        </button>
-                        <button onClick={() => window.open(`/api/client-documents/${doc.id}/download`, "_blank")} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
-                          <Download size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteDoc(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Supprimer">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
-                <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
-              </button>
-              <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-200 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-all">
-                <Search size={15} /> Tester le RAG
-              </button>
-              <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
-                <BookOpen size={15} /> {transferring ? "Transfert..." : "Transférer vers la KB"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {viewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900 truncate">{viewDoc.title}</h3>
-              <button onClick={() => setViewDoc(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-6">
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{viewDoc.content}</pre>
-            </div>
-            <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100">
-              <button onClick={() => { downloadContent(viewDoc.content, viewDoc.title); setViewDoc(null); }} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-all">
-                <Download size={14} /> Télécharger
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showTestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowTestModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900">Tester la recherche documentaire (RAG)</h3>
-              <button onClick={() => setShowTestModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-6 space-y-4">
-              <p className="text-sm text-gray-500">Posez une question pour vérifier que les documents contextuels sont bien indexés et trouvés par le moteur RAG.</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={testQuestion}
-                  onChange={(e) => setTestQuestion(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleTestRag()}
-                  placeholder="Ex: Que contiennent les documents d'entreprise ?"
-                  className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                />
-                <button onClick={handleTestRag} disabled={testing || !testQuestion.trim()} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-all disabled:opacity-50">
-                  <Search size={15} /> {testing ? "Recherche..." : "Tester"}
-                </button>
-              </div>
-
-              {testResults && (
-                <div className="space-y-3">
-                  {testResults.error ? (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">{testResults.error}</div>
-                  ) : testResults.chunks && testResults.chunks.length > 0 ? (
-                    <>
-                      <div className="text-sm text-gray-500">
-                        {testResults.totalChunksFound} extraits analysés, {testResults.chunksReturned} trouvés
-                        {testResults.matchedByKeyword ? " par mot-clé (score < seuil RAG)" : " avec un score ≥ seuil RAG"}.
-                      </div>
-                      {testResults.documentsUsed && testResults.documentsUsed.length > 0 && (
-                        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-                          <p className="text-xs font-medium text-green-700 mb-1.5">Documents sources utilisés :</p>
-                          <div className="space-y-1">
-                            {testResults.documentsUsed.map((d: any) => (
-                              <div key={d.id} className="flex items-center gap-2 text-sm text-green-800">
-                                <FileText size={14} className="shrink-0" />
-                                <span className="truncate">{d.originalName}</span>
-                                <span className="text-xs text-green-600">({(d.fileSize / 1024).toFixed(1)} Ko)</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Extraits correspondants</p>
-                        {testResults.chunks.map((chunk: any, i: number) => (
-                          <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                <FileText size={14} className="text-purple-500" />
-                                <span>{chunk.source}</span>
-                                {chunk.section && <span className="text-xs text-gray-400">/ {chunk.section}</span>}
-                              </div>
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${chunk.score >= 80 ? "bg-green-100 text-green-700" : chunk.score >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-orange-100 text-orange-700"}`}>
-                                {chunk.score}%
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-500 leading-relaxed">{chunk.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
-                      Aucun extrait trouvé pour cette question. Les mots-clés de la question ne figurent dans aucun document ou contexte entreprise.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}
