@@ -25,6 +25,8 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
   const [aiMode, setAiMode] = useState(true);
   const [history, setHistory] = useState<any[]>([]);
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [hoveredMsg, setHoveredMsg] = useState<string | null>(null);
+  const [hoveredRating, setHoveredRating] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -265,27 +267,25 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                 )}
                 {m.messageId && (
                   <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 4 }}>
-                    {!ratings[m.messageId] ? (
-                      <>
-                        <span style={{ fontSize: 10, color: "#94a3b8", marginRight: 2 }}>Noter :</span>
-                        {[5,4,3,2,1].map(r => (
-                          <button key={r}
-                            onClick={() => submitFeedback(m.messageId!, r, m.question || "", m.text, m.source, m.score, m.provider)}
-                            style={{
-                              width: 20, height: 20, borderRadius: "50%", border: "1px solid #d1d5db",
-                              background: "transparent", cursor: "pointer", fontSize: 9, fontWeight: 700,
-                              color: "#6b7280", display: "flex", alignItems: "center", justifyContent: "center",
-                              transition: "all .15s", padding: 0, lineHeight: 1,
-                            }}
-                            title={r === 5 ? "Excellent" : r === 4 ? "Bien" : r === 3 ? "Moyen" : r === 2 ? "Mauvais" : "Très mauvais"}
-                          >{r}</button>
-                        ))}
-                      </>
-                    ) : (
-                      <span style={{ fontSize: 10, color: "#16a34a", fontWeight: 600 }}>
-                        Noté : {ratings[m.messageId]}/5
-                      </span>
-                    )}
+                    <span style={{ fontSize: 10, color: "#94a3b8", marginRight: 1 }}>
+                      {ratings[m.messageId] ? "Noté :" : "Votre avis :"}
+                    </span>
+                    {[1,2,3,4,5].map(r => {
+                      const mid = m.messageId!;
+                      const active = (hoveredMsg === mid ? hoveredRating : ratings[mid] || 0) >= r;
+                      return (
+                        <span key={r}
+                          onClick={() => !ratings[mid] && submitFeedback(mid, r, m.question || "", m.text, m.source, m.score, m.provider)}
+                          onMouseEnter={() => { if (!ratings[mid]) { setHoveredMsg(mid); setHoveredRating(r); } }}
+                          onMouseLeave={() => { setHoveredMsg(null); setHoveredRating(0); }}
+                          style={{
+                            cursor: ratings[mid] ? "default" : "pointer",
+                            fontSize: 16, color: active ? "#f59e0b" : "#d1d5db",
+                            transition: "color .12s", lineHeight: 1,
+                          }}
+                        >★</span>
+                      );
+                    })}
                   </div>
                 )}
                 <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{formatTime()}</div>

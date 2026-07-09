@@ -207,8 +207,9 @@ C+=".ncopy.done{color:#16a34a;border-color:#d1fae5}";
 /* feedback */
 C+=".nfb{display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap}";
 C+=".nfb-label{font-size:10px;color:#94a3b8;margin-right:2px}";
-C+=".nfb-btn{width:20px;height:20px;border-radius:50%;border:1px solid #d1d5db;background:transparent;cursor:pointer;font-size:9px;font-weight:700;color:#6b7280;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;transition:all .15s}";
-C+=".nfb-btn:hover{background:#f1f5f9;border-color:#94a3b8}";
+C+=".nfb-stars{display:inline-flex;align-items:center;gap:1px;margin-right:2px}";
+C+=".nfb-star{font-size:16px;cursor:pointer;color:#d1d5db;transition:color .12s;line-height:1;user-select:none}";
+C+=".nfb-star.active{color:#f59e0b}";
 C+=".nfb-done{font-size:10px;color:#16a34a;font-weight:600}";
 /* timestamp */
 C+=".nts{font-size:10px;color:#94a3b8;margin-top:4px;text-align:right}";
@@ -489,13 +490,12 @@ var chatHistory=[];
 
 function buildFeedback(msgId,respText,src,scr,prov){
   if(!msgId) return "";
-  var slug=e.chatUrl.split("/").pop();
   var labels=["Très mauvais","Mauvais","Moyen","Bien","Excellent"];
-  var html='<div class="nfb" id="nfb-'+msgId+'"><span class="nfb-label">Noter :</span>';
-  for(var fi=5;fi>=1;fi--){
-    html+='<button class="nfb-btn" data-r="'+fi+'" data-mid="'+msgId+'" data-q="'+escAttr(lastQuestion)+'" data-resp="'+escAttr(respText)+'" data-src="'+escAttr(src||"")+'" data-scr="'+(scr||0)+'" data-prov="'+escAttr(prov||"")+'" title="'+labels[fi-1]+'">'+fi+'</button>';
+  var html='<div class="nfb" id="nfb-'+msgId+'"><span class="nfb-label">Votre avis :</span><span class="nfb-stars">';
+  for(var fi=1;fi<=5;fi++){
+    html+='<span class="nfb-star" data-r="'+fi+'" data-mid="'+msgId+'" data-q="'+escAttr(lastQuestion)+'" data-resp="'+escAttr(respText)+'" data-src="'+escAttr(src||"")+'" data-scr="'+(scr||0)+'" data-prov="'+escAttr(prov||"")+'" title="'+labels[fi-1]+'">★</span>';
   }
-  html+='</div>';
+  html+='</span></div>';
   return html;
 }
 function submitFeedback(msgId,rating,question,response,source,score,provider){
@@ -507,7 +507,11 @@ function submitFeedback(msgId,rating,question,response,source,score,provider){
     if(xhr.status===200){
       feedState[msgId]=rating;
       var el=document.getElementById("nfb-"+msgId);
-      if(el) el.innerHTML='<span class="nfb-done">Merci ! ('+rating+'/5)</span>';
+      if(el){
+        var stars="";
+        for(var si=0;si<rating;si++) stars+="⭐";
+        el.innerHTML='<span class="nfb-done">Merci ! '+stars+'</span>';
+      }
     }
   };
   var slug=e.chatUrl.split("/").pop();
@@ -570,17 +574,34 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
     },0);
     if(messageId){
       setTimeout(function(){
-        var fbel=document.getElementById("nfb-"+messageId);
+        var fbel=document.getElementById("nfb-"+msgId);
         if(fbel){
-          var btns=fbel.querySelectorAll(".nfb-btn");
-          for(var fi2=0;fi2<btns.length;fi2++){
-            (function(btn){
-              btn.onclick=function(){
+          var stars=fbel.querySelectorAll(".nfb-star");
+          for(var si=0;si<stars.length;si++){
+            (function(s){
+              s.onclick=function(){
                 if(feedState[messageId]) return;
-                var r=parseInt(btn.dataset.r);
-                submitFeedback(messageId,r,btn.dataset.q,btn.dataset.resp,btn.dataset.src,parseInt(btn.dataset.scr),btn.dataset.prov);
+                var r=parseInt(s.dataset.r);
+                for(var x=0;x<stars.length;x++){
+                  if(parseInt(stars[x].dataset.r)<=r) stars[x].classList.add("active");
+                  else stars[x].classList.remove("active");
+                }
+                submitFeedback(messageId,r,s.dataset.q,s.dataset.resp,s.dataset.src,parseInt(s.dataset.scr),s.dataset.prov);
               };
-            })(btns[fi2]);
+              s.onmouseenter=function(){
+                if(feedState[messageId]) return;
+                var r=parseInt(s.dataset.r);
+                for(var x=0;x<stars.length;x++){
+                  stars[x].style.color=parseInt(stars[x].dataset.r)<=r?"#f59e0b":"#d1d5db";
+                }
+              };
+              s.onmouseleave=function(){
+                if(feedState[messageId]) return;
+                for(var x=0;x<stars.length;x++){
+                  stars[x].style.color="";
+                }
+              };
+            })(stars[si]);
           }
         }
       },0);
