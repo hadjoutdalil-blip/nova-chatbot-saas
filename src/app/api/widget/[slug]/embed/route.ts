@@ -574,7 +574,7 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
     },0);
     if(messageId){
       setTimeout(function(){
-        var fbel=document.getElementById("nfb-"+msgId);
+        var fbel=document.getElementById("nfb-"+messageId);
         if(fbel){
           var stars=fbel.querySelectorAll(".nfb-star");
           for(var si=0;si<stars.length;si++){
