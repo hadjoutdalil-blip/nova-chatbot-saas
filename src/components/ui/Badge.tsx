@@ -7,7 +7,7 @@ type BadgeProps = {
 
 const variantStyles = {
   default: "bg-gray-100 text-gray-700",
-  purple: "bg-purple-50 text-purple-700",
+  purple: "bg-emerald-50 text-emerald-700",
   green: "bg-green-50 text-green-700",
   yellow: "bg-yellow-50 text-yellow-700",
   red: "bg-red-50 text-red-600",

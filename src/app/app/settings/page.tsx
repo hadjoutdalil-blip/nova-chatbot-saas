@@ -82,7 +82,7 @@ export default function AppSettingsPage() {
           <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
             <div className="border-t border-gray-100 pt-4">
               <div className="flex items-center gap-2 mb-4">
-                <SlidersHorizontal size={16} className="text-purple-600" />
+                <SlidersHorizontal size={16} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Seuils de confiance</h2>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -90,49 +90,49 @@ export default function AppSettingsPage() {
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
                     Seuil QA (N1) : {form.kbThreshold ?? 80}%
                   </label>
-                  <input type="range" min={10} max={100} value={form.kbThreshold ?? 80} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full accent-purple-600" />
+                  <input type="range" min={10} max={100} value={form.kbThreshold ?? 80} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full accent-emerald-600" />
                   <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
                     Seuil RAG (N2) : {form.ragThreshold ?? 72}%
                   </label>
-                  <input type="range" min={10} max={100} value={form.ragThreshold ?? 72} onChange={(e) => setForm({ ...form, ragThreshold: +e.target.value })} className="w-full accent-purple-600" />
+                  <input type="range" min={10} max={100} value={form.ragThreshold ?? 72} onChange={(e) => setForm({ ...form, ragThreshold: +e.target.value })} className="w-full accent-emerald-600" />
                   <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
                 </div>
               </div>
             </div>
 
             <div>
-              <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors">
+              <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
                 <Thermometer size={14} /> Paramètres avancés {showAdvanced ? "▲" : "▼"}
               </button>
             </div>
 
             {showAdvanced && (
-              <div className="space-y-4 pl-4 border-l-2 border-purple-100">
+              <div className="space-y-4 pl-4 border-l-2 border-emerald-100">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Temp. QA (N1)</label>
-                    <input type="number" step={0.01} min={0} max={1} value={form.tempQA ?? 0.05} onChange={(e) => setForm({ ...form, tempQA: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                    <input type="number" step={0.01} min={0} max={1} value={form.tempQA ?? 0.05} onChange={(e) => setForm({ ...form, tempQA: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Temp. RAG (N2)</label>
-                    <input type="number" step={0.01} min={0} max={1} value={form.tempRAG ?? 0.10} onChange={(e) => setForm({ ...form, tempRAG: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                    <input type="number" step={0.01} min={0} max={1} value={form.tempRAG ?? 0.10} onChange={(e) => setForm({ ...form, tempRAG: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Temp. Escalade (N3)</label>
-                    <input type="number" step={0.01} min={0} max={1} value={form.tempEscalade ?? 0.20} onChange={(e) => setForm({ ...form, tempEscalade: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                    <input type="number" step={0.01} min={0} max={1} value={form.tempEscalade ?? 0.20} onChange={(e) => setForm({ ...form, tempEscalade: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Max chars / section</label>
-                    <input type="number" min={100} max={5000} step={100} value={form.chunkSize ?? 500} onChange={(e) => setForm({ ...form, chunkSize: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                    <input type="number" min={100} max={5000} step={100} value={form.chunkSize ?? 500} onChange={(e) => setForm({ ...form, chunkSize: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Top N chunks RAG</label>
-                    <input type="number" min={1} max={20} value={form.topNChunks ?? 3} onChange={(e) => setForm({ ...form, topNChunks: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                    <input type="number" min={1} max={20} value={form.topNChunks ?? 3} onChange={(e) => setForm({ ...form, topNChunks: +e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                   </div>
                 </div>
               </div>
@@ -142,7 +142,7 @@ export default function AppSettingsPage() {
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
                 <MessageSquareText size={14} /> Relance IA
               </label>
-              <select value={form.relanceActive ? "true" : "false"} onChange={(e) => setForm({ ...form, relanceActive: e.target.value === "true" })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all">
+              <select value={form.relanceActive ? "true" : "false"} onChange={(e) => setForm({ ...form, relanceActive: e.target.value === "true" })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all">
                 <option value="true">Active</option>
                 <option value="false">Désactivée</option>
               </select>
@@ -150,10 +150,10 @@ export default function AppSettingsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Texte de relance personnalisé</label>
-              <textarea value={form.relanceText || ""} onChange={(e) => setForm({ ...form, relanceText: e.target.value })} rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Exemple : Souhaitez-vous plus de détails ?" />
+              <textarea value={form.relanceText || ""} onChange={(e) => setForm({ ...form, relanceText: e.target.value })} rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" placeholder="Exemple : Souhaitez-vous plus de détails ?" />
             </div>
 
-            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
+            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-200">
               <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
             </button>
           </div>

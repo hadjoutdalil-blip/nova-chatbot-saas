@@ -87,7 +87,7 @@ export default function ConversationsPage() {
               <Trash size={14} /> Tout supprimer
             </button>
           )}
-          <button onClick={load} className="text-sm text-purple-600 hover:text-purple-800 font-medium">
+          <button onClick={load} className="text-sm text-emerald-600 hover:text-emerald-800 font-medium">
             Actualiser
           </button>
         </div>
@@ -100,7 +100,7 @@ export default function ConversationsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher une conversation..."
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white/80 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
         />
       </div>
 
@@ -133,7 +133,7 @@ export default function ConversationsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4 shrink-0">
-                    <span className="text-xs bg-purple-50 text-purple-600 px-2.5 py-1 rounded-full font-medium">
+                    <span className="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-medium">
                       {msgs.filter((m) => m.role === "user").length} visiteur{msgs.filter((m) => m.role === "user").length > 1 ? "s" : ""}
                     </span>
                     {isOpen ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
@@ -144,8 +144,8 @@ export default function ConversationsPage() {
                   <div className="px-5 pb-5 border-t border-gray-100 pt-4 space-y-3 max-h-96 overflow-y-auto">
                     {msgs.map((msg, i) => (
                       <div key={i} className={`flex gap-3 ${msg.role === "user" ? "" : ""}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${msg.role === "user" ? "bg-gray-100" : "bg-purple-100"}`}>
-                          {msg.role === "user" ? <User size={14} className="text-gray-500" /> : <Bot size={14} className="text-purple-600" />}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${msg.role === "user" ? "bg-gray-100" : "bg-emerald-100"}`}>
+                          {msg.role === "user" ? <User size={14} className="text-gray-500" /> : <Bot size={14} className="text-emerald-600" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700">{msg.content}</div>

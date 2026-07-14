@@ -480,7 +480,7 @@ export default function ClientTestPage() {
           <div className="px-5 pt-4 pb-2 border-b bg-gray-50/50">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-base">Test du chat</h2>
-              <span className="text-xs text-gray-400">Endpoint: <code className="text-purple-600">/api/chat/{slug}</code></span>
+              <span className="text-xs text-gray-400">Endpoint: <code className="text-emerald-600">/api/chat/{slug}</code></span>
             </div>
           </div>
           <div className="flex-1 flex flex-col" style={{ height: 470 }}>
@@ -501,7 +501,7 @@ export default function ClientTestPage() {
             <p className="text-xs text-gray-400 mt-1">Cliquez sur l&apos;icône en bas à droite</p>
           </div>
           <div className="mt-3 flex justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                 <polyline points="15 3 21 3 21 9" />
                 <polyline points="9 21 3 21 3 15" />
@@ -510,14 +510,14 @@ export default function ClientTestPage() {
               </svg>
               Redimensionnable
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                 <polyline points="1 4 1 10 7 10" />
                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
               </svg>
               Réinitialisable
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                 <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.4 2.1-1 2.8V12l-3 3-3-3V8.8A4 4 0 0 1 12 2z" />
                 <path d="M8 14v3l4 4 4-4v-3" />
@@ -526,7 +526,7 @@ export default function ClientTestPage() {
             </span>
           </div>
           <div className="mt-3 text-xs text-gray-400 text-center">
-            Script: <code className="text-purple-600">/api/widget/{slug}/embed</code>
+            Script: <code className="text-emerald-600">/api/widget/{slug}/embed</code>
           </div>
         </div>
       </div>

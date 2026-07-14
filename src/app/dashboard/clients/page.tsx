@@ -22,7 +22,7 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const PLAN_COLORS: Record<string, string> = {
-  ecommerce: "bg-purple-100 text-purple-700",
+  ecommerce: "bg-emerald-100 text-emerald-700",
   support: "bg-indigo-100 text-indigo-700",
   realestate: "bg-blue-100 text-blue-700",
   custom: "bg-gray-100 text-gray-600",
@@ -59,7 +59,7 @@ export default function ClientsPage() {
         <h1 className="text-2xl font-bold">Clients</h1>
         <button
           onClick={() => router.push("/dashboard/clients/new")}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700"
+          className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700"
         >
           + Nouveau client
         </button>
@@ -94,7 +94,7 @@ export default function ClientsPage() {
                 <td className="px-4 py-3 text-gray-500">{new Date(c.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1.5 flex-wrap">
-                    <button onClick={() => router.push(`/dashboard/clients/${c.id}`)} className="text-purple-600 hover:bg-purple-50 px-2 py-1 rounded text-xs font-medium">Modifier</button>
+                    <button onClick={() => router.push(`/dashboard/clients/${c.id}`)} className="text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded text-xs font-medium">Modifier</button>
                     <button onClick={() => router.push(`/dashboard/clients/${c.id}/kb`)} className="text-gray-600 hover:bg-gray-50 px-2 py-1 rounded text-xs">KB</button>
                     <button onClick={() => router.push(`/dashboard/clients/${c.id}/widget`)} className="text-gray-600 hover:bg-gray-50 px-2 py-1 rounded text-xs">Widget</button>
                     <button onClick={() => router.push(`/dashboard/clients/${c.id}/test`)} className="text-gray-600 hover:bg-gray-50 px-2 py-1 rounded text-xs">Tester</button>

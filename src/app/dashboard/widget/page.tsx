@@ -134,7 +134,7 @@ export default function WidgetPage() {
               <p><span className="text-gray-500 text-sm">Message :</span> <span>{form.buttonLabel || "—"}</span></p>
               <p><span className="text-gray-500 text-sm">Marque :</span> <span>{form.showBrand ? "Affichée" : "Masquée"}</span></p>
             </div>
-            <button onClick={() => setEditMode(true)} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700">Modifier</button>
+            <button onClick={() => setEditMode(true)} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700">Modifier</button>
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">
@@ -152,7 +152,7 @@ export default function WidgetPage() {
               <div className="flex flex-wrap gap-2">
                 {ANIMATIONS.map((a) => (
                   <button key={a} type="button" onClick={() => setForm({ ...form, buttonAnimation: a })}
-                    className={"px-4 py-2 rounded-lg border text-sm capitalize transition-all " + (form.buttonAnimation === a ? "border-purple-500 bg-purple-50 text-purple-700 font-medium" : "border-gray-200 hover:border-gray-300")}>
+                    className={"px-4 py-2 rounded-lg border text-sm capitalize transition-all " + (form.buttonAnimation === a ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-medium" : "border-gray-200 hover:border-gray-300")}>
                     {a}
                   </button>
                 ))}
@@ -203,7 +203,7 @@ export default function WidgetPage() {
               <span className="text-sm">Afficher "Propulsé par Nova"</span>
             </label>
             <div className="flex gap-3 pt-2">
-              <button type="submit" disabled={saving} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+              <button type="submit" disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
                 {saving ? "Enregistrement..." : "Enregistrer"}
               </button>
               <button type="button" onClick={() => setEditMode(false)} className="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>

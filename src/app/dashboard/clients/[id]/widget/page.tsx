@@ -116,7 +116,7 @@ export default function ClientWidgetPage() {
       <div className="flex gap-2 mb-6">
         <Link href={`/dashboard/clients/${id}`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Modifier</Link>
         <Link href={`/dashboard/clients/${id}/kb`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Base connaissances</Link>
-        <Link href={`/dashboard/clients/${id}/widget`} className="text-sm px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 font-medium">Widget</Link>
+        <Link href={`/dashboard/clients/${id}/widget`} className="text-sm px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 font-medium">Widget</Link>
         <Link href={`/dashboard/clients/${id}/test`} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Tester</Link>
       </div>
 
@@ -140,7 +140,7 @@ export default function ClientWidgetPage() {
               <p><span className="text-gray-500 text-sm">Message :</span> <span>{form.buttonLabel || "—"}</span></p>
               <p><span className="text-gray-500 text-sm">Proactif :</span> <span className={form.proactiveEnabled ? "text-green-600 font-medium" : ""}>{form.proactiveEnabled ? "Activé" : "Désactivé"}</span></p>
             </div>
-            <button onClick={() => setEditMode(true)} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700">Modifier</button>
+            <button onClick={() => setEditMode(true)} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700">Modifier</button>
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">
@@ -160,7 +160,7 @@ export default function ClientWidgetPage() {
               <div className="flex flex-wrap gap-2">
                 {ANIMATIONS.map((a) => (
                   <button key={a} type="button" onClick={() => setForm({ ...form, buttonAnimation: a })}
-                    className={"px-4 py-2 rounded-lg border text-sm capitalize transition-all " + (form.buttonAnimation === a ? "border-purple-500 bg-purple-50 text-purple-700 font-medium" : "border-gray-200 hover:border-gray-300")}>
+                    className={"px-4 py-2 rounded-lg border text-sm capitalize transition-all " + (form.buttonAnimation === a ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-medium" : "border-gray-200 hover:border-gray-300")}>
                     {a}
                   </button>
                 ))}
@@ -193,11 +193,11 @@ export default function ClientWidgetPage() {
               <label className="block text-sm font-medium mb-2">Icône du bouton</label>
 
               {hasCustomIcon ? (
-                <div className="mb-3 p-4 bg-purple-50 rounded-xl border border-purple-200">
-                  <p className="text-xs text-purple-600 mb-2">Icône personnalisée</p>
-                  <img src={form.buttonIcon} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-purple-300 mb-2" />
+                <div className="mb-3 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <p className="text-xs text-emerald-600 mb-2">Icône personnalisée</p>
+                  <img src={form.buttonIcon} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-emerald-300 mb-2" />
                   <div className="flex gap-2">
-                    <label className="cursor-pointer text-xs font-medium text-purple-600 bg-white px-4 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition-all">
+                    <label className="cursor-pointer text-xs font-medium text-emerald-600 bg-white px-4 py-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-all">
                       Changer
                       <input type="file" accept=".png,.gif" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0];
@@ -222,7 +222,7 @@ export default function ClientWidgetPage() {
               ) : (
                 <>
                   <div className="mb-3">
-                    <label className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium text-purple-600 bg-purple-50 px-4 py-2.5 rounded-xl border border-purple-200 hover:bg-purple-100 transition-all">
+                    <label className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition-all">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                       Upload PNG / GIF
                       <input type="file" accept=".png,.gif" className="hidden" onChange={async (e) => {
@@ -258,8 +258,8 @@ export default function ClientWidgetPage() {
                       { id: "robot2", label: "Robot 2", svg: '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><circle cx="9" cy="11" r="1.5"/><circle cx="15" cy="11" r="1.5"/><rect x="9" y="15" width="6" height="1.5" rx=".75"/><path d="M12 6V3"/><circle cx="12" cy="2" r="1"/></svg>' },
                     ].map((a) => (
                         <button key={a.id} type="button" onClick={() => setForm({ ...form, avatarIcon: a.id })}
-                          className={"flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all " + (form.avatarIcon === a.id ? "border-purple-500 bg-purple-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white" dangerouslySetInnerHTML={{ __html: a.svg }} />
+                          className={"flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all " + (form.avatarIcon === a.id ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-white" dangerouslySetInnerHTML={{ __html: a.svg }} />
                           <span className="text-xs font-medium text-gray-600">{a.label}</span>
                         </button>
                       ))}
@@ -299,7 +299,7 @@ export default function ClientWidgetPage() {
                 <span className="text-sm font-medium">Activer le mode proactif</span>
               </label>
               {form.proactiveEnabled && (
-                <div className="space-y-3 pl-4 border-l-2 border-purple-200">
+                <div className="space-y-3 pl-4 border-l-2 border-emerald-200">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Ouverture automatique (secondes)</label>
                     <input type="number" min="0" max="60" value={form.autoOpenDelay} onChange={(e) => setForm({ ...form, autoOpenDelay: +e.target.value })} className="w-full border rounded-lg px-3 py-1.5 text-sm" />
@@ -331,7 +331,7 @@ export default function ClientWidgetPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button type="submit" disabled={saving} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+              <button type="submit" disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
                 {saving ? "Enregistrement..." : "Enregistrer"}
               </button>
               <button type="button" onClick={() => setEditMode(false)} className="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>

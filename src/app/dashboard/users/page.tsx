@@ -93,7 +93,7 @@ export default function UsersPage() {
         </div>
         <button
           onClick={() => { setShowForm(true); setEditing(null); setForm({ email: "", password: "", name: "", role: "client", clientId: clients[0]?.id || "" }); }}
-          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all shadow-lg shadow-purple-200"
+          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all shadow-lg shadow-emerald-200"
         >
           <Plus size={16} /> Nouvel utilisateur
         </button>
@@ -111,24 +111,24 @@ export default function UsersPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" required={!editing} />
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" required={!editing} />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Mot de passe {editing && <span className="text-gray-400 font-normal">(laisser vide pour conserver)</span>}
                 </label>
-                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" required={!editing} />
+                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" required={!editing} />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" required />
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" required />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
-                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none">
+                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
                   <option value="client">Client</option>
                   <option value="admin">Administrateur</option>
                 </select>
@@ -137,7 +137,7 @@ export default function UsersPage() {
               {form.role === "client" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Client rattaché</label>
-                  <select value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" required>
+                  <select value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" required>
                     <option value="">— Sélectionner —</option>
                     {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -145,7 +145,7 @@ export default function UsersPage() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <button type="submit" className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all">
+                <button type="submit" className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all">
                   {editing ? "Enregistrer" : "Créer"}
                 </button>
                 <button type="button" onClick={handleCancel} className="text-gray-500 hover:text-gray-700 text-sm px-4">Annuler</button>
@@ -173,7 +173,7 @@ export default function UsersPage() {
                 <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
-                    u.role === "admin" ? "bg-purple-50 text-purple-700" : "bg-gray-50 text-gray-600"
+                    u.role === "admin" ? "bg-emerald-50 text-emerald-700" : "bg-gray-50 text-gray-600"
                   }`}>
                     {u.role === "admin" ? <Shield size={12} /> : <UserIcon size={12} />}
                     {u.role === "admin" ? "Admin" : "Client"}
@@ -182,7 +182,7 @@ export default function UsersPage() {
                 <td className="px-4 py-3 text-gray-500">{u.clientName}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1.5">
-                    <button onClick={() => handleEdit(u)} className="text-purple-600 hover:bg-purple-50 px-2 py-1 rounded text-xs font-medium transition-colors">
+                    <button onClick={() => handleEdit(u)} className="text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded text-xs font-medium transition-colors">
                       <Edit3 size={12} className="inline mr-1" />Modifier
                     </button>
                     <button onClick={() => handleDelete(u.id)} className="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-xs font-medium transition-colors">

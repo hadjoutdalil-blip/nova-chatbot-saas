@@ -3,10 +3,10 @@
 :root {
   --background: #f8f9fc;
   --foreground: #0f172a;
-  --primary: #7c3aed;
-  --primary-light: #8b5cf6;
-  --primary-dark: #6d28d9;
-  --primary-bg: #f5f3ff;
+  --primary: #059669;
+  --primary-light: #10b981;
+  --primary-dark: #047857;
+  --primary-bg: #ecfdf5;
   --surface: #ffffff;
   --border: #e2e8f0;
   --muted: #64748b;
@@ -38,10 +38,10 @@
   :root {
     --background: #0b1120;
     --foreground: #f1f5f9;
-    --primary: #a78bfa;
-    --primary-light: #c4b5fd;
-    --primary-dark: #8b5cf6;
-    --primary-bg: #1e1b4b;
+    --primary: #34d399;
+    --primary-light: #6ee7b7;
+    --primary-dark: #10b981;
+    --primary-bg: #022c22;
     --surface: #131c31;
     --border: #1e293b;
     --muted: #94a3b8;

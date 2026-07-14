@@ -11,7 +11,7 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const PLAN_COLORS: Record<string, string> = {
-  ecommerce: "bg-purple-100 text-purple-700",
+  ecommerce: "bg-emerald-100 text-emerald-700",
   support: "bg-indigo-100 text-indigo-700",
   realestate: "bg-blue-100 text-blue-700",
   custom: "bg-gray-100 text-gray-600",
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const topClients = [...byClient].sort((a, b) => (b.conversations || 0) - (a.conversations || 0)).slice(0, 10);
 
   const statCards = [
-    { label: "Clients", value: String(clients.length), icon: Building2, color: "from-purple-500 to-purple-400" },
+    { label: "Clients", value: String(clients.length), icon: Building2, color: "from-emerald-500 to-emerald-400" },
     { label: "Conversations", value: String(totalConversations), icon: MessageCircle, color: "from-blue-500 to-blue-400" },
     { label: "Entrées KB", value: String(totalKb), icon: BookOpen, color: "from-emerald-500 to-emerald-400" },
   ];
@@ -79,7 +79,7 @@ export default function DashboardPage() {
         {/* Plan distribution */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-card p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Building2 size={18} className="text-purple-600" />
+            <Building2 size={18} className="text-emerald-600" />
             <h2 className="font-semibold text-gray-900">Clients par pack</h2>
           </div>
           {Object.keys(planCounts).length === 0 ? (
@@ -96,7 +96,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-purple-500 rounded-full transition-all"
+                          className="h-full bg-emerald-500 rounded-full transition-all"
                           style={{ width: `${(count / clients.length) * 100}%` }}
                         />
                       </div>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                   <span className="text-sm font-medium text-gray-900 flex-1 truncate">{c.clientName}</span>
                   <span className="text-xs text-gray-500 whitespace-nowrap">{c.conversations} conv.</span>
                   <span className="text-xs text-gray-500 whitespace-nowrap">{c.kbCount} KB</span>
-                  <span className="text-xs font-semibold text-purple-700 whitespace-nowrap w-20 text-right">{(c.totalTokens || 0).toLocaleString()} tok.</span>
+                  <span className="text-xs font-semibold text-emerald-700 whitespace-nowrap w-20 text-right">{(c.totalTokens || 0).toLocaleString()} tok.</span>
                 </div>
               ))}
             </div>
@@ -141,7 +141,7 @@ export default function DashboardPage() {
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-card p-6">
         <div className="flex items-center gap-2 mb-1">
-          <Brain size={18} className="text-purple-600" />
+          <Brain size={18} className="text-emerald-600" />
           <h2 className="font-semibold text-gray-900">Utilisation IA par fournisseur / modèle</h2>
         </div>
         <p className="text-sm text-gray-400 mb-4">{totalTokens.toLocaleString()} tokens consommés</p>

@@ -293,7 +293,7 @@ export default function ClientKBPage() {
                 <input type="file" accept=".json" className="hidden" onChange={handleImport} disabled={importing} />
               </label>
             </div>
-            <button onClick={openAdd} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 shrink-0 flex items-center gap-1"><Plus size={15} /> Ajouter</button>
+            <button onClick={openAdd} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 shrink-0 flex items-center gap-1"><Plus size={15} /> Ajouter</button>
           </div>
 
           {loading ? (
@@ -313,7 +313,7 @@ export default function ClientKBPage() {
                       <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">{e.answer}</p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {e.category && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{e.category}</span>}
-                        {e.keywords && <span className="text-xs bg-purple-50 px-2 py-1 rounded-full text-purple-600">{e.keywords}</span>}
+                        {e.keywords && <span className="text-xs bg-emerald-50 px-2 py-1 rounded-full text-emerald-600">{e.keywords}</span>}
                         <span className={`text-xs px-2 py-1 rounded-full ${(e.priority ?? 5) >= 7 ? "bg-red-50 text-red-600" : (e.priority ?? 5) >= 4 ? "bg-yellow-50 text-yellow-700" : "bg-gray-50 text-gray-500"}`}>
                           P{e.priority ?? 5}
                         </span>
@@ -326,7 +326,7 @@ export default function ClientKBPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 ml-4 shrink-0">
-                      <button onClick={() => openEdit(e)} className="text-purple-600 hover:underline text-xs">Modifier</button>
+                      <button onClick={() => openEdit(e)} className="text-emerald-600 hover:underline text-xs">Modifier</button>
                       <button onClick={() => handleDelete(e.id)} className="text-red-500 hover:underline text-xs">Supprimer</button>
                     </div>
                   </div>
@@ -360,7 +360,7 @@ export default function ClientKBPage() {
         <div className="space-y-5 max-w-2xl">
           <div className="bg-white backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-              <Building2 size={18} className="text-purple-600" />
+              <Building2 size={18} className="text-emerald-600" />
               <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
             </div>
             <div>
@@ -371,11 +371,11 @@ export default function ClientKBPage() {
                   {contextChunks.map((chunk, i) => (
                     <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
                       <div className="flex items-center gap-2 min-w-0">
-                        <FileText size={14} className="text-purple-500 shrink-0" />
+                        <FileText size={14} className="text-emerald-500 shrink-0" />
                         <span className="text-sm text-gray-700 truncate">{chunk.name}</span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
+                        <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Visualiser">
                           <Eye size={14} />
                         </button>
                         <button onClick={() => downloadContent(chunk.content, chunk.name)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
@@ -386,9 +386,9 @@ export default function ClientKBPage() {
                   ))}
                 </div>
               )}
-              <textarea value={client?.siteContext || ""} onChange={(e) => setClient({ ...(client || {}), siteContext: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
+              <textarea value={client?.siteContext || ""} onChange={(e) => setClient({ ...(client || {}), siteContext: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
               <div className="flex justify-end mt-3">
-                <button onClick={handleSaveContext} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
+                <button onClick={handleSaveContext} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-200">
                   <Save size={14} /> {saving ? "Enregistrement..." : "Enregistrer le contexte"}
                 </button>
               </div>
@@ -398,10 +398,10 @@ export default function ClientKBPage() {
           <div className="bg-white backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div className="flex items-center gap-2">
-                <FileText size={18} className="text-purple-600" />
+                <FileText size={18} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Documents téléchargés</h2>
               </div>
-              <label className="flex items-center gap-2 text-xs font-medium text-purple-600 hover:text-purple-700 cursor-pointer transition-colors">
+              <label className="flex items-center gap-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer transition-colors">
                 <Upload size={14} /> {uploading ? "Upload..." : "Ajouter un fichier"}
                 <input type="file" accept=".txt,.csv,.json,.md" className="hidden" onChange={handleUpload} disabled={uploading} />
               </label>
@@ -416,10 +416,10 @@ export default function ClientKBPage() {
                   return (
                     <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={16} className="text-purple-500 shrink-0" />
+                        <FileText size={16} className="text-emerald-500 shrink-0" />
                         <span className="text-sm text-gray-700 truncate">{doc.originalName}</span>
                         <span className="text-xs text-gray-400 shrink-0">{(doc.fileSize / 1024).toFixed(1)} Ko</span>
-                        {doc.version > 1 && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">v{doc.version}</span>}
+                        {doc.version > 1 && <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">v{doc.version}</span>}
                         {doc.valid_from && <span className="text-xs text-gray-400 shrink-0">Du {new Date(doc.valid_from).toLocaleDateString("fr")}</span>}
                         {doc.valid_until ? (
                           <span className={"text-xs shrink-0 " + (isExpired ? "text-red-500" : "text-green-600")}>
@@ -428,7 +428,7 @@ export default function ClientKBPage() {
                         ) : null}
                       </div>
                       <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button onClick={() => setViewDoc({ title: doc.originalName, content: doc.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
+                        <button onClick={() => setViewDoc({ title: doc.originalName, content: doc.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Visualiser">
                           <Eye size={14} />
                         </button>
                         <button onClick={() => window.open(`/api/client-documents/${doc.id}/download`, "_blank")} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
@@ -444,7 +444,7 @@ export default function ClientKBPage() {
               </div>
             )}
             <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-              <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-200 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-all">
+              <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all">
                 <Search size={15} /> Tester le RAG
               </button>
               <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
@@ -468,7 +468,7 @@ export default function ClientKBPage() {
               <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{viewDoc.content}</pre>
             </div>
             <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100">
-              <button onClick={() => { downloadContent(viewDoc.content, viewDoc.title); setViewDoc(null); }} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-all">
+              <button onClick={() => { downloadContent(viewDoc.content, viewDoc.title); setViewDoc(null); }} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all">
                 <Download size={14} /> Télécharger
               </button>
             </div>
@@ -488,8 +488,8 @@ export default function ClientKBPage() {
             <div className="flex-1 overflow-auto p-6 space-y-4">
               <p className="text-sm text-gray-500">Posez une question pour vérifier que les documents contextuels sont bien indexés.</p>
               <div className="flex gap-2">
-                <input type="text" value={testQuestion} onChange={(e) => setTestQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleTestRag()} placeholder="Ex: Que contiennent les documents d'entreprise ?" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
-                <button onClick={handleTestRag} disabled={testing || !testQuestion.trim()} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-all disabled:opacity-50">
+                <input type="text" value={testQuestion} onChange={(e) => setTestQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleTestRag()} placeholder="Ex: Que contiennent les documents d'entreprise ?" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
+                <button onClick={handleTestRag} disabled={testing || !testQuestion.trim()} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all disabled:opacity-50">
                   <Search size={15} /> {testing ? "Recherche..." : "Tester"}
                 </button>
               </div>

@@ -287,7 +287,7 @@ export default function AppKBPage() {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-gray-900">Base de connaissances</h1>
         {tab === "kb" && (
-          <button onClick={() => { setShowForm(true); setEditing(null); setForm({ question: "", alt_questions: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "", source: "", source_url: "", valid_until: "" }) }} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all shadow-lg shadow-purple-200">
+          <button onClick={() => { setShowForm(true); setEditing(null); setForm({ question: "", alt_questions: "", answer: "", category: "", keywords: "", priority: 5, related_tags: "", icon: "", source: "", source_url: "", valid_until: "" }) }} className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all shadow-lg shadow-emerald-200">
             <Plus size={16} /> Nouvelle entrée
           </button>
         )}
@@ -321,11 +321,11 @@ export default function AppKBPage() {
                   <div className="grid grid-cols-[1fr_auto] gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Question principale</label>
-                      <input value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" required />
+                      <input value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Icône</label>
-                      <select value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="w-20 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none">
+                      <select value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="w-20 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
                         <option value="">—</option>
                         {ICONS.map((ic) => <option key={ic} value={ic}>{ic}</option>)}
                       </select>
@@ -335,59 +335,59 @@ export default function AppKBPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Questions alternatives</label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {form.alt_questions ? form.alt_questions.split(",").map((q, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs px-2.5 py-1 rounded-full">
+                        <span key={i} className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full">
                           {q.trim()}
-                          <button type="button" onClick={() => removeAltQuestion(i)} className="text-purple-400 hover:text-red-500">&times;</button>
+                          <button type="button" onClick={() => removeAltQuestion(i)} className="text-emerald-400 hover:text-red-500">&times;</button>
                         </span>
                       )) : null}
                     </div>
                     <div className="flex gap-2">
-                      <input value={altInput} onChange={(e) => setAltInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addAltQuestion(); } }} placeholder="Variante de question..." className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
-                      <button type="button" onClick={addAltQuestion} className="text-sm text-purple-600 hover:text-purple-800 font-medium px-3">+ Ajouter</button>
+                      <input value={altInput} onChange={(e) => setAltInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addAltQuestion(); } }} placeholder="Variante de question..." className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
+                      <button type="button" onClick={addAltQuestion} className="text-sm text-emerald-600 hover:text-emerald-800 font-medium px-3">+ Ajouter</button>
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Réponse</label>
-                    <textarea value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" required />
+                    <textarea value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" required />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                      <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} list="cats" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                      <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} list="cats" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       <datalist id="cats">{categories.map((c) => <option key={c} value={c} />)}</datalist>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Mots-clés</label>
-                      <input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} placeholder="séparés par des virgules" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                      <input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} placeholder="séparés par des virgules" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Priorité ({form.priority})</label>
-                      <input type="range" min={1} max={10} value={form.priority} onChange={(e) => setForm({ ...form, priority: +e.target.value })} className="w-full accent-purple-600" />
+                      <input type="range" min={1} max={10} value={form.priority} onChange={(e) => setForm({ ...form, priority: +e.target.value })} className="w-full accent-emerald-600" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tags associés</label>
-                    <input value={form.related_tags} onChange={(e) => setForm({ ...form, related_tags: e.target.value })} placeholder="séparés par des virgules" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                    <input value={form.related_tags} onChange={(e) => setForm({ ...form, related_tags: e.target.value })} placeholder="séparés par des virgules" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                   </div>
                   <div className="border-t border-gray-100 pt-4">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3">Source & validité</h3>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
-                        <input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} placeholder="ex: Documentation CETIM" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                        <input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} placeholder="ex: Documentation CETIM" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">URL source</label>
-                        <input value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} placeholder="https://..." className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                        <input value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} placeholder="https://..." className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Valide jusqu'au</label>
-                        <input value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} type="date" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                        <input value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} type="date" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-2">
-                    <button type="submit" className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all">
+                    <button type="submit" className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all">
                       {editing ? "Enregistrer" : "Ajouter"}
                     </button>
                     <button type="button" onClick={handleCancel} className="text-gray-500 hover:text-gray-700 text-sm px-4">Annuler</button>
@@ -401,9 +401,9 @@ export default function AppKBPage() {
             <div className="flex gap-3 mb-5 items-center">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher dans la KB..." className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white/80 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher dans la KB..." className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
               </div>
-              <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white/80 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none">
+              <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
                 <option value="">Toutes catégories</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -434,7 +434,7 @@ export default function AppKBPage() {
                       <p className="text-sm text-gray-600 mt-1.5 whitespace-pre-wrap line-clamp-2 leading-relaxed">{e.answer}</p>
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {e.category && <span className="text-xs bg-gray-100 px-2.5 py-1 rounded-full text-gray-500 font-medium">{e.category}</span>}
-                        {e.keywords && <span className="text-xs bg-purple-50 px-2.5 py-1 rounded-full text-purple-600 font-medium">{e.keywords}</span>}
+                        {e.keywords && <span className="text-xs bg-emerald-50 px-2.5 py-1 rounded-full text-emerald-600 font-medium">{e.keywords}</span>}
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${(e.priority ?? 5) >= 7 ? "bg-red-50 text-red-600" : (e.priority ?? 5) >= 4 ? "bg-yellow-50 text-yellow-700" : "bg-gray-50 text-gray-500"}`}>
                           P{e.priority ?? 5}
                         </span>
@@ -453,7 +453,7 @@ export default function AppKBPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 ml-4 shrink-0">
-                      <button onClick={() => handleEdit(e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all"><Edit3 size={15} /></button>
+                      <button onClick={() => handleEdit(e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"><Edit3 size={15} /></button>
                       <button onClick={() => handleDelete(e.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"><Trash2 size={15} /></button>
                     </div>
                   </div>
@@ -468,7 +468,7 @@ export default function AppKBPage() {
         <div className="space-y-5 max-w-2xl">
           <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-5">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-              <Building2 size={18} className="text-purple-600" />
+              <Building2 size={18} className="text-emerald-600" />
               <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
             </div>
             <div>
@@ -479,11 +479,11 @@ export default function AppKBPage() {
                   {contextChunks.map((chunk, i) => (
                     <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
                       <div className="flex items-center gap-2 min-w-0">
-                        <FileText size={14} className="text-purple-500 shrink-0" />
+                        <FileText size={14} className="text-emerald-500 shrink-0" />
                         <span className="text-sm text-gray-700 truncate">{chunk.name}</span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
+                        <button onClick={() => setViewDoc({ title: chunk.name, content: chunk.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Visualiser">
                           <Eye size={14} />
                         </button>
                         <button onClick={() => downloadContent(chunk.content, chunk.name)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
@@ -494,9 +494,9 @@ export default function AppKBPage() {
                   ))}
                 </div>
               )}
-              <textarea value={client?.siteContext || ""} onChange={(e) => setClient({ ...(client || {}), siteContext: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
+              <textarea value={client?.siteContext || ""} onChange={(e) => setClient({ ...(client || {}), siteContext: e.target.value })} rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" placeholder="Décrivez votre activité..." />
               <div className="flex justify-end mt-3">
-                <button onClick={handleSaveContext} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
+                <button onClick={handleSaveContext} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-200">
                   <Save size={14} /> {saving ? "Enregistrement..." : "Enregistrer le contexte"}
                 </button>
               </div>
@@ -506,10 +506,10 @@ export default function AppKBPage() {
           <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div className="flex items-center gap-2">
-                <FileText size={18} className="text-purple-600" />
+                <FileText size={18} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Documents téléchargés</h2>
               </div>
-              <label className="flex items-center gap-2 text-xs font-medium text-purple-600 hover:text-purple-700 cursor-pointer transition-colors">
+              <label className="flex items-center gap-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer transition-colors">
                 <Upload size={14} /> {uploading ? "Upload..." : "Ajouter un fichier"}
                 <input type="file" accept=".txt,.csv,.json,.md" className="hidden" onChange={handleUpload} disabled={uploading} />
               </label>
@@ -524,10 +524,10 @@ export default function AppKBPage() {
                   return (
                     <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={16} className="text-purple-500 shrink-0" />
+                        <FileText size={16} className="text-emerald-500 shrink-0" />
                         <span className="text-sm text-gray-700 truncate">{doc.originalName}</span>
                         <span className="text-xs text-gray-400 shrink-0">{(doc.fileSize / 1024).toFixed(1)} Ko</span>
-                        {doc.version > 1 && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">v{doc.version}</span>}
+                        {doc.version > 1 && <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">v{doc.version}</span>}
                         {doc.valid_from && <span className="text-xs text-gray-400 shrink-0">Du {new Date(doc.valid_from).toLocaleDateString("fr")}</span>}
                         {doc.valid_until ? (
                           <span className={"text-xs shrink-0 " + (isExpired ? "text-red-500" : "text-green-600")}>
@@ -536,7 +536,7 @@ export default function AppKBPage() {
                         ) : null}
                       </div>
                       <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button onClick={() => setViewDoc({ title: doc.originalName, content: doc.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="Visualiser">
+                        <button onClick={() => setViewDoc({ title: doc.originalName, content: doc.content })} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Visualiser">
                           <Eye size={14} />
                         </button>
                         <button onClick={() => window.open(`/api/client-documents/${doc.id}/download`, "_blank")} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Télécharger">
@@ -552,7 +552,7 @@ export default function AppKBPage() {
               </div>
             )}
             <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-              <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-200 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-all">
+              <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all">
                 <Search size={15} /> Tester le RAG
               </button>
               <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
@@ -576,7 +576,7 @@ export default function AppKBPage() {
               <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{viewDoc.content}</pre>
             </div>
             <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100">
-              <button onClick={() => { downloadContent(viewDoc.content, viewDoc.title); setViewDoc(null); }} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-all">
+              <button onClick={() => { downloadContent(viewDoc.content, viewDoc.title); setViewDoc(null); }} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all">
                 <Download size={14} /> Télécharger
               </button>
             </div>
@@ -596,8 +596,8 @@ export default function AppKBPage() {
             <div className="flex-1 overflow-auto p-6 space-y-4">
               <p className="text-sm text-gray-500">Posez une question pour vérifier que les documents contextuels sont bien indexés et trouvés par le moteur RAG.</p>
               <div className="flex gap-2">
-                <input type="text" value={testQuestion} onChange={(e) => setTestQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleTestRag()} placeholder="Ex: Que contiennent les documents d'entreprise ?" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
-                <button onClick={handleTestRag} disabled={testing || !testQuestion.trim()} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-all disabled:opacity-50">
+                <input type="text" value={testQuestion} onChange={(e) => setTestQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleTestRag()} placeholder="Ex: Que contiennent les documents d'entreprise ?" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
+                <button onClick={handleTestRag} disabled={testing || !testQuestion.trim()} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all disabled:opacity-50">
                   <Search size={15} /> {testing ? "Recherche..." : "Tester"}
                 </button>
               </div>
@@ -631,7 +631,7 @@ export default function AppKBPage() {
                           <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                <FileText size={14} className="text-purple-500" />
+                                <FileText size={14} className="text-emerald-500" />
                                 <span>{chunk.source}</span>
                                 {chunk.section && <span className="text-xs text-gray-400">/ {chunk.section}</span>}
                               </div>

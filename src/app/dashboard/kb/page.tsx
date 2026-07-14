@@ -115,7 +115,7 @@ export default function KBPage() {
           </div>
         </div>
         <div className="flex gap-3">
-          <button type="submit" className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700">
+          <button type="submit" className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700">
             {editing ? "Enregistrer" : "Ajouter"}
           </button>
           {editing && (
@@ -137,11 +137,11 @@ export default function KBPage() {
                   <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{e.answer}</p>
                   <div className="flex gap-2 mt-2">
                     {e.category && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{e.category}</span>}
-                    {e.keywords && <span className="text-xs bg-purple-50 px-2 py-1 rounded-full text-purple-600">{e.keywords}</span>}
+                    {e.keywords && <span className="text-xs bg-emerald-50 px-2 py-1 rounded-full text-emerald-600">{e.keywords}</span>}
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4">
-                  <button onClick={() => handleEdit(e)} className="text-purple-600 hover:underline text-xs">Modifier</button>
+                  <button onClick={() => handleEdit(e)} className="text-emerald-600 hover:underline text-xs">Modifier</button>
                   <button onClick={() => handleDelete(e.id)} className="text-red-500 hover:underline text-xs">Supprimer</button>
                 </div>
               </div>

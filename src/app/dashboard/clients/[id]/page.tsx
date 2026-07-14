@@ -223,7 +223,7 @@ export default function EditClientPage() {
   if (!form) return (
     <div className="flex items-center justify-center h-64">
       <div className="text-center animate-fadeIn">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center mx-auto mb-3">
           <span className="text-xl animate-spin">⏳</span>
         </div>
         <p className="text-gray-400 text-sm">Chargement...</p>
@@ -255,7 +255,7 @@ export default function EditClientPage() {
           <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
             <Card>
               <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
-                <Building2 size={18} className="text-purple-600" />
+                <Building2 size={18} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Informations générales</h2>
               </div>
               <div className="space-y-4">
@@ -264,7 +264,7 @@ export default function EditClientPage() {
                   <select
                     value={form.plan || "custom"}
                     onChange={(e) => setForm({ ...form, plan: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-150"
                   >
                     {PLANS.map((p) => (<option key={p.id} value={p.id}>{p.name} ({p.price})</option>))}
                   </select>
@@ -285,7 +285,7 @@ export default function EditClientPage() {
 
             <Card>
               <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
-                <FileText size={18} className="text-purple-600" />
+                <FileText size={18} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
               </div>
               <div className="space-y-4">
@@ -295,21 +295,21 @@ export default function EditClientPage() {
                     value={form.siteContext || ""}
                     onChange={(e) => setForm({ ...form, siteContext: e.target.value })}
                     rows={4}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-150"
                     placeholder="Décrivez l'activité de l'entreprise, ses services, son public cible..."
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Importer un fichier de contexte</label>
                   <div
-                    className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-purple-300 hover:bg-purple-50/30 transition-all duration-150 cursor-pointer group"
+                    className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-emerald-300 hover:bg-emerald-50/30 transition-all duration-150 cursor-pointer group"
                     onClick={() => document.getElementById("ctx-file")?.click()}
                   >
                     {importing ? (
                       <p className="text-sm text-gray-500">Import en cours...</p>
                     ) : (
                       <>
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-50 transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-2 group-hover:bg-emerald-50 transition-colors">
                           <span className="text-lg">📄</span>
                         </div>
                         <p className="text-sm text-gray-500 mb-0.5">Glissez ou cliquez pour importer</p>
@@ -333,70 +333,70 @@ export default function EditClientPage() {
           <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
             <Card>
               <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
-                <Brain size={18} className="text-purple-600" />
+                <Brain size={18} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Configuration IA</h2>
               </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Seuil QA (N1) : <span className="text-purple-600 font-semibold">{form.kbThreshold ?? 80}%</span>
+                      Seuil QA (N1) : <span className="text-emerald-600 font-semibold">{form.kbThreshold ?? 80}%</span>
                     </label>
                     <input
                       type="range" min={10} max={100}
                       value={form.kbThreshold ?? 80}
                       onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })}
-                      className="w-full accent-purple-600"
+                      className="w-full accent-emerald-600"
                     />
                     <div className="flex justify-between text-xs text-gray-400 mt-1"><span>10%</span><span>100%</span></div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Seuil RAG (N2) : <span className="text-purple-600 font-semibold">{form.ragThreshold ?? 72}%</span>
+                      Seuil RAG (N2) : <span className="text-emerald-600 font-semibold">{form.ragThreshold ?? 72}%</span>
                     </label>
                     <input
                       type="range" min={10} max={100}
                       value={form.ragThreshold ?? 72}
                       onChange={(e) => setForm({ ...form, ragThreshold: +e.target.value })}
-                      className="w-full accent-purple-600"
+                      className="w-full accent-emerald-600"
                     />
                     <div className="flex justify-between text-xs text-gray-400 mt-1"><span>10%</span><span>100%</span></div>
                   </div>
                 </div>
                 <div>
-                  <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
+                  <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium">
                     <Thermometer size={14} /> Paramètres avancés {showAdvanced ? "▲" : "▼"}
                   </button>
                 </div>
                 {showAdvanced && (
-                  <div className="space-y-4 pl-4 border-l-2 border-purple-100">
+                  <div className="space-y-4 pl-4 border-l-2 border-emerald-100">
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Temp. QA (N1)</label>
                         <input type="number" step={0.01} min={0} max={1} value={form.tempQA ?? 0.05} onChange={(e) => setForm({ ...form, tempQA: +e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Temp. RAG (N2)</label>
                         <input type="number" step={0.01} min={0} max={1} value={form.tempRAG ?? 0.10} onChange={(e) => setForm({ ...form, tempRAG: +e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Temp. Escalade (N3)</label>
                         <input type="number" step={0.01} min={0} max={1} value={form.tempEscalade ?? 0.20} onChange={(e) => setForm({ ...form, tempEscalade: +e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Max chars / section</label>
                         <input type="number" min={100} max={5000} step={100} value={form.chunkSize ?? 500} onChange={(e) => setForm({ ...form, chunkSize: +e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Top N chunks RAG</label>
                         <input type="number" min={1} max={20} value={form.topNChunks ?? 3} onChange={(e) => setForm({ ...form, topNChunks: +e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                     </div>
                   </div>
@@ -406,7 +406,7 @@ export default function EditClientPage() {
                   <select
                     value={form.relanceActive ? "true" : "false"}
                     onChange={(e) => setForm({ ...form, relanceActive: e.target.value === "true" })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-150"
                   >
                     <option value="true">Active</option>
                     <option value="false">Désactivée</option>
@@ -418,7 +418,7 @@ export default function EditClientPage() {
                     value={form.relanceText || ""}
                     onChange={(e) => setForm({ ...form, relanceText: e.target.value })}
                     rows={2}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-150"
                     placeholder="Exemple : Souhaitez-vous que je vous donne plus de détails sur ce sujet ?"
                   />
                 </div>
@@ -442,7 +442,7 @@ export default function EditClientPage() {
         {/* ── Stats ── */}
         {tab === "stats" && (
           <div className="grid grid-cols-3 gap-5">
-            <StatCard label="Entrées KB" value={stats.entries} icon={BookOpen} color="from-purple-500 to-purple-400" />
+            <StatCard label="Entrées KB" value={stats.entries} icon={BookOpen} color="from-emerald-500 to-emerald-400" />
             <StatCard label="Catégories" value={stats.categories} icon={BarChart3} color="from-blue-500 to-blue-400" />
             <StatCard label="Priorité moyenne" value={stats.avgPriority} icon={BarChart3} color="from-emerald-500 to-emerald-400" />
           </div>
@@ -467,7 +467,7 @@ export default function EditClientPage() {
             {analytics && (
               <>
                 <div className="grid grid-cols-3 gap-5">
-                  <StatCard label="Conversations" value={analytics.conversations.total} icon={MessageSquare} color="from-purple-500 to-purple-400" />
+                  <StatCard label="Conversations" value={analytics.conversations.total} icon={MessageSquare} color="from-emerald-500 to-emerald-400" />
                   <StatCard label="Taux satisfaction" value={analytics.satisfaction.total > 0 ? `${analytics.satisfaction.avgRating}/5` : "—"} icon={ThumbsUp} color="from-emerald-500 to-emerald-400" />
                   <StatCard label="Localisations" value={analytics.connectionsByLocation.length} icon={Globe} color="from-blue-500 to-blue-400" />
                 </div>
@@ -528,7 +528,7 @@ export default function EditClientPage() {
 
                 <Card>
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
-                    <MessageSquare size={18} className="text-purple-600" />
+                    <MessageSquare size={18} className="text-emerald-600" />
                     <h2 className="font-semibold text-gray-900">Conversations récentes</h2>
                   </div>
                   {analytics.recentConversations.length === 0 ? (
@@ -584,13 +584,13 @@ export default function EditClientPage() {
                     value={kbSearch}
                     onChange={(e) => setKbSearch(e.target.value)}
                     placeholder="Rechercher..."
-                    className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                    className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-150"
                   />
                 </div>
                 <select
                   value={kbCatFilter}
                   onChange={(e) => setKbCatFilter(e.target.value)}
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-150"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-150"
                 >
                   <option value="">Toutes catégories</option>
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -696,7 +696,7 @@ export default function EditClientPage() {
           <div className="max-w-2xl">
             <Card>
               <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
-                <FlaskConical size={18} className="text-purple-600" />
+                <FlaskConical size={18} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Tester le chatbot</h2>
               </div>
               <p className="text-gray-500 text-sm mb-5 leading-relaxed">
@@ -705,7 +705,7 @@ export default function EditClientPage() {
               <div className="flex gap-3">
                 <a
                   href={`/dashboard/clients/${id}/test`}
-                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-purple-600 text-white shadow-sm hover:bg-purple-700 active:bg-purple-800 px-6 py-2.5 text-sm rounded-xl"
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 px-6 py-2.5 text-sm rounded-xl"
                 >
                   Ouvrir la page de test
                 </a>
@@ -722,12 +722,12 @@ export default function EditClientPage() {
 
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <h3 className="font-medium text-sm text-gray-700 mb-4">Aperçu rapide</h3>
-                <div className="bg-gradient-to-br from-purple-50/80 via-white to-blue-50/80 rounded-xl p-6 border border-gray-100">
+                <div className="bg-gradient-to-br from-emerald-50/80 via-white to-blue-50/80 rounded-xl p-6 border border-gray-100">
                   <div className="flex items-center gap-3 mb-4">
                     {form.logo ? (
                       <img src={form.logo} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center shadow-sm">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center shadow-sm">
                         <span className="text-lg">🤖</span>
                       </div>
                     )}
@@ -740,7 +740,7 @@ export default function EditClientPage() {
                     Le chatbot est configurable par le client depuis son espace.
                   </p>
                   <p className="text-xs text-gray-400">
-                    Endpoint : <code className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-mono">/api/chat/{form.slug}</code>
+                    Endpoint : <code className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">/api/chat/{form.slug}</code>
                   </p>
                 </div>
               </div>
@@ -752,7 +752,7 @@ export default function EditClientPage() {
           <div className="max-w-2xl">
             <Card>
               <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
-                <CheckSquare size={18} className="text-purple-600" />
+                <CheckSquare size={18} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Évaluation des réponses</h2>
               </div>
               <p className="text-gray-500 text-sm mb-5 leading-relaxed">
@@ -761,7 +761,7 @@ export default function EditClientPage() {
               <div className="flex gap-3">
                 <a
                   href={`/dashboard/clients/${id}/evaluation`}
-                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-purple-600 text-white shadow-sm hover:bg-purple-700 active:bg-purple-800 px-6 py-2.5 text-sm rounded-xl"
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 px-6 py-2.5 text-sm rounded-xl"
                 >
                   Ouvrir la page d&apos;évaluation
                 </a>

@@ -35,7 +35,7 @@ export default function EvaluationPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold flex items-center gap-2">
-        <BarChart3 className="w-6 h-6 text-purple-600" /> Évaluation des réponses
+        <BarChart3 className="w-6 h-6 text-emerald-600" /> Évaluation des réponses
       </h1>
 
       {/* Stats cards */}

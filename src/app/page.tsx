@@ -27,7 +27,7 @@ const PLANS = [
 ];
 
 const colorMap: Record<string, string> = {
-  purple: "bg-purple-600 hover:bg-purple-700",
+  purple: "bg-emerald-600 hover:bg-emerald-700",
   indigo: "bg-indigo-600 hover:bg-indigo-700",
   blue: "bg-blue-600 hover:bg-blue-700",
 };
@@ -38,12 +38,12 @@ export default function LandingPage() {
       <header className="border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 no-underline text-gray-900">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white text-sm font-bold">N</div>
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-sm font-bold">N</div>
             <span className="font-bold text-lg">Nova Chatbot</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900 font-medium">Connexion</Link>
-            <a href="#pricing" className="text-sm bg-purple-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-purple-700 transition">
+            <a href="#pricing" className="text-sm bg-emerald-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-emerald-700 transition">
               Nos offres
             </a>
           </div>
@@ -53,14 +53,14 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-6 pt-24 pb-20 text-center">
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-gray-900 max-w-4xl mx-auto leading-tight">
           Un chatbot IA pour votre site web,{" "}
-          <span className="bg-gradient-to-r from-purple-600 to-indigo-500 bg-clip-text text-transparent">clé en main</span>
+          <span className="bg-gradient-to-r from-emerald-600 to-indigo-500 bg-clip-text text-transparent">clé en main</span>
         </h1>
         <p className="mt-6 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
           Je crée et déploie votre chatbot intelligent avec une base de connaissances adaptée à votre métier.
           Vous recevez un widget à installer sur votre site et un tableau de bord pour tout gérer.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
-          <a href="#pricing" className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold text-lg hover:bg-purple-700 shadow-lg shadow-purple-200 transition">
+          <a href="#pricing" className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-semibold text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">
             Voir les formules
           </a>
           <a href="#how" className="border border-gray-300 text-gray-700 px-8 py-3 rounded-xl font-semibold text-lg hover:bg-gray-50 transition">
@@ -85,13 +85,13 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {PLANS.map((plan) => (
-              <div key={plan.id} className={`relative rounded-2xl border p-6 flex flex-col bg-white ${plan.popular ? "ring-2 ring-purple-500 shadow-lg scale-105" : "shadow-sm"}`}>
+              <div key={plan.id} className={`relative rounded-2xl border p-6 flex flex-col bg-white ${plan.popular ? "ring-2 ring-emerald-500 shadow-lg scale-105" : "shadow-sm"}`}>
                 {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-semibold px-4 py-1 rounded-full whitespace-nowrap">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs font-semibold px-4 py-1 rounded-full whitespace-nowrap">
                     Le plus demandé
                   </span>
                 )}
-                <p className="text-sm text-purple-600 font-semibold mb-1">Pack</p>
+                <p className="text-sm text-emerald-600 font-semibold mb-1">Pack</p>
                 <h3 className="font-bold text-xl mb-1">{plan.name}</h3>
                 <p className="text-sm text-gray-500 mb-4">{plan.desc}</p>
                 <div className="mb-6">
@@ -119,7 +119,7 @@ export default function LandingPage() {
             <p className="text-gray-400 text-sm font-semibold mb-1">Pack</p>
             <h3 className="font-bold text-xl mb-1">Sur Mesure</h3>
             <p className="text-sm text-gray-500 mb-4">Vous avez un besoin spécifique ? Contactez-nous pour une solution adaptée à votre métier.</p>
-            <a href="mailto:contact@nova.dz?subject=Demande chatbot sur mesure" className="inline-block bg-purple-600 text-white px-8 py-2.5 rounded-xl font-semibold text-sm hover:bg-purple-700 transition">
+            <a href="mailto:contact@nova.dz?subject=Demande chatbot sur mesure" className="inline-block bg-emerald-600 text-white px-8 py-2.5 rounded-xl font-semibold text-sm hover:bg-emerald-700 transition">
               Contactez-nous
             </a>
           </div>
@@ -130,7 +130,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="bg-gray-50 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-10">
             <div className="flex-1">
-              <p className="text-purple-600 font-semibold text-sm tracking-wide uppercase">Cas client</p>
+              <p className="text-emerald-600 font-semibold text-sm tracking-wide uppercase">Cas client</p>
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">CETIM Algérie</h2>
               <p className="text-gray-500 mt-4 leading-relaxed">
                 CETIM Algérie utilise son chatbot pour répondre instantanément aux questions de ses clients
@@ -145,13 +145,13 @@ export default function LandingPage() {
             </div>
             <div className="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 w-full max-w-sm">
               <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">C</div>
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">C</div>
                 <div><p className="font-semibold text-sm">CETIM Algérie</p><p className="text-xs text-gray-400">Support client</p></div>
                 <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">En ligne</span>
               </div>
               <div className="space-y-3">
                 <div className="bg-gray-50 rounded-2xl rounded-bl-sm p-3 text-sm text-gray-700 max-w-[85%]">Bonjour, comment puis-je vous aider ?</div>
-                <div className="bg-purple-600 text-white rounded-2xl rounded-br-sm p-3 text-sm max-w-[85%] ml-auto">Quels sont les délais de livraison ?</div>
+                <div className="bg-emerald-600 text-white rounded-2xl rounded-br-sm p-3 text-sm max-w-[85%] ml-auto">Quels sont les délais de livraison ?</div>
                 <div className="bg-gray-50 rounded-2xl rounded-bl-sm p-3 text-sm text-gray-700 max-w-[85%]">Les délais sont de 5 à 7 jours ouvrés.</div>
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function LandingPage() {
               { n: "3", title: "Vous intégrez le widget", desc: "Collez le script sur votre site. Le chatbot est opérationnel et vous gérez tout depuis votre tableau de bord." },
             ].map((s, i) => (
               <div key={i} className="text-center">
-                <div className="w-14 h-14 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-2xl font-bold mx-auto mb-6">{s.n}</div>
+                <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-bold mx-auto mb-6">{s.n}</div>
                 <h3 className="font-semibold text-lg mb-2">{s.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
               </div>
@@ -200,12 +200,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-purple-600 to-indigo-600 py-20">
+      <section className="bg-gradient-to-br from-emerald-600 to-indigo-600 py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Prêt à équiper votre site d&apos;un chatbot intelligent ?</h2>
-          <p className="text-purple-200 mb-8 text-lg">Contactez-moi pour discuter de votre projet. Je vous réponds sous 24h.</p>
+          <p className="text-emerald-200 mb-8 text-lg">Contactez-moi pour discuter de votre projet. Je vous réponds sous 24h.</p>
           <div className="flex items-center justify-center gap-4">
-            <a href="mailto:contact@nova.dz" className="inline-block bg-white text-purple-600 px-8 py-3 rounded-xl font-bold hover:bg-purple-50 shadow-xl transition">
+            <a href="mailto:contact@nova.dz" className="inline-block bg-white text-emerald-600 px-8 py-3 rounded-xl font-bold hover:bg-emerald-50 shadow-xl transition">
               Contactez-nous
             </a>
             <a href="#pricing" className="inline-block border border-white/30 text-white px-8 py-3 rounded-xl font-bold hover:bg-white/10 transition">

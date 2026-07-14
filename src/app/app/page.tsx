@@ -34,7 +34,7 @@ export default function AppDashboard() {
       <div className="grid grid-cols-3 gap-5 mb-8">
         <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-elevated">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
               <BookOpen size={20} />
             </div>
           </div>
@@ -65,7 +65,7 @@ export default function AppDashboard() {
       <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-elevated mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Brain size={18} className="text-purple-600" />
+            <Brain size={18} className="text-emerald-600" />
             <h2 className="font-semibold text-gray-900">Consommation IA — {totals.month}</h2>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -126,12 +126,12 @@ export default function AppDashboard() {
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h2>
       <div className="grid grid-cols-2 gap-5">
         <button onClick={() => router.push("/app/kb")} className="group bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-left hover:shadow-lg transition-all hover:-translate-y-0.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white mb-4 shadow-lg shadow-purple-200">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white mb-4 shadow-lg shadow-emerald-200">
             <BookOpen size={22} />
           </div>
-          <p className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">Gérer ma base de connaissances</p>
+          <p className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">Gérer ma base de connaissances</p>
           <p className="text-sm text-gray-400 mt-1">Ajoutez et modifiez les questions/réponses de votre chatbot.</p>
-          <div className="flex items-center gap-1 mt-3 text-sm font-medium text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 mt-3 text-sm font-medium text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
             Accéder <ArrowRight size={14} />
           </div>
         </button>

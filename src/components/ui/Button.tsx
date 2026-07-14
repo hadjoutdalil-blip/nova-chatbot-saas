@@ -4,7 +4,7 @@ import { ButtonHTMLAttributes, forwardRef } from "react";
 
 const variants = {
   primary:
-    "bg-purple-600 text-white shadow-sm hover:bg-purple-700 active:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed",
+    "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed",
   secondary:
     "bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed",
   ghost:

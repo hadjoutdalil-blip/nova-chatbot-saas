@@ -97,7 +97,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={handleSave} disabled={saving} className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50">
             {saving ? "Enregistrement..." : "Enregistrer"}
           </button>
           {saved && <span className="text-green-600 text-sm">✓ Enregistré</span>}

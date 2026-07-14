@@ -163,7 +163,7 @@ export default function AppWidgetPage() {
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Message :</span><span className="text-gray-600">{form.buttonLabel || "—"}</span></div>
               <div className="flex items-center gap-2 text-sm"><span className="text-gray-400 w-24">Proactif :</span><span className={form.proactiveEnabled ? "text-green-600 font-medium" : "text-gray-400"}>{form.proactiveEnabled ? "Activé" : "Désactivé"}</span></div>
             </div>
-            <button onClick={() => setEditMode(true)} className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all shadow-lg shadow-purple-200">
+            <button onClick={() => setEditMode(true)} className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all shadow-lg shadow-emerald-200">
               Modifier
             </button>
           </div>
@@ -172,11 +172,11 @@ export default function AppWidgetPage() {
             {saveError && <p className="text-red-500 text-sm bg-red-50 px-4 py-2 rounded-lg">{saveError}</p>}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre de bienvenue</label>
-              <input value={form.welcomeTitle} onChange={(e) => setForm({ ...form, welcomeTitle: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
+              <input value={form.welcomeTitle} onChange={(e) => setForm({ ...form, welcomeTitle: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Sous-titre</label>
-              <input value={form.welcomeSub} onChange={(e) => setForm({ ...form, welcomeSub: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
+              <input value={form.welcomeSub} onChange={(e) => setForm({ ...form, welcomeSub: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
             </div>
 
             {/* Animation selector */}
@@ -187,8 +187,8 @@ export default function AppWidgetPage() {
                   const Icon = a.icon;
                   return (
                     <button key={a.id} type="button" onClick={() => setForm({ ...form, buttonAnimation: a.id })}
-                      className={"flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all " + (form.buttonAnimation === a.id ? "border-purple-500 bg-purple-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
-                      <div className={"w-9 h-9 rounded-xl flex items-center justify-center " + (form.buttonAnimation === a.id ? "bg-purple-100 text-purple-600" : "bg-gray-100 text-gray-500")}>
+                      className={"flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all " + (form.buttonAnimation === a.id ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
+                      <div className={"w-9 h-9 rounded-xl flex items-center justify-center " + (form.buttonAnimation === a.id ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-500")}>
                         <Icon size={18} />
                       </div>
                       <span className="text-[11px] font-medium text-gray-600">{a.label}</span>
@@ -203,11 +203,11 @@ export default function AppWidgetPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Icône du bouton</label>
 
               {hasCustomIcon ? (
-                <div className="mb-3 p-4 bg-purple-50 rounded-xl border border-purple-200">
-                  <p className="text-xs text-purple-600 mb-2">Icône personnalisée</p>
-                  <img src={form.buttonIcon} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-purple-300 mb-2" />
+                <div className="mb-3 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <p className="text-xs text-emerald-600 mb-2">Icône personnalisée</p>
+                  <img src={form.buttonIcon} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-emerald-300 mb-2" />
                   <div className="flex gap-2">
-                    <label className="cursor-pointer text-xs font-medium text-purple-600 bg-white px-4 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition-all">
+                    <label className="cursor-pointer text-xs font-medium text-emerald-600 bg-white px-4 py-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-all">
                       Changer
                       <input type="file" accept=".png,.gif" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0];
@@ -232,7 +232,7 @@ export default function AppWidgetPage() {
               ) : (
                 <>
                   <div className="mb-3">
-                    <label className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium text-purple-600 bg-purple-50 px-4 py-2.5 rounded-xl border border-purple-200 hover:bg-purple-100 transition-all">
+                    <label className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition-all">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                       Upload PNG / GIF
                       <input type="file" accept=".png,.gif" className="hidden" onChange={async (e) => {
@@ -251,8 +251,8 @@ export default function AppWidgetPage() {
                   <div className={"grid " + avatarGridCols + " gap-2"}>
                     {avatarOptions.map((a) => (
                       <button key={a.id} type="button" onClick={() => setForm({ ...form, avatarIcon: a.id })}
-                        className={"flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all " + (form.avatarIcon === a.id ? "border-purple-500 bg-purple-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white" dangerouslySetInnerHTML={{ __html: a.svg }} />
+                        className={"flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all " + (form.avatarIcon === a.id ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50")}>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-white" dangerouslySetInnerHTML={{ __html: a.svg }} />
                         <span className="text-xs font-medium text-gray-600">{a.label}</span>
                       </button>
                     ))}
@@ -264,21 +264,21 @@ export default function AppWidgetPage() {
             {/* Button label */}
             <div className="border-t border-gray-100 pt-4">
               <label className="flex items-center gap-2.5 mb-3">
-                <input type="checkbox" checked={showButtonLabel} onChange={(e) => setShowButtonLabel(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                <input type="checkbox" checked={showButtonLabel} onChange={(e) => setShowButtonLabel(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                 <span className="text-sm text-gray-700 font-medium">
-                  <MessageSquare size={14} className="inline mr-1.5 text-purple-500" />
+                  <MessageSquare size={14} className="inline mr-1.5 text-emerald-500" />
                   Afficher un message d&apos;accueil sur le bouton
                 </span>
               </label>
               {showButtonLabel && (
-                <div className="pl-6 border-l-2 border-purple-100 space-y-3">
+                <div className="pl-6 border-l-2 border-emerald-100 space-y-3">
                   <input value={form.buttonLabel} onChange={(e) => setForm({ ...form, buttonLabel: e.target.value })}
                     placeholder="Une question ? Besoin d'aide ?"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Disparaît après (secondes)</label>
                     <input type="number" min="2" max="30" value={form.buttonLabelDuration} onChange={(e) => setForm({ ...form, buttonLabelDuration: +e.target.value })}
-                      className="w-24 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
+                      className="w-24 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
                   </div>
                 </div>
               )}
@@ -287,48 +287,48 @@ export default function AppWidgetPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Position</label>
-                <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none">
+                <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
                   <option value="right">Droite</option>
                   <option value="left">Gauche</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Marge bas (px)</label>
-                <input type="number" value={form.marginBottom} onChange={(e) => setForm({ ...form, marginBottom: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                <input type="number" value={form.marginBottom} onChange={(e) => setForm({ ...form, marginBottom: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Marge {form.position === "right" ? "droite" : "gauche"} (px)</label>
-                <input type="number" value={form.marginRight} onChange={(e) => setForm({ ...form, marginRight: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                <input type="number" value={form.marginRight} onChange={(e) => setForm({ ...form, marginRight: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
               </div>
             </div>
 
             <label className="flex items-center gap-2.5 py-1">
-              <input type="checkbox" checked={form.showBrand} onChange={(e) => setForm({ ...form, showBrand: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+              <input type="checkbox" checked={form.showBrand} onChange={(e) => setForm({ ...form, showBrand: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
               <span className="text-sm text-gray-700">Afficher &quot;Propulsé par Nova&quot;</span>
             </label>
 
             <div className="border-t border-gray-100 pt-5 mt-4">
               <div className="flex items-center gap-2 mb-4">
-                <Bell size={16} className="text-purple-600" />
+                <Bell size={16} className="text-emerald-600" />
                 <h3 className="font-semibold text-sm text-gray-800">Engagement visiteur</h3>
               </div>
 
               <label className="flex items-center gap-2.5 mb-4">
-                <input type="checkbox" checked={form.proactiveEnabled} onChange={(e) => setForm({ ...form, proactiveEnabled: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                <input type="checkbox" checked={form.proactiveEnabled} onChange={(e) => setForm({ ...form, proactiveEnabled: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                 <span className="text-sm text-gray-700 font-medium">Activer le mode proactif</span>
               </label>
 
               {form.proactiveEnabled && (
-                <div className="space-y-4 pl-6 border-l-2 border-purple-100">
+                <div className="space-y-4 pl-6 border-l-2 border-emerald-100">
                   <div className="flex items-center gap-3">
                     <Timer size={14} className="text-gray-400" />
                     <div className="flex-1">
                       <label className="block text-sm text-gray-600 mb-1">Ouverture automatique (secondes)</label>
                       <input type="number" min="0" max="60" value={form.autoOpenDelay} onChange={(e) => setForm({ ...form, autoOpenDelay: +e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                     </div>
                   </div>
 
@@ -337,14 +337,14 @@ export default function AppWidgetPage() {
                     <div className="flex-1">
                       <label className="block text-sm text-gray-600 mb-1">Déclencheur au scroll (%)</label>
                       <input type="number" min="0" max="100" value={form.scrollTrigger} onChange={(e) => setForm({ ...form, scrollTrigger: +e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       <p className="text-xs text-gray-400 mt-1">0 = désactivé</p>
                     </div>
                   </div>
 
                   <label className="flex items-center gap-2.5">
                     <MousePointer2 size={14} className="text-gray-400" />
-                    <input type="checkbox" checked={form.exitIntent} onChange={(e) => setForm({ ...form, exitIntent: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                    <input type="checkbox" checked={form.exitIntent} onChange={(e) => setForm({ ...form, exitIntent: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                     <span className="text-sm text-gray-700">Détecter la sortie de page</span>
                   </label>
 
@@ -355,7 +355,7 @@ export default function AppWidgetPage() {
                     </div>
 
                     <label className="flex items-center gap-2.5 mb-3">
-                      <input type="checkbox" checked={form.showNotification} onChange={(e) => setForm({ ...form, showNotification: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                      <input type="checkbox" checked={form.showNotification} onChange={(e) => setForm({ ...form, showNotification: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                       <span className="text-sm text-gray-700">Afficher une notification</span>
                     </label>
 
@@ -364,12 +364,12 @@ export default function AppWidgetPage() {
                         <label className="block text-sm text-gray-600 mb-1">Texte de la notification</label>
                         <input value={form.notificationText} onChange={(e) => setForm({ ...form, notificationText: e.target.value })}
                           placeholder="Une question ?"
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" />
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
                       </div>
                     )}
 
                     <label className="flex items-center gap-2.5">
-                      <input type="checkbox" checked={form.sendGreeting} onChange={(e) => setForm({ ...form, sendGreeting: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                      <input type="checkbox" checked={form.sendGreeting} onChange={(e) => setForm({ ...form, sendGreeting: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                       <span className="text-sm text-gray-700">Envoyer un message de bienvenue à l&apos;ouverture</span>
                     </label>
                   </div>
@@ -378,7 +378,7 @@ export default function AppWidgetPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button type="submit" disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
+              <button type="submit" disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-200">
                 <Save size={16} /> {saving ? "Enregistrement..." : "Enregistrer"}
               </button>
               <button type="button" onClick={() => setEditMode(false)} className="text-gray-500 hover:text-gray-700 text-sm px-4">Annuler</button>

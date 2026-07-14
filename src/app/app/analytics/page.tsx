@@ -76,7 +76,7 @@ const METRIC_INFO: Record<string, { title: string; tag: string; tagCls: string; 
     improve: "Personnalisez le ton des réponses, proposez un transfert humain après 2 échecs, ajoutez de la chaleur dans les messages.",
   },
   conversion: {
-    title: "Taux de conversion", tag: "Métier", tagCls: "bg-purple-100 text-purple-700",
+    title: "Taux de conversion", tag: "Métier", tagCls: "bg-emerald-100 text-emerald-700",
     desc: "Pourcentage de sessions qui aboutissent à une demande de contact commercial (devis, appel, rendez-vous).",
     good: "> 10%", medium: "5-10%", bad: "< 5%",
     improve: "Proposez proactivement un devis, ajoutez un bouton 'Être rappelé', facilitez la prise de contact en fin de session.",
@@ -272,7 +272,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -286,7 +286,7 @@ export default function AnalyticsPage() {
     { key: "sessions", label: "Sessions", value: kpi.sessions, fmt: (v: number) => v.toString(), sub: `${totals.total} session${totals.total > 1 ? "s" : ""}`, badge: "Engagement", badgeCls: "bg-blue-100 text-blue-700", icon: "💬" },
     { key: "fcr", label: "Taux résolution (FCR)", value: kpi.fcr, fmt: (v: number) => v + "%", sub: `${kpi.resolvedCount} résolue${kpi.resolvedCount > 1 ? "s" : ""}`, badge: "Qualité", badgeCls: "bg-green-100 text-green-700", icon: "✅" },
     { key: "csat", label: "CSAT moyen", value: kpi.csat, fmt: (v: number) => v.toFixed(1) + "/5", sub: `Basé sur ${totals.total} sessions`, badge: "Satisfaction", badgeCls: "bg-amber-100 text-amber-700", icon: "⭐" },
-    { key: "conversion", label: "Taux conversion", value: kpi.conversion, fmt: (v: number) => v + "%", sub: `${kpi.convertedCount} conversion${kpi.convertedCount > 1 ? "s" : ""}`, badge: "Métier", badgeCls: "bg-purple-100 text-purple-700", icon: "📈" },
+    { key: "conversion", label: "Taux conversion", value: kpi.conversion, fmt: (v: number) => v + "%", sub: `${kpi.convertedCount} conversion${kpi.convertedCount > 1 ? "s" : ""}`, badge: "Métier", badgeCls: "bg-emerald-100 text-emerald-700", icon: "📈" },
   ];
 
   const funnelTotal = charts.funnel["widget_opened"] || 1;
@@ -322,8 +322,8 @@ export default function AnalyticsPage() {
               onClick={() => setPeriod(p)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                 period === p
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-purple-300"
+                  ? "bg-emerald-600 text-white shadow-md"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-emerald-300"
               }`}
             >
               {p === "today" ? "Aujourd'hui" : p === "7d" ? "7 jours" : "30 jours"}
@@ -344,7 +344,7 @@ export default function AnalyticsPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-2">
               {item.label}
               <button
-                className="ml-1 text-gray-300 hover:text-purple-600 align-text-top text-sm"
+                className="ml-1 text-gray-300 hover:text-emerald-600 align-text-top text-sm"
                 onClick={() => setInfoMetric(item.key)}
               >ⓘ</button>
             </p>
@@ -357,7 +357,7 @@ export default function AnalyticsPage() {
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-5">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
           📈 Évolution des sessions
-          <button className="text-gray-300 hover:text-purple-600 text-sm" onClick={() => setInfoMetric("sessions")}>ⓘ</button>
+          <button className="text-gray-300 hover:text-emerald-600 text-sm" onClick={() => setInfoMetric("sessions")}>ⓘ</button>
         </h3>
         <p className="text-xs text-gray-400 mb-3">Nombre de sessions par jour et taux de résolution (FCR)</p>
         <canvas id="chartEvolution" ref={chartEvolutionRef} style={{ maxHeight: 280 }} />
@@ -367,7 +367,7 @@ export default function AnalyticsPage() {
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
             📊 Résolution vs escalade vs abandon
-            <button className="text-gray-300 hover:text-purple-600 text-sm" onClick={() => setInfoMetric("fcr")}>ⓘ</button>
+            <button className="text-gray-300 hover:text-emerald-600 text-sm" onClick={() => setInfoMetric("fcr")}>ⓘ</button>
           </h3>
           <p className="text-xs text-gray-400 mb-3">Répartition des issues par semaine</p>
           <canvas id="chartResolution" ref={chartResolutionRef} style={{ maxHeight: 260 }} />
@@ -375,7 +375,7 @@ export default function AnalyticsPage() {
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
             🧩 Catégories de demandes
-            <button className="text-gray-300 hover:text-purple-600 text-sm" onClick={() => setInfoMetric("csat")}>ⓘ</button>
+            <button className="text-gray-300 hover:text-emerald-600 text-sm" onClick={() => setInfoMetric("csat")}>ⓘ</button>
           </h3>
           <p className="text-xs text-gray-400 mb-3">Répartition des sujets traités</p>
           <canvas id="chartCategories" ref={chartCategoriesRef} style={{ maxHeight: 260 }} />
@@ -386,7 +386,7 @@ export default function AnalyticsPage() {
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
             🔍 Top 5 intents non reconnus
-            <button className="text-gray-300 hover:text-purple-600 text-sm" onClick={() => setInfoMetric("fcr")}>ⓘ</button>
+            <button className="text-gray-300 hover:text-emerald-600 text-sm" onClick={() => setInfoMetric("fcr")}>ⓘ</button>
           </h3>
           <p className="text-xs text-gray-400 mb-3">Demandes que le chatbot n&apos;a pas su comprendre</p>
           <canvas id="chartFallback" ref={chartFallbackRef} style={{ maxHeight: 260 }} />
@@ -394,7 +394,7 @@ export default function AnalyticsPage() {
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
             ⭐ Évolution des feedbacks
-            <button className="text-gray-300 hover:text-purple-600 text-sm" onClick={() => setInfoMetric("csat")}>ⓘ</button>
+            <button className="text-gray-300 hover:text-emerald-600 text-sm" onClick={() => setInfoMetric("csat")}>ⓘ</button>
           </h3>
           <p className="text-xs text-gray-400 mb-3">Avis positifs, négatifs et sans avis par semaine</p>
           <canvas id="chartFeedback" ref={chartFeedbackRef} style={{ maxHeight: 260 }} />
@@ -404,7 +404,7 @@ export default function AnalyticsPage() {
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-5">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
           🥾 Entonnoir du parcours utilisateur
-          <button className="text-gray-300 hover:text-purple-600 text-sm" onClick={() => setInfoMetric("conversion")}>ⓘ</button>
+          <button className="text-gray-300 hover:text-emerald-600 text-sm" onClick={() => setInfoMetric("conversion")}>ⓘ</button>
         </h3>
         <p className="text-xs text-gray-400 mb-4">Taux de passage à chaque étape — visualisez où les clients décrochent</p>
         <div className="flex flex-col gap-2">
@@ -429,7 +429,7 @@ export default function AnalyticsPage() {
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
           🕐 Heatmap des heures de pic
-          <button className="text-gray-300 hover:text-purple-600 text-sm">ⓘ</button>
+          <button className="text-gray-300 hover:text-emerald-600 text-sm">ⓘ</button>
         </h3>
         <p className="text-xs text-gray-400 mb-3">Intensité d&apos;utilisation par jour de la semaine et heure</p>
         <div className="overflow-x-auto">

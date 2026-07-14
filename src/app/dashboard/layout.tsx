@@ -56,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav className="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
         <div className="p-5 border-b border-gray-50">
           <Link href="/dashboard" className="flex items-center gap-2.5 no-underline">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-400 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white text-sm font-bold shadow-sm">
               N
             </div>
             <div>
@@ -76,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 no-underline ${
                   isActive
-                    ? "bg-purple-50 text-purple-700 shadow-sm"
+                    ? "bg-emerald-50 text-emerald-700 shadow-sm"
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >

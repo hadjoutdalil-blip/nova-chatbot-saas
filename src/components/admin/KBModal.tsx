@@ -112,15 +112,15 @@ export default function KBModal({ open, onClose, onSave, initialData, categories
             <label className="block text-sm font-medium mb-1">Questions alternatives</label>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {form.alt_questions ? form.alt_questions.split(",").map((q, i) => (
-                <span key={i} className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full">
+                <span key={i} className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded-full">
                   {q.trim()}
-                  <button type="button" onClick={() => removeAltQuestion(i)} className="text-purple-400 hover:text-red-500">&times;</button>
+                  <button type="button" onClick={() => removeAltQuestion(i)} className="text-emerald-400 hover:text-red-500">&times;</button>
                 </span>
               )) : null}
             </div>
             <div className="flex gap-2">
               <input value={altInput} onChange={(e) => setAltInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addAltQuestion(); } }} placeholder="Variante de question..." className="flex-1 border rounded-lg px-3 py-2 text-sm" />
-              <button type="button" onClick={addAltQuestion} className="text-sm text-purple-600 hover:text-purple-800 font-medium">+ Ajouter</button>
+              <button type="button" onClick={addAltQuestion} className="text-sm text-emerald-600 hover:text-emerald-800 font-medium">+ Ajouter</button>
             </div>
           </div>
 
@@ -157,7 +157,7 @@ export default function KBModal({ open, onClose, onSave, initialData, categories
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={saving} className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+            <button type="submit" disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
               {saving ? "Enregistrement..." : "Enregistrer"}
             </button>
             <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>

@@ -77,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!payload) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 flex">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-blue-50/30 flex">
       <nav className="w-64 bg-white/80 backdrop-blur-xl border-r border-white/20 p-6 flex flex-col shrink-0">
         <Link href="/app" className="flex items-center gap-3 mb-8 no-underline">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg" style={{ backgroundColor: client?.primaryColor || "#7c3aed" }}>
@@ -97,7 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  active ? "bg-purple-100/80 text-purple-700 shadow-sm" : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+                  active ? "bg-emerald-100/80 text-emerald-700 shadow-sm" : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
                 }`}
               >
                 <Icon size={18} />

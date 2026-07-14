@@ -199,7 +199,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => handleToggleActive(entry)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title={entry.isActive ? "Désactiver" : "Activer"}>
+                    <button onClick={() => handleToggleActive(entry)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title={entry.isActive ? "Désactiver" : "Activer"}>
                       {entry.isActive ? <Power size={14} /> : <PowerOff size={14} />}
                     </button>
                     <button onClick={() => openEdit(entry)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Modifier">
@@ -221,7 +221,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg m-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <Key size={18} className="text-purple-600" />
+                <Key size={18} className="text-emerald-600" />
                 <h3 className="font-semibold text-gray-900">{modal.edit ? "Modifier la clé" : "Ajouter une clé"}</h3>
               </div>
               <button onClick={() => setModal({ open: false })} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
@@ -236,7 +236,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                     value={form.key}
                     onChange={(e) => { setForm({ ...form, key: e.target.value }); setTestResult({}); }}
                     type="password"
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                     placeholder="gsk_..., csk_..., xai-..., AIza..."
                   />
                   <button type="button" onClick={testKey} disabled={testResult.loading || !form.key} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50">
@@ -252,7 +252,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                   <select
                     value={form.provider}
                     onChange={(e) => { setForm({ ...form, provider: e.target.value, model: "" }); setTestResult({}); }}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                   >
                     <option value="">Détection auto</option>
                     {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -263,7 +263,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                   <input
                     value={form.label}
                     onChange={(e) => setForm({ ...form, label: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                     placeholder="Ex: Clé principale"
                   />
                 </div>
@@ -273,7 +273,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                 <select
                   value={form.model}
                   onChange={(e) => setForm({ ...form, model: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                 >
                   <option value="">Modèle par défaut du client</option>
                   {(PROVIDERS.find(p => p.id === form.provider)?.models || []).map((m) => <option key={m} value={m}>{m}</option>)}
@@ -287,7 +287,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                   type="range" min={0} max={100_000_000} step={1_000_000}
                   value={form.monthlyLimit}
                   onChange={(e) => setForm({ ...form, monthlyLimit: +e.target.value })}
-                  className="w-full accent-purple-600"
+                  className="w-full accent-emerald-600"
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-0.5">
                   <span>0 (illimité)</span>
@@ -300,7 +300,7 @@ export default function ApiKeysManager({ clientId, token }: Props) {
                   id="isActive"
                   checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <label htmlFor="isActive" className="text-sm text-gray-700">Clé active</label>
               </div>
