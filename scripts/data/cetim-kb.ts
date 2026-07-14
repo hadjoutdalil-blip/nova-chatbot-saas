@@ -2239,7 +2239,7 @@ export const KB: CETIMEntry[] = [
     "tag": "chatbot_info",
     "icon": "🤖",
     "cat": "Contact & Commercial",
-    "priority": 8,
+    "priority": 5,
     "related_tags": [
       "contact_cetim",
       "activites_cetim"
@@ -2249,13 +2249,7 @@ export const KB: CETIMEntry[] = [
       "comment fonctionne cet assistant cetim",
       "créer un chatbot similaire cetim",
       "transformation digitale cetim",
-      "outils digitaux cetim",
-      "qui vous a créé",
-      "qui t'a créé",
-      "qui a développé cet assistant",
-      "qui a créé cet assistant",
-      "développé par qui",
-      "créé par qui"
+      "outils digitaux cetim"
     ],
     "kw": [
       "chatbot",
@@ -2264,17 +2258,10 @@ export const KB: CETIMEntry[] = [
       "IA",
       "intelligence artificielle",
       "digital",
-      "numérique",
-      "créé",
-      "développé",
-      "développeur",
-      "ESTIN",
-      "filiale",
-      "groupe",
-      "redistribution"
+      "numérique"
     ],
     "short_resp": "🤖 Assistant virtuel interne CETIM | contact@cetim-dz.com pour projets digitaux",
-    "resp": "🤖 **À propos de cet Assistant**\n\nCet assistant virtuel a été développé par le CETIM Algérie en collaboration avec l'ESTIN (École Supérieure en Technologies de l'Information).\n\n**Objectif** : Améliorer l'accès à l'information et l'orientation clients.\n\n**Déploiement** : Fort de cette expérience, le CETIM envisage de redistribuer cette solution chatbot aux filiales du groupe GICA.\n\n**Fonctionnalités** : Réponses instantanées 24/7 · Orientation vers le bon service · Informations sur les prestations et procédures\n\n**Limites** : Pour demandes complexes ou urgentes → contact@cetim-dz.com\n\n📧 **Contact général** : contact@cetim-dz.com\n📧 **DTC** : dtc.cetim@gmail.com"
+    "resp": "🤖 **À propos de cet Assistant**\n\nCet assistant virtuel est un outil interne CETIM pour améliorer l'accès à l'information et l'orientation clients.\n\n**Fonctionnalités** : Réponses instantanées 24/7 · Orientation vers le bon service · Informations sur les prestations et procédures\n\n**Limites** : Pour demandes complexes ou urgentes → contact@cetim-dz.com\n\n📧 **Contact général** : contact@cetim-dz.com\n📧 **DTC** : dtc.cetim@gmail.com"
   },
   {
     "tag": "clientele",
