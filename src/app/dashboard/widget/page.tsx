@@ -17,6 +17,7 @@ interface WidgetConfig {
   buttonLabel: string;
   buttonLabelDuration: number;
   clientId: string;
+  aiColor: string;
 }
 
 export default function WidgetPage() {
@@ -35,6 +36,7 @@ export default function WidgetPage() {
     buttonLabel: "",
     buttonLabelDuration: 8,
     avatarIcon: "robot",
+    aiColor: "#7c3aed",
   });
   const [showButtonLabel, setShowButtonLabel] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -69,6 +71,7 @@ export default function WidgetPage() {
             buttonLabel: wc.buttonLabel || "",
             buttonLabelDuration: wc.buttonLabelDuration ?? 8,
             avatarIcon: wc.avatarIcon || "robot",
+            aiColor: wc.aiColor || "#7c3aed",
           });
           setShowButtonLabel(!!wc.buttonLabel);
         }
@@ -133,6 +136,7 @@ export default function WidgetPage() {
               <p><span className="text-gray-500 text-sm">Animation :</span> <span className="capitalize">{form.buttonAnimation}</span></p>
               <p><span className="text-gray-500 text-sm">Message :</span> <span>{form.buttonLabel || "—"}</span></p>
               <p><span className="text-gray-500 text-sm">Marque :</span> <span>{form.showBrand ? "Affichée" : "Masquée"}</span></p>
+              <p><span className="text-gray-500 text-sm">Couleur IA :</span> <span className="inline-block w-4 h-4 rounded align-middle" style={{ background: form.aiColor }} /> <span className="text-xs font-mono">{form.aiColor}</span></p>
             </div>
             <button onClick={() => setEditMode(true)} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700">Modifier</button>
           </div>
@@ -202,6 +206,13 @@ export default function WidgetPage() {
               <input type="checkbox" checked={form.showBrand} onChange={(e) => setForm({ ...form, showBrand: e.target.checked })} className="rounded" />
               <span className="text-sm">Afficher "Propulsé par Nova"</span>
             </label>
+            <div>
+              <label className="block text-sm font-medium mb-1">Couleur mode IA</label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={form.aiColor} onChange={(e) => setForm({ ...form, aiColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border" />
+                <input value={form.aiColor} onChange={(e) => setForm({ ...form, aiColor: e.target.value })} placeholder="#7c3aed" className="w-28 border rounded-lg px-3 py-2 text-sm font-mono" />
+              </div>
+            </div>
             <div className="flex gap-3 pt-2">
               <button type="submit" disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
                 {saving ? "Enregistrement..." : "Enregistrer"}

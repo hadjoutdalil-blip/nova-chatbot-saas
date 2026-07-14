@@ -29,6 +29,7 @@ export default function ClientWidgetPage() {
     buttonLabelDuration: 8,
     avatarIcon: "robot",
     buttonIcon: "",
+    aiColor: "#7c3aed",
   });
   const [hasCustomIcon, setHasCustomIcon] = useState(false);
   const [showButtonLabel, setShowButtonLabel] = useState(false);
@@ -71,6 +72,7 @@ export default function ClientWidgetPage() {
             buttonLabelDuration: wc.buttonLabelDuration ?? 8,
             buttonIcon: wc.buttonIcon ?? "",
             avatarIcon: wc.avatarIcon || "robot",
+            aiColor: wc.aiColor || "#7c3aed",
           });
           setShowButtonLabel(!!wc.buttonLabel);
           setHasCustomIcon(!!wc.buttonIcon);
@@ -266,6 +268,15 @@ export default function ClientWidgetPage() {
                     </div>
                 </>
               )}
+            </div>
+
+            {/* AI accent color */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Couleur mode IA</label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={form.aiColor} onChange={(e) => setForm({ ...form, aiColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border" />
+                <input value={form.aiColor} onChange={(e) => setForm({ ...form, aiColor: e.target.value })} placeholder="#7c3aed" className="w-28 border rounded-lg px-3 py-2 text-sm font-mono" />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

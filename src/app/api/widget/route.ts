@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
         buttonLabel: body.buttonLabel ?? undefined,
         buttonLabelDuration: body.buttonLabelDuration ?? undefined,
         buttonIcon: body.buttonIcon ?? undefined,
+        aiColor: body.aiColor ?? undefined,
       },
     });
     return NextResponse.json(updated);
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
       buttonLabel: body.buttonLabel || "",
       buttonLabelDuration: body.buttonLabelDuration ?? 8,
       buttonIcon: body.buttonIcon ?? "",
+      aiColor: body.aiColor || "#7c3aed",
     },
   });
   return NextResponse.json(config, { status: 201 });
@@ -97,6 +99,7 @@ export async function PUT(req: NextRequest) {
         buttonLabel: body.buttonLabel || "",
         buttonLabelDuration: body.buttonLabelDuration ?? 8,
         buttonIcon: body.buttonIcon ?? "",
+        aiColor: body.aiColor || "#7c3aed",
       },
     });
     return NextResponse.json(config);
@@ -119,11 +122,12 @@ export async function PUT(req: NextRequest) {
       sendGreeting: body.sendGreeting ?? undefined,
       scrollTrigger: body.scrollTrigger ?? undefined,
       exitIntent: body.exitIntent ?? undefined,
-      buttonAnimation: body.buttonAnimation ?? undefined,
-      buttonLabel: body.buttonLabel ?? undefined,
-      buttonLabelDuration: body.buttonLabelDuration ?? undefined,
-      buttonIcon: body.buttonIcon ?? undefined,
-    },
-  });
-  return NextResponse.json(updated);
-}
+        buttonAnimation: body.buttonAnimation ?? undefined,
+        buttonLabel: body.buttonLabel ?? undefined,
+        buttonLabelDuration: body.buttonLabelDuration ?? undefined,
+        buttonIcon: body.buttonIcon ?? undefined,
+        aiColor: body.aiColor ?? undefined,
+      },
+    });
+    return NextResponse.json(updated);
+  }

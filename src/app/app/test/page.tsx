@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 
-function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryColor: string; name: string; logo?: string }) {
+function ChatTest({ slug, primaryColor, name, logo, aiColor = "#7c3aed" }: { slug: string; primaryColor: string; name: string; logo?: string; aiColor?: string }) {
   const [messages, setMessages] = useState<{ text: string; role: string; source?: string; score?: number; provider?: string; messageId?: string; question?: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -164,7 +164,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
       {/* Status bar */}
       <div style={{ padding: "8px 16px", fontSize: 11.5, color: "#64748b", borderBottom: "1px solid #eef2f6", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexShrink: 0 }}>
         {aiMode && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "linear-gradient(90deg,#7c3aed,#9333ea)", color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: ".3px", boxShadow: "0 2px 8px rgba(124,58,237,.25)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `linear-gradient(90deg,${aiColor},${aiColor}dd)`, color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: ".3px", boxShadow: `0 2px 8px ${aiColor}40` }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 10, height: 10 }}>
               <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.4 2.1-1 2.8V12l-3 3-3-3V8.8A4 4 0 0 1 12 2z" />
               <path d="M8 14v3l4 4 4-4v-3" />
@@ -198,9 +198,9 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
             <div key={i} style={{ display: "flex", gap: 10, maxWidth: "92%", animation: "nl .28s ease" }}>
               <div style={{
                 width: 34, height: 34, borderRadius: "50%",
-                background: aiMode || m.source === "ai" ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
+                background: aiMode || m.source === "ai" ? `linear-gradient(135deg,${aiColor},${aiColor}dd)` : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
-                boxShadow: aiMode || m.source === "ai" ? "0 2px 8px rgba(124,58,237,.2)" : "0 2px 6px rgba(0,0,0,.08)",
+                boxShadow: aiMode || m.source === "ai" ? `0 2px 8px ${aiColor}33` : "0 2px 6px rgba(0,0,0,.08)",
               }}>
                 <BotDot size={20} />
               </div>
@@ -210,8 +210,8 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                   borderRadius: "20px 20px 20px 4px", fontSize: 14, lineHeight: 1.7,
                   color: "#0d1b2a", boxShadow: "0 2px 8px rgba(0,0,0,.04)",
                   whiteSpace: "pre-wrap", wordBreak: "break-word",
-                  borderLeft: aiMode || m.source === "ai" ? "3px solid #7c3aed" : "none",
-                  backgroundImage: aiMode || m.source === "ai" ? "linear-gradient(135deg,#fff,#f8f6ff)" : "none",
+                  borderLeft: aiMode || m.source === "ai" ? `3px solid ${aiColor}` : "none",
+                  backgroundImage: aiMode || m.source === "ai" ? `linear-gradient(135deg,#fff,${aiColor}08)` : "none",
                 }}>
                   <span dangerouslySetInnerHTML={{ __html: renderMarkdown(m.text) }} />
                 </div>
@@ -227,7 +227,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
                         ✓ {m.score}%
                       </span>
                     )}
-                    <span style={{ fontSize: 11, color: m.source === "ai" ? "#7c3aed" : "#64748b", fontWeight: m.source === "ai" ? 600 : 400, fontStyle: m.source === "ai" ? "normal" : "italic" }}>
+                    <span style={{ fontSize: 11, color: m.source === "ai" ? aiColor : "#64748b", fontWeight: m.source === "ai" ? 600 : 400, fontStyle: m.source === "ai" ? "normal" : "italic" }}>
                       {m.source === "kb" ? "Base de connaissances" : m.source === "ai" ? (m.provider ? `Propulsé par ${m.provider}` : "IA") : "Fallback"}
                     </span>
                     <button
@@ -281,20 +281,20 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
           <div style={{ display: "flex", gap: 10, maxWidth: "92%", animation: "nl .2s ease" }}>
             <div style={{
               width: 34, height: 34, borderRadius: "50%",
-              background: aiMode ? "linear-gradient(135deg,#7c3aed,#9333ea)" : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
+              background: aiMode ? `linear-gradient(135deg,${aiColor},${aiColor}dd)` : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
-              boxShadow: aiMode ? "0 2px 8px rgba(124,58,237,.2)" : "0 2px 6px rgba(0,0,0,.08)",
+              boxShadow: aiMode ? `0 2px 8px ${aiColor}33` : "0 2px 6px rgba(0,0,0,.08)",
             }}>
               <BotDot size={20} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ background: "#fff", border: "1px solid #eef2f6", padding: "16px 18px", borderRadius: "20px 20px 20px 4px", boxShadow: "0 2px 8px rgba(0,0,0,.04)" }}>
-                <div style={{ fontSize: 11.5, color: "#7c3aed", fontWeight: 600, marginBottom: 7 }}>Réflexion en cours</div>
+                <div style={{ fontSize: 11.5, color: aiColor, fontWeight: 600, marginBottom: 7 }}>Réflexion en cours</div>
                 <div style={{ display: "flex", gap: 5 }}>
                   {[0,1,2].map((i) => (
                     <span key={i} style={{
                       width: 8, height: 8, borderRadius: "50%",
-                      background: "#7c3aed", display: "inline-block",
+                      background: aiColor, display: "inline-block",
                       animation: "nb .6s infinite", animationDelay: `${i*0.12}s`,
                     }} />
                   ))}
@@ -323,7 +323,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
             disabled={loading || !input.trim()}
             style={{
               width: 40, height: 40, borderRadius: 14, border: "none",
-              background: aiMode ? "#7c3aed" : primaryColor,
+              background: aiMode ? aiColor : primaryColor,
               color: "#fff", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0, opacity: loading || !input.trim() ? 0.45 : 1,
@@ -344,8 +344,8 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
         .nmsg-bbl th { background: #f8fafc; font-weight: 700; color: #334155; }
         .nmsg-bbl tr:nth-child(even) td { background: #fafbfc; }
         .chat-input-wrap:focus-within {
-          border-color: ${aiMode ? "#7c3aed" : primaryColor} !important;
-          box-shadow: 0 0 0 4px ${aiMode ? "rgba(124,58,237,.18)" : `${primaryColor}15`} !important;
+          border-color: ${aiMode ? aiColor : primaryColor} !important;
+          box-shadow: 0 0 0 4px ${aiMode ? `${aiColor}2E` : `${primaryColor}15`} !important;
           background: #fff !important;
         }
         .ai-avatar::after {
@@ -353,14 +353,14 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
           position: absolute;
           bottom: 2px; right: 2px;
           width: 11px; height: 11px;
-          background: #a855f7;
+          background: ${aiColor};
           border-radius: 50%;
           border: 2px solid ${primaryColor};
           animation: ai-dot 2s infinite;
         }
         @keyframes ai-dot {
-          0%,100% { box-shadow: 0 0 0 0 rgba(168,85,247,.7); }
-          50% { box-shadow: 0 0 0 5px rgba(168,85,247,0); }
+          0%,100% { box-shadow: 0 0 0 0 ${aiColor}B3; }
+          50% { box-shadow: 0 0 0 5px ${aiColor}00; }
         }
         @keyframes nb {
           0%, 100% { transform: translateY(0); }
@@ -381,6 +381,7 @@ function ChatTest({ slug, primaryColor, name, logo }: { slug: string; primaryCol
 
 export default function ClientTestPage() {
   const [client, setClient] = useState<any>(null);
+  const [aiColor, setAiColor] = useState("#7c3aed");
 
   useEffect(() => {
     const t = localStorage.getItem("token");
@@ -388,9 +389,14 @@ export default function ClientTestPage() {
     const payload = JSON.parse(atob(t.split(".")[1]));
     fetch("/api/clients", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
-      .then((clients) => {
+      .then(async (clients) => {
         const c = clients.find((c: any) => c.id === payload.clientId);
-        if (c) setClient(c);
+        if (c) {
+          setClient(c);
+          const wres = await fetch(`/api/widget/${c.slug}`, { cache: "no-store" });
+          const wdata = await wres.json();
+          if (wdata.widgetConfig?.aiColor) setAiColor(wdata.widgetConfig.aiColor);
+        }
       });
   }, []);
 
@@ -407,6 +413,7 @@ export default function ClientTestPage() {
         primaryColor={client.primaryColor || "#059669"}
         name={client.name}
         logo={client.logo}
+        aiColor={aiColor}
       />
     </div>
   );

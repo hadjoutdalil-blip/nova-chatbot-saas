@@ -53,6 +53,7 @@ export default function AppWidgetPage() {
     buttonLabelDuration: 8,
     avatarIcon: "robot",
     buttonIcon: "",
+    aiColor: "#7c3aed",
   });
   const [hasCustomIcon, setHasCustomIcon] = useState(false);
   const [showButtonLabel, setShowButtonLabel] = useState(false);
@@ -97,6 +98,7 @@ export default function AppWidgetPage() {
             buttonLabelDuration: wc.buttonLabelDuration ?? 8,
             avatarIcon: wc.avatarIcon || "robot",
             buttonIcon: wc.buttonIcon || "",
+            aiColor: wc.aiColor || "#7c3aed",
           });
           setHasCustomIcon(!!wc.buttonIcon);
           setShowButtonLabel(!!wc.buttonLabel);
@@ -259,6 +261,15 @@ export default function AppWidgetPage() {
                   </div>
                 </>
               )}
+            </div>
+
+            {/* AI accent color */}
+            <div className="pt-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Couleur mode IA</label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={form.aiColor} onChange={(e) => setForm({ ...form, aiColor: e.target.value })} className="w-10 h-10 rounded-xl cursor-pointer border border-gray-200" />
+                <input value={form.aiColor} onChange={(e) => setForm({ ...form, aiColor: e.target.value })} placeholder="#7c3aed" className="w-28 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
+              </div>
             </div>
 
             {/* Button label */}

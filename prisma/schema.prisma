@@ -71,6 +71,7 @@ model WidgetConfig {
   buttonLabel         String  @default("")
   buttonLabelDuration Int     @default(8)
   buttonIcon          String  @default("")
+  aiColor             String  @default("#7c3aed")
   clientId            String
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
