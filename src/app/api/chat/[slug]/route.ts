@@ -86,7 +86,11 @@ function buildContext(client: any, pageUrl?: string, pageTitle?: string): string
 }
 
 /* ── PROMPT BUILDERS ──────────────────────────────────── */
-function buildQAPrompt(client: any, match: any, score: number, question: string, pageUrl?: string, pageTitle?: string) {
+function buildQAPrompt(client: any, match: any, score: number, question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string) {
+  const linkRule = isVisitor
+    ? `- Si un document source PDF est disponible pour téléchargement, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`
+    : `- Si un document source est disponible pour téléchargement, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`;
+  const sourceLine = isVisitor ? "" : `\n- Termine par : [Source : Base de connaissance ${client.name}]`;
   const system = `Tu es l'assistant officiel de ${client.name}.
 Tu reformules UNIQUEMENT une réponse validée issue de la base de connaissance.${buildContext(client, pageUrl, pageTitle)}
 
@@ -95,17 +99,17 @@ RÈGLES ABSOLUES :
 - Reformule légèrement l'introduction et la transition, mais conserve le contenu structuré (listes, tableaux, puces)
 - Conserve les emojis, le gras, les listes numérotées et les tableaux markdown
 - Réponds toujours en français, professionnel et concis
-- Si un document source est disponible pour téléchargement, inclus un lien cliquable markdown : [Télécharger le fichier](URL)
-- Termine par : [Source : Base de connaissance ${client.name}]
+${linkRule}${sourceLine}
 - Si la RÉPONSE OFFICIELLE ne répond PAS à la QUESTION DU CLIENT, réponds UNIQUEMENT par le mot exact : NO_MATCH`;
 
+  const srcUrl = isVisitor ? (match.source_url?.toLowerCase().endsWith(".pdf") ? match.source_url : "") : (match.source_url || "");
   const user = `NIVEAU : QA VALIDÉE (score ${score}%)
 
 RÉPONSE OFFICIELLE À UTILISER :
 ${match.answer}
 
 LIEN DU DOCUMENT SOURCE :
-${match.source_url || "Aucun"}
+${srcUrl || "Aucun"}
 
 QUESTION DU CLIENT :
 ${question}`;
@@ -113,7 +117,7 @@ ${question}`;
   return { system, user };
 }
 
-function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, pageUrl?: string, pageTitle?: string) {
+function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string) {
   const docMap = new Map<string, { chunks: ChunkMeta[]; maxScore: number }>();
   for (const c of chunks) {
     const key = c.source;
@@ -132,9 +136,21 @@ function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, page
     const meta = [`Source : ${c.source}`];
     if (c.section) meta.push(`Section : ${c.section}`);
     if (c.keywords?.length) meta.push(`Mots-clés : ${c.keywords.join(", ")}`);
-    if (c.source_url) meta.push(`Lien : ${c.source_url}`);
+    if (c.source_url) {
+      if (!isVisitor || c.source_url.toLowerCase().endsWith(".pdf")) {
+        meta.push(`Lien : ${c.source_url}`);
+      }
+    }
     return `[Extrait #${i + 1} — ${meta.join(" | ")}]\n${c.content}`;
   }).join("\n\n");
+
+  const noMatchRule = isVisitor
+    ? `- Si tu n'as pas de réponse précise, invite poliment le client à reformuler ou contacter l'équipe`
+    : `- Si AUCUN extrait ne répond à la question, dis-le poliment`;
+  const linkRule = isVisitor
+    ? `- Si un extrait a un lien PDF disponible dans ses métadonnées, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`
+    : `- Si un extrait a un Lien disponible dans ses métadonnées, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`;
+  const adminFooter = isVisitor ? "" : `\n- Termine par : [Source documentaire : ${chunks.map(c => c.source).join(", ")}]\n- Ajoute : "Cette réponse est basée sur la documentation disponible. Pour confirmation officielle, contactez un expert."`;
 
   const system = `Tu es l'assistant officiel de ${client.name}.
 Tu réponds en te basant UNIQUEMENT sur les extraits de documentation ci-dessous.${buildContext(client, pageUrl, pageTitle)}
@@ -144,12 +160,10 @@ RÈGLES ABSOLUES :
 - Si les extraits ne répondent que partiellement, réponds avec les informations disponibles
 - En cas de contradiction entre extraits, privilégie le plus récent ou le plus spécifique
 - Les extraits sont classés par pertinence : l'extrait #1 est le plus important
-- Si AUCUN extrait ne répond à la question, dis-le poliment
+${noMatchRule}
 - N'invente JAMAIS d'information
 - Réponds toujours en français, professionnel et concis
-- Si un extrait a un Lien disponible dans ses métadonnées, inclus un lien cliquable markdown : [Télécharger le fichier](URL)
-- Termine par : [Source documentaire : ${chunks.map(c => c.source).join(", ")}]
-- Ajoute : "Cette réponse est basée sur la documentation disponible. Pour confirmation officielle, contactez un expert."`;
+${linkRule}${adminFooter}`;
 
   const user = `NIVEAU : RAG DOCUMENTAIRE
 
@@ -537,7 +551,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const chunks = [...siteChunks, ...docChunks];
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
     if (topChunks.length > 0) {
-      const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
+      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, 0, geoPromise);
@@ -614,7 +628,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }, isVisitor), { headers: corsHeaders });
     }
 
-    const { system, user } = buildQAPrompt(client, match, score, message, pageUrl, pageTitle);
+    const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
     try {
       const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
       const apiKey = keyEntry?.key || "";
@@ -639,7 +653,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 1b : MATCH MOT-CLÉ SOUS SEUIL → reformulation IA ── */
   if (aiMode && isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
-    const { system, user } = buildQAPrompt(client, match, score, message, pageUrl, pageTitle);
+    const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
     try {
       const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
       const apiKey = keyEntry?.key || "";
@@ -716,7 +730,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
 
     if (topChunks.length > 0) {
-      const { system, user } = buildRAGPrompt(client, topChunks, message, pageUrl, pageTitle);
+      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, score, geoPromise);
