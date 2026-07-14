@@ -166,8 +166,15 @@ function ChatTest({ slug, primaryColor, name, logo, aiColor = "#7c3aed" }: { slu
         {aiMode && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `linear-gradient(90deg,${aiColor},${aiColor}dd)`, color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: ".3px", boxShadow: `0 2px 8px ${aiColor}40` }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 10, height: 10 }}>
-              <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.4 2.1-1 2.8V12l-3 3-3-3V8.8A4 4 0 0 1 12 2z" />
-              <path d="M8 14v3l4 4 4-4v-3" />
+              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5V12" />
+              <path d="M9.5 2A2.5 2.5 0 0 0 7 4.5V12" />
+              <path d="M12 12V4.5A2.5 2.5 0 0 1 14.5 2" />
+              <path d="M14.5 2A2.5 2.5 0 0 1 17 4.5V12" />
+              <path d="M17 12V4.5A2.5 2.5 0 0 0 14.5 2" />
+              <path d="M9.5 22A2.5 2.5 0 0 0 12 19.5V12" />
+              <path d="M9.5 22A2.5 2.5 0 0 1 7 19.5V12" />
+              <path d="M12 12v7.5A2.5 2.5 0 0 0 14.5 22" />
+              <path d="M14.5 22A2.5 2.5 0 0 0 17 19.5V12" />
             </svg>
             IA Active
           </span>
