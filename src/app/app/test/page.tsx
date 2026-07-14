@@ -404,7 +404,7 @@ export default function ClientTestPage() {
       </div>
       <ChatTest
         slug={client.slug}
-        primaryColor={client.primaryColor || "#7c3aed"}
+        primaryColor={client.primaryColor || "#059669"}
         name={client.name}
         logo={client.logo}
       />

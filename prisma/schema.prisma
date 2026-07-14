@@ -13,7 +13,7 @@ model Client {
   plan         String   @default("custom")
   subdomain    String?
   logo         String   @default("")
-  primaryColor String   @default("#7c3aed")
+  primaryColor String   @default("#059669")
   apiKey       String   @default("")
   aiModel      String   @default("llama-3.1-8b-instant")
   aiProvider   String   @default("groq")

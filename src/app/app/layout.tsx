@@ -80,7 +80,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-blue-50/30 flex">
       <nav className="w-64 bg-white/80 backdrop-blur-xl border-r border-white/20 p-6 flex flex-col shrink-0">
         <Link href="/app" className="flex items-center gap-3 mb-8 no-underline">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg" style={{ backgroundColor: client?.primaryColor || "#7c3aed" }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg" style={{ backgroundColor: client?.primaryColor || "#059669" }}>
             {client?.name?.charAt(0) || "N"}
           </div>
           <div>

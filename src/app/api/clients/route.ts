@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       plan,
       subdomain: body.subdomain || body.slug,
       logo: body.logo || "",
-      primaryColor: body.primaryColor || "#7c3aed",
+      primaryColor: body.primaryColor || "#059669",
       apiKey: body.apiKey || "",
       aiModel: body.aiModel || def("defaultAiModel", "openai/gpt-oss-20b"),
       aiProvider: body.aiProvider || def("defaultAiProvider", "groq"),

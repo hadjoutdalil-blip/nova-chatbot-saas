@@ -6,7 +6,7 @@
     "plan": "support",
     "subdomain": "cetim",
     "logo": "",
-    "primaryColor": "#7c3aed",
+    "primaryColor": "#059669",
     "apiKey": "",
     "aiModel": "llama-3.1-8b-instant",
     "aiProvider": "groq",

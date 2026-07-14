@@ -424,7 +424,7 @@ export default function ClientTestPage() {
 
   if (!client) return <p className="text-gray-500 p-8">Chargement...</p>;
 
-  const primaryColor = client.primaryColor || "#7c3aed";
+  const primaryColor = client.primaryColor || "#059669";
 
   return (
     <div className="space-y-6">

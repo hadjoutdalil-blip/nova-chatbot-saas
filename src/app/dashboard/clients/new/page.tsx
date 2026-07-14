@@ -30,7 +30,7 @@ export default function NewClientPage() {
     name: "",
     slug: "",
     plan: "support",
-    primaryColor: "#7c3aed",
+    primaryColor: "#059669",
     aiProvider: "groq",
     aiModel: "openai/gpt-oss-20b",
     apiKey: "",

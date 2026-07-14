@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const chatUrl = `${req.nextUrl.origin}/api/chat/${slug}`;
   const name = client.name;
   const logo = client.logo || "";
-  const primaryColor = client.primaryColor || "#7c3aed";
+  const primaryColor = client.primaryColor || "#059669";
   const pos = widgetConfig?.position || "right";
   const mb = widgetConfig?.marginBottom ?? 20;
   const mr = widgetConfig?.marginRight ?? 20;
