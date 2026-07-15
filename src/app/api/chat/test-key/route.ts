@@ -8,7 +8,7 @@ const PROVIDERS: Record<string, { endpoint: string; model: string }> = {
 };
 
 function detectProvider(key: string): string {
-  if (key.startsWith("csk_")) return "cerebras";
+  if (key.startsWith("csk-")) return "cerebras";
   if (key.startsWith("xai-")) return "xai";
   if (key.startsWith("AIza")) return "gemini";
   return "groq";

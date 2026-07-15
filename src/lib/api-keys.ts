@@ -2,7 +2,7 @@ import { db } from "./db";
 
 export function detectProvider(key: string): { id: string; label: string } {
   if (key.startsWith("gsk_")) return { id: "groq", label: "Groq" };
-  if (key.startsWith("csk_")) return { id: "cerebras", label: "Cerebras" };
+  if (key.startsWith("csk-")) return { id: "cerebras", label: "Cerebras" };
   if (key.startsWith("xai-")) return { id: "xai", label: "xAI Grok" };
   if (key.startsWith("AIza")) return { id: "gemini", label: "Gemini" };
   return { id: "groq", label: "Groq" };
