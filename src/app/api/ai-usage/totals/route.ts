@@ -13,8 +13,9 @@ const DEFAULT_MONTHLY_LIMITS: Record<string, Record<string, number>> = {
     "meta-llama/llama-4-scout-17b-16e-instruct": 500_000,
   },
   cerebras: {
-    "llama3.1-8b": 1_000_000,
-    "llama3.1-70b": 500_000,
+    "gpt-oss-120b": 1_000_000,
+    "gemma-4-31b": 500_000,
+    "zai-glm-4.7": 500_000,
   },
   xai: {
     "grok-2-latest": 500_000,

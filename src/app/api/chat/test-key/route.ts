@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PROVIDERS: Record<string, { endpoint: string; model: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", model: "openai/gpt-oss-20b" },
-  cerebras: { endpoint: "https://api.cerebras.ai/v1/chat/completions", model: "llama3.1-8b" },
+  cerebras: { endpoint: "https://api.cerebras.ai/v1/chat/completions", model: "gpt-oss-120b" },
   xai: { endpoint: "https://api.x.ai/v1/chat/completions", model: "grok-2-latest" },
   gemini: { endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", model: "gemini-2.5-flash" },
 };

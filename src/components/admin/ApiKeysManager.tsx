@@ -6,7 +6,7 @@ import { Button, Card, Badge } from "@/components/ui";
 
 const PROVIDERS = [
   { id: "groq", name: "Groq", color: "blue", models: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3-32b", "qwen/qwen3.6-27b", "meta-llama/llama-4-scout-17b-16e-instruct"] },
-  { id: "cerebras", name: "Cerebras", color: "purple", models: ["llama3.1-8b", "llama3.1-70b"] },
+  { id: "cerebras", name: "Cerebras", color: "purple", models: ["gpt-oss-120b", "gemma-4-31b", "zai-glm-4.7"] },
   { id: "xai", name: "xAI Grok", color: "green", models: ["grok-2-latest", "grok-3-beta"] },
   { id: "gemini", name: "Google Gemini", color: "yellow", models: ["gemini-2.5-flash"] },
 ] as const;
