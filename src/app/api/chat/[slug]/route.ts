@@ -289,6 +289,18 @@ async function callAI(apiKey: string, providerId: string, model: string, system:
   return { text, usage };
 }
 
+async function resolveApiKey(client: any): Promise<{ id: string; key: string; model?: string | null } | null> {
+  let entry = await selectApiKey(client.id, client.aiProvider || "groq");
+  if (entry) return entry;
+  const anyKey = await db.prisma.apiKey.findFirst({
+    where: { clientId: client.id, isActive: true },
+    orderBy: { priority: "asc" },
+  });
+  if (anyKey) return { id: anyKey.id, key: anyKey.key, model: anyKey.model };
+  if (client.apiKey) return { id: "deprecated", key: client.apiKey, model: client.aiModel };
+  return null;
+}
+
 async function saveUsage(clientId: string, provider: string, model: string, usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {
   try {
     const data = {
@@ -388,10 +400,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* Passe 2 : Classification IA (corrige faux positifs/faux négatifs des regex) */
   if (aiMode) {
-    const aiProviderId = client.aiProvider || detectProvider(client.apiKey || "").id;
-    const keyEntry = await selectApiKey(client.id, aiProviderId);
+    const keyEntry = await resolveApiKey(client);
     if (keyEntry?.key) {
-      const provider = PROVIDERS[aiProviderId];
+      const provInfo = detectProvider(keyEntry.key);
+      const provider = PROVIDERS[provInfo.id];
       if (provider) {
         try {
           const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
@@ -426,7 +438,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
 
     /* aiMode : laisser l'IA répondre avec le prompt adapté à l'intention */
-    const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+    const keyEntry = await resolveApiKey(client);
     if (keyEntry?.key) {
       const providerId = client.aiProvider || detectProvider(keyEntry.key).id;
       const provider = PROVIDERS[providerId];
@@ -522,7 +534,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         suggestions: [],
       }, isVisitor), { headers: corsHeaders });
     }
-    const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+    const keyEntry = await resolveApiKey(client);
     if (!keyEntry?.key) {
       return NextResponse.json(filterResponse({
         messageId,
@@ -630,7 +642,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
     const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
     try {
-      const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+      const keyEntry = await resolveApiKey(client);
       const apiKey = keyEntry?.key || "";
       const providerInfo = detectProvider(apiKey);
       const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
@@ -655,7 +667,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (aiMode && isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
     const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
     try {
-      const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+      const keyEntry = await resolveApiKey(client);
       const apiKey = keyEntry?.key || "";
       const providerInfo = detectProvider(apiKey);
       const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
@@ -699,7 +711,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }, isVisitor), { headers: corsHeaders });
   }
 
-  const keyEntry = await selectApiKey(client.id, client.aiProvider || detectProvider(client.apiKey || "").id);
+  const keyEntry = await resolveApiKey(client);
   const apiKey = keyEntry?.key || "";
   const providerInfo = detectProvider(apiKey);
   const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
