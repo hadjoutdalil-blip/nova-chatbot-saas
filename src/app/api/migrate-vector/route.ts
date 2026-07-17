@@ -33,13 +33,13 @@ export async function POST(req: NextRequest) {
 
   const clients = await db.prisma.client.findMany({
     where,
-    select: { id: true, name: true, chunkSize: true, chromaUrl: true, chromaApiKey: true, jinaApiKey: true },
+    select: { id: true, name: true, chunkSize: true, chromaUrl: true, chromaApiKey: true, hfApiKey: true },
   });
 
   const results: any[] = [];
 
   for (const client of clients) {
-    if (!client.chromaUrl || !client.chromaApiKey || !client.jinaApiKey) {
+    if (!client.chromaUrl || !client.chromaApiKey || !client.hfApiKey) {
       results.push({ client: client.name || client.id, status: "skipped", reason: "credentials manquants" });
       continue;
     }
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     });
     for (const doc of docs) {
       try {
-        await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.chromaUrl, client.chromaApiKey, client.jinaApiKey);
+        await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.chromaUrl, client.chromaApiKey, client.hfApiKey);
         log.documents++;
       } catch (err: any) {
         log.errors.push(`doc ${doc.id}: ${err.message}`);
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         if (chunks.length === 0) continue;
 
         const texts = chunks.map((c) => c.content);
-        const embeddings = await generateEmbeddings(texts, client.jinaApiKey);
+        const embeddings = await generateEmbeddings(texts, client.hfApiKey);
         const ids = chunks.map((c, i) => `${kb.id}__kb__${i}`);
         const metadatas = chunks.map((c) => ({
           clientId: client.id,

@@ -99,15 +99,15 @@ export default function SettingsPage() {
           </select>
         </div>
 
-        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (Jina AI + ChromaDB)</h2>
+        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (HuggingFace + ChromaDB)</h2>
         <p className="text-sm text-gray-500 -mt-3">Crédentials par défaut pour la recherche sémantique vectorielle.</p>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Clé API Jina AI</label>
+          <label className="block text-sm font-medium mb-1">Clé API HuggingFace</label>
           <input
-            type="password" placeholder="jina_..."
-            value={config.jinaApiKey || ""}
-            onChange={(e) => setConfig({ ...config, jinaApiKey: e.target.value })}
+            type="password" placeholder="hf_..."
+            value={config.hfApiKey || ""}
+            onChange={(e) => setConfig({ ...config, hfApiKey: e.target.value })}
             className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
           />
         </div>
@@ -138,12 +138,12 @@ export default function SettingsPage() {
               const res = await fetch("/api/test-vector-connection", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                body: JSON.stringify({ jinaApiKey: config.jinaApiKey, chromaUrl: config.chromaUrl, chromaApiKey: config.chromaApiKey }),
+                body: JSON.stringify({ hfApiKey: config.hfApiKey, chromaUrl: config.chromaUrl, chromaApiKey: config.chromaApiKey }),
               });
               setTestResult(await res.json());
               setTesting(false);
             }}
-            disabled={testing || (!config.jinaApiKey && !config.chromaUrl)}
+            disabled={testing || (!config.hfApiKey && !config.chromaUrl)}
             className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
           >
             {testing ? <Loader2 size={15} className="animate-spin" /> : null}
@@ -151,7 +151,7 @@ export default function SettingsPage() {
           </button>
           {testResult && (
             <div className="flex items-center gap-2 text-sm">
-              {testResult.jina && (testResult.jina.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Jina OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Jina: {testResult.jina.error}</span>)}
+              {testResult.huggingface && (testResult.huggingface.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> HF OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> HF: {testResult.huggingface.error}</span>)}
               {testResult.chroma && (testResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Chroma: {testResult.chroma.error}</span>)}
             </div>
           )}

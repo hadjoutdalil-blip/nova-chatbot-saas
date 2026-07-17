@@ -28,7 +28,7 @@ model Client {
   siteContext  String   @default("")
   relanceText  String   @default("")
   useVectorRag Boolean  @default(false)
-  jinaApiKey   String   @default("")
+  hfApiKey   String   @default("")
   chromaUrl    String   @default("")
   chromaApiKey String   @default("")
   createdAt    DateTime @default(now())

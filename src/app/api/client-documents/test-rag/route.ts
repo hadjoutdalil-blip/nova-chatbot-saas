@@ -59,9 +59,9 @@ export async function POST(req: NextRequest) {
   let topChunks: ChunkMeta[] = [];
   let matchedByKeyword = false;
 
-  if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.jinaApiKey) {
+  if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.hfApiKey) {
     try {
-      const embedding = await generateEmbedding(question, client.jinaApiKey);
+      const embedding = await generateEmbedding(question, client.hfApiKey);
       const results = await vectorSearchChunks(client.id, embedding, topNChunks, client.chromaUrl, client.chromaApiKey);
       topChunks = results.map((r) => r.chunk);
     } catch (err) {

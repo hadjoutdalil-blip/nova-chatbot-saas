@@ -1,35 +1,28 @@
-const JINA_EMBED_URL = "https://api.jina.ai/v1/embeddings";
+const HF_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+const HF_EMBED_URL = `https://api-inference.huggingface.co/models/${HF_EMBED_MODEL}`;
 
-export async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
-  const res = await fetch(JINA_EMBED_URL, {
+async function hfEmbed(inputs: string[], apiKey: string): Promise<number[][]> {
+  const res = await fetch(HF_EMBED_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: "jina-embeddings-v3", input: [text] }),
+    body: JSON.stringify({ inputs }),
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Jina AI error ${res.status}: ${err}`);
+    throw new Error(`HuggingFace error ${res.status}: ${err.slice(0, 300)}`);
   }
   const data = await res.json();
-  return data.data?.[0]?.embedding;
+  return data;
+}
+
+export async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
+  const results = await hfEmbed([text], apiKey);
+  return results[0];
 }
 
 export async function generateEmbeddings(texts: string[], apiKey: string): Promise<number[][]> {
-  const res = await fetch(JINA_EMBED_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model: "jina-embeddings-v3", input: texts }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Jina AI error ${res.status}: ${err}`);
-  }
-  const data = await res.json();
-  return data.data.map((d: any) => d.embedding);
+  return hfEmbed(texts, apiKey);
 }

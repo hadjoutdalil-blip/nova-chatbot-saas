@@ -113,8 +113,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     const vClient = await db.prisma.client.findUnique({ where: { id: existing.clientId } });
-    if (vClient?.useVectorRag && vClient.chromaUrl && vClient.chromaApiKey && vClient.jinaApiKey) {
-      syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, vClient.chromaUrl, vClient.chromaApiKey, vClient.jinaApiKey).catch((err) => console.error("[Vector Sync Update]", err));
+    if (vClient?.useVectorRag && vClient.chromaUrl && vClient.chromaApiKey && vClient.hfApiKey) {
+      syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, vClient.chromaUrl, vClient.chromaApiKey, vClient.hfApiKey).catch((err) => console.error("[Vector Sync Update]", err));
     }
 
     return NextResponse.json({

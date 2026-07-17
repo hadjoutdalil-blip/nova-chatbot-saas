@@ -49,7 +49,7 @@ export default function AppSettingsPage() {
         relanceActive: form.relanceActive,
         relanceText: form.relanceText,
         useVectorRag: form.useVectorRag,
-        jinaApiKey: form.jinaApiKey,
+        hfApiKey: form.hfApiKey,
         chromaUrl: form.chromaUrl,
         chromaApiKey: form.chromaApiKey,
       }),
@@ -166,13 +166,13 @@ export default function AppSettingsPage() {
               </div>
               <label className="flex items-center gap-3 cursor-pointer mb-4">
                 <input type="checkbox" checked={!!form.useVectorRag} onChange={(e) => setForm({ ...form, useVectorRag: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (Jina AI + ChromaDB)</span>
+                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (HuggingFace + ChromaDB)</span>
               </label>
               {form.useVectorRag && (
                 <div className="space-y-3 pl-6 border-l-2 border-emerald-100">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Jina AI (optionnel, sinon globale)</label>
-                    <input type="password" value={form.jinaApiKey || ""} onChange={(e) => setForm({ ...form, jinaApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="jina_..." />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API HuggingFace (optionnel, sinon globale)</label>
+                    <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="hf_..." />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">URL ChromaDB (optionnel, sinon global)</label>
@@ -190,12 +190,12 @@ export default function AppSettingsPage() {
                         const res = await fetch("/api/test-vector-connection", {
                           method: "POST",
                           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                          body: JSON.stringify({ jinaApiKey: form.jinaApiKey, chromaUrl: form.chromaUrl, chromaApiKey: form.chromaApiKey }),
+                          body: JSON.stringify({ hfApiKey: form.hfApiKey, chromaUrl: form.chromaUrl, chromaApiKey: form.chromaApiKey }),
                         });
                         setVectorTestResult(await res.json());
                         setTestVector(false);
                       }}
-                      disabled={testVector || (!form.jinaApiKey && !form.chromaUrl)}
+                      disabled={testVector || (!form.hfApiKey && !form.chromaUrl)}
                       className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50"
                     >
                       {testVector ? <Loader2 size={13} className="animate-spin" /> : null}
@@ -203,7 +203,7 @@ export default function AppSettingsPage() {
                     </button>
                     {vectorTestResult && (
                       <div className="flex items-center gap-2 text-xs">
-                        {vectorTestResult.jina && (vectorTestResult.jina.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Jina OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Jina</span>)}
+                        {vectorTestResult.huggingface && (vectorTestResult.huggingface.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> HF OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> HF</span>)}
                         {vectorTestResult.chroma && (vectorTestResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Chroma</span>)}
                       </div>
                     )}

@@ -5,25 +5,25 @@ export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const { jinaApiKey, chromaUrl, chromaApiKey } = await req.json();
+  const { hfApiKey, chromaUrl, chromaApiKey } = await req.json();
 
   const results: Record<string, { ok: boolean; error?: string }> = {};
 
-  if (jinaApiKey) {
+  if (hfApiKey) {
     try {
-      const res = await fetch("https://api.jina.ai/v1/embeddings", {
+      const res = await fetch("https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2", {
         method: "POST",
-        headers: { Authorization: `Bearer ${jinaApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "jina-embeddings-v3", input: ["test"] }),
+        headers: { Authorization: `Bearer ${hfApiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: ["test"] }),
       });
       if (res.ok) {
-        results.jina = { ok: true };
+        results.huggingface = { ok: true };
       } else {
         const text = await res.text().catch(() => "");
-        results.jina = { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+        results.huggingface = { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
       }
     } catch (err: any) {
-      results.jina = { ok: false, error: err.message };
+      results.huggingface = { ok: false, error: err.message };
     }
   }
 

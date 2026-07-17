@@ -562,9 +562,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.jinaApiKey) {
+    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.hfApiKey) {
       try {
-        const embedding = await generateEmbedding(message, client.jinaApiKey);
+        const embedding = await generateEmbedding(message, client.hfApiKey);
         const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaUrl, client.chromaApiKey);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
@@ -752,9 +752,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.jinaApiKey) {
+    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.hfApiKey) {
       try {
-        const embedding = await generateEmbedding(message, client.jinaApiKey);
+        const embedding = await generateEmbedding(message, client.hfApiKey);
         const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaUrl, client.chromaApiKey);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {

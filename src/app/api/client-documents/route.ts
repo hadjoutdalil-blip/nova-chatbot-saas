@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
   });
 
   const client = await db.prisma.client.findUnique({ where: { id: clientId } });
-  if (client?.useVectorRag && client.chromaUrl && client.chromaApiKey && client.jinaApiKey) {
-    syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, client.chromaUrl, client.chromaApiKey, client.jinaApiKey).catch((err) => console.error("[Vector Sync]", err));
+  if (client?.useVectorRag && client.chromaUrl && client.chromaApiKey && client.hfApiKey) {
+    syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, client.chromaUrl, client.chromaApiKey, client.hfApiKey).catch((err) => console.error("[Vector Sync]", err));
   }
 
   return NextResponse.json({

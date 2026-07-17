@@ -32,7 +32,7 @@ export async function syncDocumentChunks(
   chunkSize: number,
   chromaUrl: string,
   chromaApiKey: string,
-  jinaApiKey: string,
+  hfApiKey: string,
 ) {
   const collectionId = await getCollectionId(chromaUrl, chromaApiKey);
   await deleteDocChunks(docId, chromaUrl, chromaApiKey);
@@ -41,7 +41,7 @@ export async function syncDocumentChunks(
   if (chunks.length === 0) return;
 
   const texts = chunks.map((c) => c.content);
-  const embeddings = await generateEmbeddings(texts, jinaApiKey);
+  const embeddings = await generateEmbeddings(texts, hfApiKey);
 
   const ids = chunks.map((c, i) => `${docId}__${i}`);
   const metadatas = chunks.map((c) => ({
