@@ -163,7 +163,46 @@ export default function SettingsPage() {
           </button>
           {saved && <span className="text-green-600 text-sm">✓ Enregistré</span>}
         </div>
+
+        <MigrateButton token={token} />
       </div>
+    </div>
+  );
+}
+
+function MigrateButton({ token }: { token: () => string }) {
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<string | null>(null);
+
+  return (
+    <div className="border-t border-gray-100 pt-4 mt-4">
+      <h3 className="font-semibold text-sm text-gray-700 mb-2">Migration vers ChromaDB</h3>
+      <p className="text-xs text-gray-500 mb-3">Indexe tous les documents et entrées KB existants dans la base vectorielle.</p>
+      <button
+        onClick={async () => {
+          setMigrating(true);
+          setMigrateResult(null);
+          try {
+            const res = await fetch("/api/migrate-vector", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+            });
+            const data = await res.json();
+            setMigrateResult(JSON.stringify(data.results || data, null, 2));
+          } catch (err: any) {
+            setMigrateResult(`Erreur: ${err.message}`);
+          }
+          setMigrating(false);
+        }}
+        disabled={migrating}
+        className="flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+      >
+        {migrating ? <Loader2 size={15} className="animate-spin" /> : null}
+        {migrating ? "Migration en cours..." : "Migrer vers ChromaDB"}
+      </button>
+      {migrateResult && (
+        <pre className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono overflow-auto max-h-60 text-gray-700">{migrateResult}</pre>
+      )}
     </div>
   );
 }
