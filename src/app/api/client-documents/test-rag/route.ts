@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
-import { chunkDocument, parseChunks, findBestChunks } from "@/lib/rag-utils";
+import { chunkDocument, parseChunks, findBestChunks, ChunkMeta } from "@/lib/rag-utils";
+import { generateEmbedding } from "@/lib/embeddings";
+import { searchChunks as vectorSearchChunks } from "@/lib/vector-store";
 
 /* ── Recherche par mots-clés en fallback ── */
 function keywordSearch(question: string, chunks: any[]): any[] {
@@ -54,8 +56,22 @@ export async function POST(req: NextRequest) {
   const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, chunkSize));
   const allChunks = [...siteChunks, ...docChunks];
 
-  let topChunks = findBestChunks(question, allChunks, topNChunks, ragThreshold);
+  let topChunks: ChunkMeta[] = [];
   let matchedByKeyword = false;
+
+  if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.jinaApiKey) {
+    try {
+      const embedding = await generateEmbedding(question, client.jinaApiKey);
+      const results = await vectorSearchChunks(client.id, embedding, topNChunks, client.chromaUrl, client.chromaApiKey);
+      topChunks = results.map((r) => r.chunk);
+    } catch (err) {
+      console.error("[Vector RAG test] error, falling back to keyword:", err);
+    }
+  }
+
+  if (topChunks.length === 0) {
+    topChunks = findBestChunks(question, allChunks, topNChunks, ragThreshold);
+  }
 
   if (topChunks.length === 0 && allChunks.length > 0) {
     const kwResults = keywordSearch(question, allChunks);

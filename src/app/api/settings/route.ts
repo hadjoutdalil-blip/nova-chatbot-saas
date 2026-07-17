@@ -8,6 +8,9 @@ const DEFAULTS: Record<string, string> = {
   defaultAiModel: "openai/gpt-oss-20b",
   defaultKbThreshold: "60",
   defaultRelanceActive: "true",
+  jinaApiKey: "",
+  chromaUrl: "",
+  chromaApiKey: "",
 };
 
 export async function GET() {

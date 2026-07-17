@@ -96,6 +96,37 @@ export default function SettingsPage() {
           </select>
         </div>
 
+        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (Jina AI + ChromaDB)</h2>
+        <p className="text-sm text-gray-500 -mt-3">Crédentials par défaut pour la recherche sémantique vectorielle.</p>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Clé API Jina AI</label>
+          <input
+            type="password" placeholder="jina_..."
+            value={config.jinaApiKey || ""}
+            onChange={(e) => setConfig({ ...config, jinaApiKey: e.target.value })}
+            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">URL ChromaDB</label>
+          <input
+            type="text" placeholder="https://xxx.xxx.gcp.chromacloud.com"
+            value={config.chromaUrl || ""}
+            onChange={(e) => setConfig({ ...config, chromaUrl: e.target.value })}
+            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Clé API ChromaDB</label>
+          <input
+            type="password" placeholder="clé d'API Chroma"
+            value={config.chromaApiKey || ""}
+            onChange={(e) => setConfig({ ...config, chromaApiKey: e.target.value })}
+            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+          />
+        </div>
+
         <div className="flex items-center gap-3">
           <button onClick={handleSave} disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50">
             {saving ? "Enregistrement..." : "Enregistrer"}

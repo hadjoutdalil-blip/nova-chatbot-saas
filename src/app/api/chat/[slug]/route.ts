@@ -5,6 +5,8 @@ import { randomUUID } from "crypto";
 import { extractIP, lookupGeo } from "@/lib/geo";
 import { norm, calcSimilarity, ChunkMeta, chunkDocument, parseChunks, findBestChunks } from "@/lib/rag-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
+import { generateEmbedding } from "@/lib/embeddings";
+import { searchChunks as vectorSearchChunks } from "@/lib/vector-store";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 
@@ -559,9 +561,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         ],
       },
     });
-    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-    const chunks = [...siteChunks, ...docChunks];
-    const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
+    let topChunks: ChunkMeta[] = [];
+    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.jinaApiKey) {
+      try {
+        const embedding = await generateEmbedding(message, client.jinaApiKey);
+        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaUrl, client.chromaApiKey);
+        topChunks = results.map((r) => r.chunk);
+      } catch (err) {
+        console.error("[Vector RAG] error, falling back to keyword:", err);
+      }
+    }
+    if (topChunks.length === 0) {
+      const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
+      const allChunks = [...siteChunks, ...docChunks];
+      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 3, ragThreshold);
+    }
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
       try {
@@ -737,9 +751,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         ],
       },
     });
-    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-    const chunks = [...siteChunks, ...docChunks];
-    const topChunks = findBestChunks(message, chunks, client.topNChunks ?? 3, ragThreshold);
+    let topChunks: ChunkMeta[] = [];
+    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.jinaApiKey) {
+      try {
+        const embedding = await generateEmbedding(message, client.jinaApiKey);
+        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaUrl, client.chromaApiKey);
+        topChunks = results.map((r) => r.chunk);
+      } catch (err) {
+        console.error("[Vector RAG] error, falling back to keyword:", err);
+      }
+    }
+    if (topChunks.length === 0) {
+      const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
+      const allChunks = [...siteChunks, ...docChunks];
+      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 3, ragThreshold);
+    }
 
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);

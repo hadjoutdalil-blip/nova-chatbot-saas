@@ -46,6 +46,10 @@ export default function AppSettingsPage() {
         topNChunks: form.topNChunks,
         relanceActive: form.relanceActive,
         relanceText: form.relanceText,
+        useVectorRag: form.useVectorRag,
+        jinaApiKey: form.jinaApiKey,
+        chromaUrl: form.chromaUrl,
+        chromaApiKey: form.chromaApiKey,
       }),
     });
     setSaving(false);
@@ -151,6 +155,33 @@ export default function AppSettingsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Texte de relance personnalisé</label>
               <textarea value={form.relanceText || ""} onChange={(e) => setForm({ ...form, relanceText: e.target.value })} rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" placeholder="Exemple : Souhaitez-vous plus de détails ?" />
+            </div>
+
+            <div className="border-t border-gray-100 pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Brain size={16} className="text-emerald-600" />
+                <h2 className="font-semibold text-gray-900">RAG Vectoriel</h2>
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer mb-4">
+                <input type="checkbox" checked={!!form.useVectorRag} onChange={(e) => setForm({ ...form, useVectorRag: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (Jina AI + ChromaDB)</span>
+              </label>
+              {form.useVectorRag && (
+                <div className="space-y-3 pl-6 border-l-2 border-emerald-100">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Jina AI (optionnel, sinon globale)</label>
+                    <input type="password" value={form.jinaApiKey || ""} onChange={(e) => setForm({ ...form, jinaApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="jina_..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">URL ChromaDB (optionnel, sinon global)</label>
+                    <input type="text" value={form.chromaUrl || ""} onChange={(e) => setForm({ ...form, chromaUrl: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="https://..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API ChromaDB (optionnel, sinon globale)</label>
+                    <input type="password" value={form.chromaApiKey || ""} onChange={(e) => setForm({ ...form, chromaApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-200">
