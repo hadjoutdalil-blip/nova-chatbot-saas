@@ -187,7 +187,8 @@ function MigrateButton({ token }: { token: () => string }) {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
             });
-            const data = await res.json();
+            const text = await res.text();
+            const data = JSON.parse(text);
             setMigrateResult(JSON.stringify(data.results || data, null, 2));
           } catch (err: any) {
             setMigrateResult(`Erreur: ${err.message}`);

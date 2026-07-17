@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import KBModal from "@/components/admin/KBModal";
-import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X } from "lucide-react";
+import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X, Database, Loader2 } from "lucide-react";
 
 interface KBEntry {
   id: string;
@@ -74,6 +74,8 @@ export default function ClientKBPage() {
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<string | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -447,10 +449,36 @@ export default function ClientKBPage() {
               <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all">
                 <Search size={15} /> Tester le RAG
               </button>
+              <button
+                onClick={async () => {
+                  setMigrating(true); setMigrateResult(null);
+                  try {
+                    const res = await fetch("/api/migrate-vector", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                      body: JSON.stringify({ clientId: id }),
+                    });
+                    const text = await res.text();
+                    const data = JSON.parse(text);
+                    setMigrateResult(JSON.stringify(data.results || data, null, 2));
+                  } catch (err: any) {
+                    setMigrateResult(`Erreur: ${err.message}`);
+                  }
+                  setMigrating(false);
+                }}
+                disabled={migrating}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-all disabled:opacity-50"
+              >
+                {migrating ? <Loader2 size={15} className="animate-spin" /> : <Database size={15} />}
+                {migrating ? "Migration..." : "Migrer vers ChromaDB"}
+              </button>
               <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
                 <BookOpen size={15} /> {transferring ? "Transfert..." : "Transférer vers la KB"}
               </button>
             </div>
+            {migrateResult && (
+              <pre className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono overflow-auto max-h-60 text-gray-700">{migrateResult}</pre>
+            )}
           </div>
         </div>
       )}
