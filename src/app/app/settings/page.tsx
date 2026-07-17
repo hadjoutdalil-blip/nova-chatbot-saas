@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Thermometer, Shield } from "lucide-react";
+import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Thermometer, Shield, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
 
 const TABS = [
@@ -17,6 +17,8 @@ export default function AppSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [tab, setTab] = useState("ia");
+  const [testVector, setTestVector] = useState(false);
+  const [vectorTestResult, setVectorTestResult] = useState<Record<string, { ok: boolean; error?: string }> | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -179,6 +181,32 @@ export default function AppSettingsPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Clé API ChromaDB (optionnel, sinon globale)</label>
                     <input type="password" value={form.chromaApiKey || ""} onChange={(e) => setForm({ ...form, chromaApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={async () => {
+                        setTestVector(true);
+                        setVectorTestResult(null);
+                        const res = await fetch("/api/test-vector-connection", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                          body: JSON.stringify({ jinaApiKey: form.jinaApiKey, chromaUrl: form.chromaUrl, chromaApiKey: form.chromaApiKey }),
+                        });
+                        setVectorTestResult(await res.json());
+                        setTestVector(false);
+                      }}
+                      disabled={testVector || (!form.jinaApiKey && !form.chromaUrl)}
+                      className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {testVector ? <Loader2 size={13} className="animate-spin" /> : null}
+                      {testVector ? "Test..." : "Tester la connexion"}
+                    </button>
+                    {vectorTestResult && (
+                      <div className="flex items-center gap-2 text-xs">
+                        {vectorTestResult.jina && (vectorTestResult.jina.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Jina OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Jina</span>)}
+                        {vectorTestResult.chroma && (vectorTestResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Chroma</span>)}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

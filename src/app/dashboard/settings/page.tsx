@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 const PROVIDER_MODELS: Record<string, string[]> = {
   groq: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3-32b", "qwen/qwen3.6-27b", "meta-llama/llama-4-scout-17b-16e-instruct"],
@@ -13,6 +14,8 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; error?: string }> | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -125,6 +128,33 @@ export default function SettingsPage() {
             onChange={(e) => setConfig({ ...config, chromaApiKey: e.target.value })}
             className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
           />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              setTesting(true);
+              setTestResult(null);
+              const res = await fetch("/api/test-vector-connection", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                body: JSON.stringify({ jinaApiKey: config.jinaApiKey, chromaUrl: config.chromaUrl, chromaApiKey: config.chromaApiKey }),
+              });
+              setTestResult(await res.json());
+              setTesting(false);
+            }}
+            disabled={testing || (!config.jinaApiKey && !config.chromaUrl)}
+            className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+          >
+            {testing ? <Loader2 size={15} className="animate-spin" /> : null}
+            {testing ? "Test en cours..." : "Tester la connexion"}
+          </button>
+          {testResult && (
+            <div className="flex items-center gap-2 text-sm">
+              {testResult.jina && (testResult.jina.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Jina OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Jina: {testResult.jina.error}</span>)}
+              {testResult.chroma && (testResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Chroma: {testResult.chroma.error}</span>)}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
