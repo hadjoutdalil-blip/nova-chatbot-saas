@@ -166,13 +166,13 @@ export default function AppSettingsPage() {
               </div>
               <label className="flex items-center gap-3 cursor-pointer mb-4">
                 <input type="checkbox" checked={!!form.useVectorRag} onChange={(e) => setForm({ ...form, useVectorRag: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (HuggingFace + ChromaDB)</span>
+                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (Cohere + ChromaDB)</span>
               </label>
               {form.useVectorRag && (
                 <div className="space-y-3 pl-6 border-l-2 border-emerald-100">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API HuggingFace (optionnel, sinon globale)</label>
-                    <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="hf_..." />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Embedding (optionnel, sinon globale)</label>
+                    <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="clé API Cohere" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">URL ChromaDB (optionnel, sinon global)</label>
@@ -203,7 +203,7 @@ export default function AppSettingsPage() {
                     </button>
                     {vectorTestResult && (
                       <div className="flex items-center gap-2 text-xs">
-                        {vectorTestResult.huggingface && (vectorTestResult.huggingface.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> HF OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> HF</span>)}
+                        {vectorTestResult.embedding && (vectorTestResult.embedding.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Embedding OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Embedding</span>)}
                         {vectorTestResult.chroma && (vectorTestResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Chroma</span>)}
                       </div>
                     )}

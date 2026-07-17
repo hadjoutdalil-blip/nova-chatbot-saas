@@ -11,19 +11,19 @@ export async function POST(req: NextRequest) {
 
   if (hfApiKey) {
     try {
-      const res = await fetch("https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2", {
+      const res = await fetch("https://api.cohere.ai/v1/embed", {
         method: "POST",
         headers: { Authorization: `Bearer ${hfApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: ["test"] }),
+        body: JSON.stringify({ texts: ["test"], model: "embed-english-light-v3.0", input_type: "search_document" }),
       });
       if (res.ok) {
-        results.huggingface = { ok: true };
+        results.embedding = { ok: true };
       } else {
         const text = await res.text().catch(() => "");
-        results.huggingface = { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+        results.embedding = { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
       }
     } catch (err: any) {
-      results.huggingface = { ok: false, error: err.message };
+      results.embedding = { ok: false, error: err.message };
     }
   }
 

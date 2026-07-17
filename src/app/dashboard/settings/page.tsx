@@ -99,13 +99,13 @@ export default function SettingsPage() {
           </select>
         </div>
 
-        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (HuggingFace + ChromaDB)</h2>
+        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (Cohere + ChromaDB)</h2>
         <p className="text-sm text-gray-500 -mt-3">Crédentials par défaut pour la recherche sémantique vectorielle.</p>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Clé API HuggingFace</label>
+          <label className="block text-sm font-medium mb-1">Clé API Embedding (Cohere)</label>
           <input
-            type="password" placeholder="hf_..."
+            type="password" placeholder="clé API Cohere"
             value={config.hfApiKey || ""}
             onChange={(e) => setConfig({ ...config, hfApiKey: e.target.value })}
             className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
@@ -151,7 +151,7 @@ export default function SettingsPage() {
           </button>
           {testResult && (
             <div className="flex items-center gap-2 text-sm">
-              {testResult.huggingface && (testResult.huggingface.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> HF OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> HF: {testResult.huggingface.error}</span>)}
+              {testResult.embedding && (testResult.embedding.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Embedding OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Embedding: {testResult.embedding.error}</span>)}
               {testResult.chroma && (testResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Chroma: {testResult.chroma.error}</span>)}
             </div>
           )}
