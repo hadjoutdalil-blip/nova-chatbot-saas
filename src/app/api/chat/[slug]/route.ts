@@ -476,19 +476,23 @@ async function handleStreamingRequest(
     const reader = aiStream.getReader();
     const decoder = new TextDecoder();
     let fullText = "";
+    let evType = "message";
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       const decoded = decoder.decode(value, { stream: true });
       for (const line of decoded.split("\n")) {
-        if (!line.startsWith("data: ")) continue;
-        const payload = line.slice(6).trim();
-        if (payload === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(payload);
-          const token = parsed.choices?.[0]?.delta?.content;
-          if (token) fullText += token;
-        } catch { /* skip */ }
+        if (line.startsWith("event: ")) { evType = line.slice(7).trim(); continue; }
+        if (line.startsWith("data: ")) {
+          const payload = line.slice(6).trim();
+          if (evType === "token") {
+            try {
+              const parsed = JSON.parse(payload);
+              if (parsed.content) fullText += parsed.content;
+            } catch { /* skip */ }
+          }
+          evType = "message";
+        }
       }
     }
     return fullText;
