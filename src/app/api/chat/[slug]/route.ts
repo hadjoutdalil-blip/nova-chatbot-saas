@@ -562,10 +562,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.hfApiKey) {
+    if (client.useVectorRag && client.chromaApiKey && client.chromaTenant && client.chromaDatabase && client.hfApiKey) {
       try {
         const embedding = await generateEmbedding(message, client.hfApiKey);
-        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaUrl, client.chromaApiKey);
+        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
@@ -752,10 +752,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.hfApiKey) {
+    if (client.useVectorRag && client.chromaApiKey && client.chromaTenant && client.chromaDatabase && client.hfApiKey) {
       try {
         const embedding = await generateEmbedding(message, client.hfApiKey);
-        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaUrl, client.chromaApiKey);
+        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);

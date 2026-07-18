@@ -129,6 +129,24 @@ export default function SettingsPage() {
             className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
           />
         </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Tenant ChromaDB</label>
+          <input
+            type="text" placeholder="default"
+            value={config.chromaTenant || "default"}
+            onChange={(e) => setConfig({ ...config, chromaTenant: e.target.value })}
+            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Database ChromaDB</label>
+          <input
+            type="text" placeholder="default"
+            value={config.chromaDatabase || "default"}
+            onChange={(e) => setConfig({ ...config, chromaDatabase: e.target.value })}
+            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+          />
+        </div>
 
         <div className="flex items-center gap-3">
           <button
@@ -138,12 +156,12 @@ export default function SettingsPage() {
               const res = await fetch("/api/test-vector-connection", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                body: JSON.stringify({ hfApiKey: config.hfApiKey, chromaUrl: config.chromaUrl, chromaApiKey: config.chromaApiKey }),
+                body: JSON.stringify({ hfApiKey: config.hfApiKey, chromaApiKey: config.chromaApiKey, chromaTenant: config.chromaTenant, chromaDatabase: config.chromaDatabase }),
               });
-              setTestResult(await res.json());
-              setTesting(false);
+              const text = await res.text();
+              setTestResult(JSON.parse(text));
             }}
-            disabled={testing || (!config.hfApiKey && !config.chromaUrl)}
+            disabled={testing || (!config.hfApiKey && !config.chromaApiKey)}
             className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
           >
             {testing ? <Loader2 size={15} className="animate-spin" /> : null}

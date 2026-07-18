@@ -113,8 +113,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     const vClient = await db.prisma.client.findUnique({ where: { id: existing.clientId } });
-    if (vClient?.useVectorRag && vClient.chromaUrl && vClient.chromaApiKey && vClient.hfApiKey) {
-      syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, vClient.chromaUrl, vClient.chromaApiKey, vClient.hfApiKey).catch((err) => console.error("[Vector Sync Update]", err));
+    if (vClient?.useVectorRag && vClient.chromaApiKey && vClient.chromaTenant && vClient.chromaDatabase && vClient.hfApiKey) {
+      syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, vClient.chromaApiKey, vClient.chromaTenant, vClient.chromaDatabase, vClient.hfApiKey).catch((err) => console.error("[Vector Sync Update]", err));
     }
 
     return NextResponse.json({
@@ -180,8 +180,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   });
 
   const client = await db.prisma.client.findUnique({ where: { id: existing.clientId } });
-  if (client?.useVectorRag && client.chromaUrl && client.chromaApiKey) {
-    deleteDocChunks(id, client.chromaUrl, client.chromaApiKey).catch((err) => console.error("[Vector Delete]", err));
+  if (client?.useVectorRag && client.chromaApiKey && client.chromaTenant && client.chromaDatabase) {
+    deleteDocChunks(id, client.chromaApiKey, client.chromaTenant, client.chromaDatabase).catch((err) => console.error("[Vector Delete]", err));
   }
 
   return NextResponse.json({ message: "Document archivé" });

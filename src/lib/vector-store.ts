@@ -1,25 +1,19 @@
+import { ChromaClient } from "chromadb";
 import { chunkDocument, ChunkMeta } from "./rag-utils";
 import { generateEmbeddings } from "./embeddings";
 
 const COLLECTION_NAME = "nova_chunks";
 
-async function getCollectionId(baseUrl: string, apiKey: string): Promise<string> {
-  const res = await fetch(`${baseUrl}/api/v1/collections?name=${COLLECTION_NAME}`, {
+const noopEmbed = { generate: async (_texts: string[]) => [] };
+
+function createClient(apiKey: string, tenant: string, database: string): ChromaClient {
+  return new ChromaClient({
+    host: "api.trychroma.com",
+    ssl: true,
     headers: { "X-Chroma-Token": apiKey },
+    tenant,
+    database,
   });
-  if (!res.ok) throw new Error(`Chroma get collection error ${res.status}`);
-  const list = await res.json();
-  if (Array.isArray(list) && list.length > 0) {
-    return list[0].id || list[0].uuid;
-  }
-  const create = await fetch(`${baseUrl}/api/v1/collections`, {
-    method: "POST",
-    headers: { "X-Chroma-Token": apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ name: COLLECTION_NAME }),
-  });
-  if (!create.ok) throw new Error(`Chroma create collection error ${create.status}`);
-  const data = await create.json();
-  return data.id || data.uuid;
 }
 
 export async function syncDocumentChunks(
@@ -30,12 +24,14 @@ export async function syncDocumentChunks(
   sourceUrl: string,
   validUntil: string | null,
   chunkSize: number,
-  chromaUrl: string,
   chromaApiKey: string,
+  chromaTenant: string,
+  chromaDatabase: string,
   hfApiKey: string,
 ) {
-  const collectionId = await getCollectionId(chromaUrl, chromaApiKey);
-  await deleteDocChunks(docId, chromaUrl, chromaApiKey);
+  const client = createClient(chromaApiKey, chromaTenant, chromaDatabase);
+  const collection = await client.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: noopEmbed });
+  await deleteDocChunks(docId, chromaApiKey, chromaTenant, chromaDatabase);
 
   const chunks = chunkDocument({ id: docId, content, source_url: sourceUrl, valid_until: validUntil, originalName: source }, chunkSize);
   if (chunks.length === 0) return;
@@ -55,22 +51,14 @@ export async function syncDocumentChunks(
     valid_until: validUntil || "",
   }));
 
-  const res = await fetch(`${chromaUrl}/api/v1/collections/${collectionId}/upsert`, {
-    method: "POST",
-    headers: { "X-Chroma-Token": chromaApiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ ids, embeddings, metadatas }),
-  });
-  if (!res.ok) throw new Error(`Chroma upsert error ${res.status}`);
+  await collection.add({ ids, embeddings, metadatas });
 }
 
-export async function deleteDocChunks(docId: string, chromaUrl: string, chromaApiKey: string) {
+export async function deleteDocChunks(docId: string, chromaApiKey: string, chromaTenant: string, chromaDatabase: string) {
   try {
-    const collectionId = await getCollectionId(chromaUrl, chromaApiKey);
-    await fetch(`${chromaUrl}/api/v1/collections/${collectionId}/delete`, {
-      method: "POST",
-      headers: { "X-Chroma-Token": chromaApiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ where: { docId } }),
-    });
+    const client = createClient(chromaApiKey, chromaTenant, chromaDatabase);
+    const collection = await client.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: noopEmbed });
+    await collection.delete({ where: { docId } });
   } catch {
     // collection may not exist yet
   }
@@ -80,37 +68,30 @@ export async function searchChunks(
   clientId: string,
   questionEmbedding: number[],
   topN: number,
-  chromaUrl: string,
   chromaApiKey: string,
+  chromaTenant: string,
+  chromaDatabase: string,
 ): Promise<{ chunk: ChunkMeta; score: number }[]> {
-  const collectionId = await getCollectionId(chromaUrl, chromaApiKey);
-  const res = await fetch(`${chromaUrl}/api/v1/collections/${collectionId}/query`, {
-    method: "POST",
-    headers: { "X-Chroma-Token": chromaApiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query_embeddings: [questionEmbedding],
-      n_results: topN,
-      where: { clientId },
-    }),
-  });
-  if (!res.ok) throw new Error(`Chroma query error ${res.status}`);
-  const data = await res.json();
-  const ids: string[][] = data.ids || [];
-  const distances: number[][] = data.distances || [];
-  const metadatas: any[][] = data.metadatas || [];
-  if (!ids[0]) return [];
-  return ids[0].map((_id, i) => ({
+  const client = createClient(chromaApiKey, chromaTenant, chromaDatabase);
+  const collection = await client.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: noopEmbed });
+  const data = await collection.query({ queryEmbeddings: [questionEmbedding], nResults: topN, where: { clientId } });
+
+  const ids = data.ids?.[0] || [];
+  const distances = data.distances?.[0] || [];
+  const metadatas = data.metadatas?.[0] || [];
+
+  return ids.map((_id: string, i: number) => ({
     chunk: {
-      id: metadatas[0]?.[i]?.chunkId || _id,
-      source: metadatas[0]?.[i]?.source || "",
-      section: metadatas[0]?.[i]?.section || "",
-      keywords: (metadatas[0]?.[i]?.keywords || "").split(", ").filter(Boolean),
+      id: (metadatas[i]?.chunkId as string) || _id,
+      source: (metadatas[i]?.source as string) || "",
+      section: (metadatas[i]?.section as string) || "",
+      keywords: ((metadatas[i]?.keywords as string) || "").split(", ").filter(Boolean),
       content: "",
-      score: distances[0]?.[i] !== undefined ? 1 - distances[0][i] : 0,
-      docId: metadatas[0]?.[i]?.docId,
-      source_url: metadatas[0]?.[i]?.source_url || "",
-      valid_until: metadatas[0]?.[i]?.valid_until || "",
+      score: distances[i] !== undefined ? 1 - (distances[i] as number) : 0,
+      docId: (metadatas[i]?.docId as string) || undefined,
+      source_url: (metadatas[i]?.source_url as string) || "",
+      valid_until: (metadatas[i]?.valid_until as string) || "",
     },
-    score: distances[0]?.[i] !== undefined ? 1 - distances[0][i] : 0,
+    score: distances[i] !== undefined ? 1 - (distances[i] as number) : 0,
   }));
 }

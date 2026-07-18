@@ -59,10 +59,10 @@ export async function POST(req: NextRequest) {
   let topChunks: ChunkMeta[] = [];
   let matchedByKeyword = false;
 
-  if (client.useVectorRag && client.chromaUrl && client.chromaApiKey && client.hfApiKey) {
+  if (client.useVectorRag && client.chromaApiKey && client.chromaTenant && client.chromaDatabase && client.hfApiKey) {
     try {
       const embedding = await generateEmbedding(question, client.hfApiKey);
-      const results = await vectorSearchChunks(client.id, embedding, topNChunks, client.chromaUrl, client.chromaApiKey);
+      const results = await vectorSearchChunks(client.id, embedding, topNChunks, client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
       topChunks = results.map((r) => r.chunk);
     } catch (err) {
       console.error("[Vector RAG test] error, falling back to keyword:", err);

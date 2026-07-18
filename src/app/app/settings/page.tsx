@@ -50,8 +50,9 @@ export default function AppSettingsPage() {
         relanceText: form.relanceText,
         useVectorRag: form.useVectorRag,
         hfApiKey: form.hfApiKey,
-        chromaUrl: form.chromaUrl,
         chromaApiKey: form.chromaApiKey,
+        chromaTenant: form.chromaTenant,
+        chromaDatabase: form.chromaDatabase,
       }),
     });
     setSaving(false);
@@ -175,12 +176,16 @@ export default function AppSettingsPage() {
                     <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="clé API Cohere" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">URL ChromaDB (optionnel, sinon global)</label>
-                    <input type="text" value={form.chromaUrl || ""} onChange={(e) => setForm({ ...form, chromaUrl: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="https://..." />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Clé API ChromaDB (optionnel, sinon globale)</label>
                     <input type="password" value={form.chromaApiKey || ""} onChange={(e) => setForm({ ...form, chromaApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Tenant ChromaDB (optionnel, sinon global)</label>
+                    <input type="text" value={form.chromaTenant || "default"} onChange={(e) => setForm({ ...form, chromaTenant: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="default" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Database ChromaDB (optionnel, sinon global)</label>
+                    <input type="text" value={form.chromaDatabase || "default"} onChange={(e) => setForm({ ...form, chromaDatabase: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="default" />
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -190,12 +195,13 @@ export default function AppSettingsPage() {
                         const res = await fetch("/api/test-vector-connection", {
                           method: "POST",
                           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                          body: JSON.stringify({ hfApiKey: form.hfApiKey, chromaUrl: form.chromaUrl, chromaApiKey: form.chromaApiKey }),
+                          body: JSON.stringify({ hfApiKey: form.hfApiKey, chromaApiKey: form.chromaApiKey, chromaTenant: form.chromaTenant, chromaDatabase: form.chromaDatabase }),
                         });
-                        setVectorTestResult(await res.json());
+                        const text = await res.text();
+                        setVectorTestResult(JSON.parse(text));
                         setTestVector(false);
                       }}
-                      disabled={testVector || (!form.hfApiKey && !form.chromaUrl)}
+                      disabled={testVector || (!form.hfApiKey && !form.chromaApiKey)}
                       className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50"
                     >
                       {testVector ? <Loader2 size={13} className="animate-spin" /> : null}

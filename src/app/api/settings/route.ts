@@ -9,8 +9,9 @@ const DEFAULTS: Record<string, string> = {
   defaultKbThreshold: "60",
   defaultRelanceActive: "true",
   hfApiKey: "",
-  chromaUrl: "",
   chromaApiKey: "",
+  chromaTenant: "default",
+  chromaDatabase: "default",
 };
 
 export async function GET() {

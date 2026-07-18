@@ -1,34 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ChromaClient } from "chromadb";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { syncDocumentChunks } from "@/lib/vector-store";
 import { chunkDocument } from "@/lib/rag-utils";
 import { generateEmbeddings } from "@/lib/embeddings";
 
-async function getCollectionId(baseUrl: string, apiKey: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${baseUrl}/api/v1/collections?name=nova_chunks`, {
-      headers: { "X-Chroma-Token": apiKey },
-    });
-    const body = await res.text();
-    if (!res.ok) throw new Error(`Chroma get collection ${res.status}: ${body.slice(0, 200)}`);
-    let list;
-    try { list = JSON.parse(body); } catch { throw new Error(`Chroma returned HTML instead of JSON (${res.status}) - vérifie l'URL ChromaDB`); }
-    if (Array.isArray(list) && list.length > 0) {
-      return list[0].id || list[0].uuid || null;
-    }
-    const create = await fetch(`${baseUrl}/api/v1/collections`, {
-      method: "POST",
-      headers: { "X-Chroma-Token": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "nova_chunks" }),
-    });
-    const createBody = await create.text();
-    if (!create.ok) throw new Error(`Chroma create ${create.status}: ${createBody.slice(0, 200)}`);
-    const data = JSON.parse(createBody);
-    return data.id || data.uuid || null;
-  } catch (err: any) {
-    throw new Error(`Chroma: ${err.message}`);
-  }
+const COLLECTION_NAME = "nova_chunks";
+const noopEmbed = { generate: async (_texts: string[]) => [] };
+
+async function getOrCreateCollection(apiKey: string, tenant: string, database: string): Promise<any> {
+  const client = new ChromaClient({
+    host: "api.trychroma.com",
+    ssl: true,
+    headers: { "X-Chroma-Token": apiKey },
+    tenant,
+    database,
+  });
+  return client.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: noopEmbed });
 }
 
 export async function POST(req: NextRequest) {
@@ -41,14 +30,14 @@ export async function POST(req: NextRequest) {
 
     const clients = await db.prisma.client.findMany({
       where,
-      select: { id: true, name: true, chunkSize: true, chromaUrl: true, chromaApiKey: true, hfApiKey: true },
+      select: { id: true, name: true, chunkSize: true, chromaApiKey: true, chromaTenant: true, chromaDatabase: true, hfApiKey: true },
     });
 
     const results: any[] = [];
 
     for (const client of clients) {
       try {
-        if (!client.chromaUrl || !client.chromaApiKey || !client.hfApiKey) {
+        if (!client.chromaApiKey || !client.chromaTenant || !client.chromaDatabase || !client.hfApiKey) {
           results.push({ client: client.name || client.id, status: "skipped", reason: "credentials manquants" });
           continue;
         }
@@ -56,11 +45,7 @@ export async function POST(req: NextRequest) {
         const log: any = { client: client.name || client.id, documents: 0, kbEntries: 0, errors: [] };
         const chunkSize = client.chunkSize ?? 600;
 
-        const collectionId = await getCollectionId(client.chromaUrl, client.chromaApiKey);
-        if (!collectionId) {
-          results.push({ client: client.name || client.id, status: "error", reason: "impossible d'obtenir l'ID de collection Chroma" });
-          continue;
-        }
+        const collection = await getOrCreateCollection(client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
 
         /* ── Documents ── */
         const docs = await db.prisma.clientDocument.findMany({
@@ -68,7 +53,7 @@ export async function POST(req: NextRequest) {
         });
         for (const doc of docs) {
           try {
-            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.chromaUrl, client.chromaApiKey, client.hfApiKey);
+            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.chromaApiKey, client.chromaTenant, client.chromaDatabase, client.hfApiKey);
             log.documents++;
           } catch (err: any) {
             log.errors.push(`doc ${doc.id}: ${err.message}`);
@@ -97,18 +82,8 @@ export async function POST(req: NextRequest) {
               valid_until: kb.valid_until || "",
             }));
 
-            await fetch(`${client.chromaUrl}/api/v1/collections/${collectionId}/delete`, {
-              method: "POST",
-              headers: { "X-Chroma-Token": client.chromaApiKey, "Content-Type": "application/json" },
-              body: JSON.stringify({ where: { docId: kb.id } }),
-            }).catch(() => {});
-
-            const upsertRes = await fetch(`${client.chromaUrl}/api/v1/collections/${collectionId}/upsert`, {
-              method: "POST",
-              headers: { "X-Chroma-Token": client.chromaApiKey, "Content-Type": "application/json" },
-              body: JSON.stringify({ ids, embeddings, metadatas }),
-            });
-            if (!upsertRes.ok) throw new Error(`Chroma upsert error ${upsertRes.status}`);
+            await collection.delete({ where: { docId: kb.id } }).catch(() => {});
+            await collection.add({ ids, embeddings, metadatas });
             log.kbEntries++;
           } catch (err: any) {
             log.errors.push(`kb ${kb.id}: ${err.message}`);

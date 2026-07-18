@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ChromaClient } from "chromadb";
 import { getAuthUser } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const { hfApiKey, chromaUrl, chromaApiKey } = await req.json();
+  const { hfApiKey, chromaApiKey, chromaTenant, chromaDatabase } = await req.json();
 
   const results: Record<string, { ok: boolean; error?: string }> = {};
 
@@ -27,17 +28,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (chromaUrl && chromaApiKey) {
+  if (chromaApiKey) {
     try {
-      const res = await fetch(`${chromaUrl}/api/v1/collections?name=nova_chunks`, {
+      const client = new ChromaClient({
+        host: "api.trychroma.com",
+        ssl: true,
         headers: { "X-Chroma-Token": chromaApiKey },
+        tenant: chromaTenant || "default",
+        database: chromaDatabase || "default",
       });
-      const text = await res.text();
-      if (!text.startsWith("<")) {
-        results.chroma = { ok: true };
-      } else {
-        results.chroma = { ok: false, error: `L'URL renvoie du HTML (${res.status}) — vérifie l'URL ChromaDB Cloud` };
-      }
+      await client.heartbeat();
+      results.chroma = { ok: true };
     } catch (err: any) {
       results.chroma = { ok: false, error: err.message };
     }
