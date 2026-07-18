@@ -1,8 +1,10 @@
 -- Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Create document_chunks table for vector search
-CREATE TABLE IF NOT EXISTS document_chunks (
+-- Recreate table with correct vector dimension (384 for embed-english-light-v3.0)
+DROP TABLE IF EXISTS document_chunks;
+
+CREATE TABLE document_chunks (
     id TEXT PRIMARY KEY,
     "clientId" TEXT NOT NULL,
     "docId" TEXT NOT NULL,
@@ -13,13 +15,12 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     keywords TEXT NOT NULL DEFAULT '',
     source_url TEXT NOT NULL DEFAULT '',
     valid_until TEXT NOT NULL DEFAULT '',
-    embedding vector(1024)
+    embedding vector(384)
 );
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId");
-CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId");
-CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_document_chunks_client ON document_chunks ("clientId");
+CREATE INDEX idx_document_chunks_doc ON document_chunks ("docId");
 
 -- Remove ChromaDB columns from Client table
 ALTER TABLE "Client" DROP COLUMN IF EXISTS "chromaApiKey";

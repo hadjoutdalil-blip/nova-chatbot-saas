@@ -4,7 +4,7 @@ import { generateEmbeddings } from "./embeddings";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
-const VECTOR_DIM = 1024;
+const VECTOR_DIM = 384;
 
 let tableEnsured = false;
 
@@ -13,6 +13,20 @@ async function ensureTable() {
   const client = await pool.connect();
   try {
     await client.query("CREATE EXTENSION IF NOT EXISTS vector");
+    // Check if table exists with wrong vector dimension, recreate if needed
+    const tableCheck = await client.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_name = 'document_chunks'
+      ) AS exists, (
+        SELECT atttypmod FROM pg_attribute
+        JOIN pg_class ON pg_attribute.attrelid = pg_class.oid
+        WHERE pg_class.relname = 'document_chunks' AND pg_attribute.attname = 'embedding'
+      ) AS dim
+    `);
+    const row = tableCheck.rows[0];
+    if (row?.exists && row?.dim !== VECTOR_DIM) {
+      await client.query("DROP TABLE document_chunks");
+    }
     await client.query(`
       CREATE TABLE IF NOT EXISTS document_chunks (
         id TEXT PRIMARY KEY,

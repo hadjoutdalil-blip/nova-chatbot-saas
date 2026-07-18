@@ -1,4 +1,5 @@
 const COHERE_EMBED_URL = "https://api.cohere.ai/v1/embed";
+const BATCH_SIZE = 96;
 
 async function cohereEmbed(texts: string[], apiKey: string): Promise<number[][]> {
   const res = await fetch(COHERE_EMBED_URL, {
@@ -23,5 +24,14 @@ export async function generateEmbedding(text: string, apiKey: string): Promise<n
 }
 
 export async function generateEmbeddings(texts: string[], apiKey: string): Promise<number[][]> {
-  return cohereEmbed(texts, apiKey);
+  if (texts.length <= BATCH_SIZE) {
+    return cohereEmbed(texts, apiKey);
+  }
+  const all: number[][] = [];
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    const batch = texts.slice(i, i + BATCH_SIZE);
+    const batchEmbeddings = await cohereEmbed(batch, apiKey);
+    all.push(...batchEmbeddings);
+  }
+  return all;
 }
