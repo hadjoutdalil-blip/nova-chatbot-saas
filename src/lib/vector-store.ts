@@ -10,8 +10,8 @@ let tableEnsured = false;
 
 async function ensureTable() {
   if (tableEnsured) return;
-  await sql`CREATE EXTENSION IF NOT EXISTS vector`;
-  await sql`
+  await sql("CREATE EXTENSION IF NOT EXISTS vector");
+  await sql(`
     CREATE TABLE IF NOT EXISTS document_chunks (
       id TEXT PRIMARY KEY,
       "clientId" TEXT NOT NULL,
@@ -25,11 +25,11 @@ async function ensureTable() {
       valid_until TEXT NOT NULL DEFAULT '',
       embedding vector(${VECTOR_DIM})
     )
-  `;
-  await sql`CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")`;
+  `);
+  await sql('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
+  await sql('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
   try {
-    await sql`CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)`;
+    await sql("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)");
   } catch {
     // ivfflat requires existing rows; safe to ignore on empty table
   }
@@ -62,16 +62,17 @@ export async function syncDocumentChunks(
     const c = chunks[i];
     const rowId = `${docId}__${i}`;
     const embeddingStr = `[${embeddings[i].join(",")}]`;
-    await sql`
-      INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
-      VALUES (${rowId}, ${clientId}, ${docId}, ${c.id}, ${c.content}, ${c.source}, ${c.section}, ${c.keywords.join(", ")}, ${sourceUrl}, ${validUntil || ""}, ${embeddingStr}::vector)
-    `;
+    await sql(
+      `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
+      [rowId, clientId, docId, c.id, c.content, c.source, c.section, c.keywords.join(", "), sourceUrl, validUntil || "", embeddingStr]
+    );
   }
 }
 
 export async function deleteDocChunks(docId: string) {
   await ensureTable();
-  await sql`DELETE FROM document_chunks WHERE "docId" = ${docId}`;
+  await sql('DELETE FROM document_chunks WHERE "docId" = $1', [docId]);
 }
 
 export async function searchChunks(
@@ -82,14 +83,15 @@ export async function searchChunks(
   await ensureTable();
 
   const embeddingStr = `[${questionEmbedding.join(",")}]`;
-  const rows = await sql`
-    SELECT *,
-      1 - (embedding <=> ${embeddingStr}::vector) AS score
+  const rows = await sql(
+    `SELECT *,
+      1 - (embedding <=> $1::vector) AS score
     FROM document_chunks
-    WHERE "clientId" = ${clientId}
-    ORDER BY embedding <=> ${embeddingStr}::vector
-    LIMIT ${topN}
-  `;
+    WHERE "clientId" = $2
+    ORDER BY embedding <=> $1::vector
+    LIMIT $3`,
+    [embeddingStr, clientId, topN]
+  );
 
   return rows.map((row: any) => ({
     chunk: {
