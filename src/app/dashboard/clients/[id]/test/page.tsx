@@ -29,7 +29,9 @@ function ChatTest({ slug, primaryColor, name, logo, aiColor = "#7c3aed" }: { slu
   const [hoveredRating, setHoveredRating] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+  const [streamingMsg, setStreamingMsg] = useState<{ text: string; role: string; source?: string; score?: number; provider?: string; messageId?: string; question?: string } | null>(null);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading, streamingMsg]);
 
   async function sendMessage(text: string) {
     if (!text.trim() || !navigator.onLine) {
@@ -41,11 +43,12 @@ function ChatTest({ slug, primaryColor, name, logo, aiColor = "#7c3aed" }: { slu
     setMessages((prev) => [...prev, { text, role: "user" }]);
     setInput("");
     setLoading(true);
+    setStreamingMsg(null);
     try {
       const res = await fetch(`/api/chat/${slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history, aiMode }),
+        body: JSON.stringify({ message: text, history, aiMode, stream: true }),
       });
       if (res.status === 429) {
         setMessages((prev) => [...prev, { text: "Trop de requêtes. Veuillez patienter quelques secondes.", role: "bot", source: "fallback" }]);
@@ -57,13 +60,66 @@ function ChatTest({ slug, primaryColor, name, logo, aiColor = "#7c3aed" }: { slu
         setLoading(false);
         return;
       }
-      const data = await res.json();
-      setMessages((prev) => [...prev, { text: data.response, role: "bot", source: data.source, score: data.score, provider: data.provider, messageId: data.messageId, question: text }]);
-      setHistory((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: data.response }].slice(-20));
+      const ct = res.headers.get("content-type") || "";
+      if (ct.indexOf("text/event-stream") === -1) {
+        const data = await res.json();
+        setMessages((prev) => [...prev, { text: data.response, role: "bot", source: data.source, score: data.score, provider: data.provider, messageId: data.messageId, question: text }]);
+        setHistory((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: data.response }].slice(-20));
+        setLoading(false);
+        return;
+      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let evType = "message";
+      let streamingText = "";
+      let metaSource = "";
+      let metaProvider = "";
+      let metaScore = 0;
+      let metaMessageId = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) { evType = line.slice(7).trim(); continue; }
+          if (line.startsWith("data: ")) {
+            const rawData = line.slice(6);
+            if (evType === "metadata") {
+              try {
+                const md = JSON.parse(rawData);
+                metaSource = md.source || "";
+                metaProvider = md.provider || "";
+                metaScore = md.score || 0;
+                metaMessageId = md.messageId || "";
+              } catch {}
+              setStreamingMsg({ text: "", role: "bot", source: metaSource, score: metaScore, provider: metaProvider, question: text });
+            } else if (evType === "token") {
+              try {
+                const td = JSON.parse(rawData);
+                if (td.content) {
+                  streamingText += td.content;
+                  const snap = streamingText;
+                  setStreamingMsg((prev) => prev ? { ...prev, text: snap } : null);
+                }
+              } catch {}
+            } else if (evType === "done") {
+              const finalText = streamingText;
+              setStreamingMsg(null);
+              setMessages((prev) => [...prev, { text: finalText, role: "bot", source: metaSource, score: metaScore, provider: metaProvider, messageId: metaMessageId, question: text }]);
+              setHistory((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: finalText }].slice(-20));
+            }
+            evType = "message";
+          }
+        }
+      }
     } catch {
       setMessages((prev) => [...prev, { text: "Je n'ai pas trouvé de réponse. Contactez-nous pour plus d'informations.", role: "bot", source: "fallback" }]);
     }
     setLoading(false);
+    setStreamingMsg(null);
   }
 
   async function submitFeedback(messageId: string, rating: number, question: string, response: string, source?: string, score?: number, provider?: string) {
@@ -300,7 +356,32 @@ function ChatTest({ slug, primaryColor, name, logo, aiColor = "#7c3aed" }: { slu
             </div>
           )
         ))}
-        {loading && (
+        {streamingMsg && (
+          <div style={{ display: "flex", gap: 10, maxWidth: "92%", animation: "nl .28s ease" }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: "50%",
+              background: aiMode || streamingMsg.source === "ai" ? `linear-gradient(135deg,${aiColor},${aiColor}dd)` : `linear-gradient(135deg,${primaryColor},#4a90d9)`,
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", flexShrink: 0, marginTop: 2,
+              boxShadow: aiMode || streamingMsg.source === "ai" ? `0 2px 8px ${aiColor}33` : "0 2px 6px rgba(0,0,0,.08)",
+            }}>
+              <BotDot size={20} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                background: "#fff", border: "1px solid #eef2f6", padding: "14px 16px",
+                borderRadius: "20px 20px 20px 4px", fontSize: 14, lineHeight: 1.7,
+                color: "#0d1b2a", boxShadow: "0 2px 8px rgba(0,0,0,.04)",
+                whiteSpace: "pre-wrap", wordBreak: "break-word",
+                borderLeft: aiMode || streamingMsg.source === "ai" ? `3px solid ${aiColor}` : "none",
+                backgroundImage: aiMode || streamingMsg.source === "ai" ? `linear-gradient(135deg,#fff,${aiColor}08)` : "none",
+              }}>
+                <span dangerouslySetInnerHTML={{ __html: renderMarkdown(streamingMsg.text) }} />
+                <span style={{ color: aiColor, fontWeight: 700, animation: "blink .8s infinite ease-in-out", marginLeft: 1 }}>|</span>
+              </div>
+            </div>
+          </div>
+        )}
+        {loading && !streamingMsg && (
           <div style={{ display: "flex", gap: 10, maxWidth: "92%", animation: "nl .2s ease" }}>
             <div style={{
               width: 34, height: 34, borderRadius: "50%",
@@ -410,6 +491,10 @@ function ChatTest({ slug, primaryColor, name, logo, aiColor = "#7c3aed" }: { slu
         @keyframes nl {
           from { opacity: 0; transform: translateX(-16px); }
           to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
         }
       `}</style>
     </div>

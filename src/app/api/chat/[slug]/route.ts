@@ -9,6 +9,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
+import { sseEvent } from "@/lib/stream-utils";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -291,6 +292,76 @@ async function callAI(apiKey: string, providerId: string, model: string, system:
   return { text, usage };
 }
 
+async function callAIStream(apiKey: string, providerId: string, model: string, system: string, user: string, temperature: number, history: any[], max_tokens: number = 600): Promise<ReadableStream<Uint8Array>> {
+  const provider = PROVIDERS[providerId];
+  if (!provider) throw new Error("Fournisseur AI inconnu");
+
+  const msgHistory = (history || []).slice(-10).map((m: any) => ({ role: m.role, content: m.content }));
+
+  const resp = await fetch(provider.endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        ...msgHistory,
+        { role: "user", content: user },
+      ],
+      temperature,
+      max_tokens,
+      stream: true,
+    }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`AI Stream ${resp.status}: ${err.slice(0, 300)}`);
+  }
+
+  if (!resp.body) throw new Error("No response body for stream");
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (payload === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(payload);
+              const token = parsed.choices?.[0]?.delta?.content;
+              if (token) {
+                controller.enqueue(sseEvent("token", { content: token }));
+              }
+            } catch { /* malformed chunk, skip */ }
+          }
+        }
+      } catch (err) {
+        console.error("[Nova Chat] Stream read error:", err);
+      } finally {
+        reader.releaseLock();
+        controller.close();
+      }
+    },
+  });
+}
+
 async function resolveApiKey(client: any): Promise<{ id: string; key: string; model?: string | null } | null> {
   let entry = await selectApiKey(client.id, client.aiProvider || "groq");
   if (entry) return entry;
@@ -378,6 +449,294 @@ export async function OPTIONS() {
   return NextResponse.json(null, { headers: corsHeaders });
 }
 
+/* ── STREAMING HANDLER ──────────────────────────────── */
+async function handleStreamingRequest(
+  req: NextRequest,
+  client: any,
+  body: { message: string; history: any[]; aiMode: boolean; ragOnly: boolean; sessionType: string; pageUrl?: string; pageTitle?: string; isVisitor: boolean },
+): Promise<Response> {
+  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor } = body;
+  const messageId = randomUUID();
+  const trimmed = message.trim();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const ip = extractIP(req);
+  const geoPromise = lookupGeo(ip);
+
+  const sseHeaders = {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-cache",
+    "Connection": "keep-alive",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+
+  /* ── Helper: consume an AI stream and buffer the full text ── */
+  async function consumeAIStream(aiStream: ReadableStream<Uint8Array>): Promise<string> {
+    const reader = aiStream.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const decoded = decoder.decode(value, { stream: true });
+      for (const line of decoded.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        if (payload === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(payload);
+          const token = parsed.choices?.[0]?.delta?.content;
+          if (token) fullText += token;
+        } catch { /* skip */ }
+      }
+    }
+    return fullText;
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: string, data: unknown) => controller.enqueue(sseEvent(event, data));
+      let closed = false;
+      function finish() { if (!closed) { closed = true; send("done", { messageId }); controller.close(); } }
+
+      try {
+        /* ── NIVEAU 0 : Détection d'intention ── */
+        let intent = detectIntent(trimmed);
+
+        if (aiMode) {
+          const keyEntry = await resolveApiKey(client);
+          if (keyEntry?.key) {
+            const provInfo = detectProvider(keyEntry.key);
+            const provider = PROVIDERS[provInfo.id];
+            if (provider) {
+              try {
+                const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
+                const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel);
+                if (aiIntent.intent !== intent.intent) intent = aiIntent;
+              } catch { /* keep regex intent */ }
+            }
+          }
+        }
+
+        if (intent.intent !== "REQUETE_METIER") {
+          if (!aiMode) {
+            const fallback = intent.intent === "AVIS"
+              ? "Je suis l'assistant CETIM. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?"
+              : intent.intent === "HORS_SUJET"
+                ? "Je suis l'assistant technique du CETIM Algérie. Je suis spécialisé dans les essais, normes et services techniques. Puis-je vous aider avec un de ces sujets ?"
+                : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider ?";
+            send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
+            send("token", { content: fallback });
+            saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
+            finish();
+            return;
+          }
+          /* aiMode : stream l'intention IA */
+          const keyEntry = await resolveApiKey(client);
+          if (keyEntry?.key) {
+            const providerId = client.aiProvider || detectProvider(keyEntry.key).id;
+            const provider = PROVIDERS[providerId];
+            if (provider) {
+              const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
+              const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle);
+              try {
+                const aiStream = await callAIStream(keyEntry.key, providerId, model, system, user, 0.30, history || [], 300);
+                const text = await consumeAIStream(aiStream);
+                send("metadata", { messageId, source: intent.intent.toLowerCase(), provider: provider.label, score: 0 });
+                send("token", { content: text });
+                saveConversation(client, history || [], message, text, intent.intent.toLowerCase(), provider.label, 0, geoPromise);
+                saveUsage(client.id, providerId, model, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+                finish();
+                return;
+              } catch { /* fallback below */ }
+            }
+          }
+          const fallbackText = intent.intent === "AVIS"
+            ? "Merci pour votre retour ! Chez CETIM, nous proposons des services techniques de qualité. Que puis-je vous aider ?"
+            : intent.intent === "HORS_SUJET"
+              ? "Je suis l'assistant technique du CETIM Algérie. Je peux vous renseigner sur nos essais, normes et formations. En quoi puis-je vous être utile ?"
+              : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider avec nos services techniques ?";
+          send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
+          send("token", { content: fallbackText });
+          saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
+          finish();
+          return;
+        }
+
+        const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
+        const KB = kbEntries.map((k: any) => ({
+          tag: k.tag, question: k.question, alt_questions: k.alt_questions || "", answer: k.answer,
+          category: k.category, keywords: k.keywords || "", priority: k.priority ?? 5,
+          source: k.source || "", source_url: k.source_url || "", valid_until: k.valid_until || "",
+        }));
+
+        const { match, score, isKeyword } = findBestMatch(message, KB);
+        const kbThreshold = isKeyword ? 50 : (client.kbThreshold ?? 80);
+        const ragThreshold = client.ragThreshold ?? 40;
+
+        /* Short query guard */
+        if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
+          send("metadata", { messageId, source: "skip", score: 0 });
+          finish();
+          return;
+        }
+
+        /* ── Helper: stream a buffered AI response to client ── */
+        async function streamAIResponse(system: string, userMsg: string, temperature: number, source: string, maxTokens?: number): Promise<string | null> {
+          const keyEntry = await resolveApiKey(client);
+          if (!keyEntry?.key) return null;
+          const apiKey = keyEntry.key;
+          const providerInfo = detectProvider(apiKey);
+          const provObj = PROVIDERS[providerInfo.id];
+          if (!provObj) return null;
+          const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
+          try {
+            const aiStream = await callAIStream(apiKey, providerInfo.id, model, system, userMsg, temperature, history || [], maxTokens);
+            const text = await consumeAIStream(aiStream);
+            if (!text || text.trim().toUpperCase() === "NO_MATCH") return null;
+            send("metadata", { messageId, source, provider: provObj.label, score });
+            send("token", { content: text });
+            saveConversation(client, history || [], message, text, source, provObj.label, score, geoPromise);
+            saveUsage(client.id, providerInfo.id, model, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+            return text;
+          } catch { return null; }
+        }
+
+        /* ── Helper: send a direct (non-AI) response ── */
+        function sendDirect(response: string, source: string, extra?: any) {
+          send("metadata", { messageId, source, score, ...extra });
+          send("token", { content: response });
+          saveConversation(client, history || [], message, response, source, "", score, geoPromise);
+        }
+
+        /* ── RAG ONLY MODE ── */
+        if (ragOnly) {
+          if (match && score === 100) {
+            const extra: any = {};
+            if (!isVisitor) { extra.source_url = match.source_url || ""; extra.valid_until = match.valid_until || ""; extra.suggestions = findRelated(match, KB, 3); }
+            sendDirect(match.answer, "kb", extra);
+            finish();
+            return;
+          }
+          if (!aiMode) { sendDirect("Le mode RAG nécessite une clé API IA.", "fallback"); finish(); return; }
+          const keyEntry = await resolveApiKey(client);
+          if (!keyEntry?.key) { sendDirect("Aucune clé API disponible pour le mode RAG.", "fallback"); finish(); return; }
+
+          const apiKey = keyEntry.key;
+          const providerInfo = detectProvider(apiKey);
+          const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
+          const siteChunks = parseChunks(client.siteContext || "");
+          const now = new Date();
+          const clientDocs = await db.prisma.clientDocument.findMany({
+            where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
+          });
+          let topChunks: ChunkMeta[] = [];
+          if (client.useVectorRag && client.hfApiKey) {
+            try { const embedding = await generateEmbedding(message, client.hfApiKey); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3); topChunks = results.map((r) => r.chunk); } catch {}
+          }
+          if (topChunks.length === 0) {
+            const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
+            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 3, ragThreshold);
+          }
+          if (topChunks.length > 0) {
+            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
+            const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
+            if (result) { finish(); return; }
+          }
+          if (match && score >= kbThreshold) { sendDirect(match.answer, "kb"); finish(); return; }
+          if (isKeyword && match?.answer && score >= 60 && score < kbThreshold) { sendDirect(match.answer, "kb"); finish(); return; }
+          const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
+          const escResult = await streamAIResponse(escSystem, escUser, client.tempEscalade ?? 0.20, "escalade", 800);
+          if (escResult) { finish(); return; }
+          sendDirect("Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer.", "fallback");
+          finish();
+          return;
+        }
+
+        /* ── NORMAL MODE ── */
+
+        /* NIVEAU 1 : QA VALIDÉE */
+        if (match && score >= kbThreshold) {
+          if (score === 100 || !aiMode) {
+            const extra: any = {};
+            if (!isVisitor) { extra.source_url = match.source_url || ""; extra.valid_until = match.valid_until || ""; extra.suggestions = findRelated(match, KB, 3); }
+            sendDirect(match.answer, "kb", extra);
+            finish();
+            return;
+          }
+          const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
+          const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
+          if (qaResult) { finish(); return; }
+          /* AI returned NO_MATCH or failed → fall through to RAG */
+          sendDirect(match.answer, "kb");
+          finish();
+          return;
+        }
+
+        /* NIVEAU 1b : MATCH MOT-CLÉ SOUS SEUIL */
+        if (aiMode && isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
+          const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
+          const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
+          if (qaResult) { finish(); return; }
+          sendDirect(match.answer, "kb");
+          finish();
+          return;
+        }
+
+        /* PAS D'IA */
+        if (!aiMode) {
+          const contactInfo = findContactEntry(KB);
+          let resp: string;
+          if (match?.answer && score >= kbThreshold) { resp = match.answer; }
+          else if (contactInfo) { resp = `Je n'ai pas trouvé de réponse précise à votre question. 🎯\n\nN'hésitez pas à nous contacter directement :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`; }
+          else { resp = "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations."; }
+          sendDirect(resp, match?.answer ? "kb" : "fallback");
+          finish();
+          return;
+        }
+
+        /* NIVEAU 2 : RAG */
+        const hasSiteContext = !!(client.siteContext?.trim());
+        const hasAnyDoc = hasSiteContext || !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+        if (score < 100 && hasAnyDoc) {
+          const siteChunks = parseChunks(client.siteContext || "");
+          const now = new Date();
+          const clientDocs = await db.prisma.clientDocument.findMany({
+            where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
+          });
+          let topChunks: ChunkMeta[] = [];
+          if (client.useVectorRag && client.hfApiKey) {
+            try { const embedding = await generateEmbedding(message, client.hfApiKey); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3); topChunks = results.map((r) => r.chunk); } catch {}
+          }
+          if (topChunks.length === 0) {
+            const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
+            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 3, ragThreshold);
+          }
+          if (topChunks.length > 0) {
+            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
+            const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
+            if (result) { finish(); return; }
+          }
+        }
+
+        /* NIVEAU 3 : ESCALADE */
+        const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
+        const escResult = await streamAIResponse(escSystem, escUser, client.tempEscalade ?? 0.20, "escalade", 800);
+        if (escResult) { finish(); return; }
+        sendDirect("Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.", "fallback");
+        finish();
+      } catch (err) {
+        console.error("[Nova Chat] Streaming error:", err);
+        send("token", { content: "Une erreur interne s'est produite. Veuillez réessayer." });
+        finish();
+      }
+    },
+  });
+
+  return new Response(stream, { headers: sseHeaders });
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const client = await findClientBySlug(slug);
@@ -385,9 +744,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
   }
 
-  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor = false } = await req.json();
+  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor = false, stream: enableStream = false } = await req.json();
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
+  }
+
+  if (enableStream) {
+    return handleStreamingRequest(req, client, { message, history, aiMode, ragOnly, sessionType, pageUrl, pageTitle, isVisitor });
   }
 
   const messageId = randomUUID();
