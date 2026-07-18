@@ -7,18 +7,18 @@ async function getCollectionId(baseUrl: string, apiKey: string): Promise<string>
   const res = await fetch(`${baseUrl}/api/v1/collections?name=${COLLECTION_NAME}`, {
     headers: { "X-Chroma-Token": apiKey },
   });
-  if (res.status === 404) {
-    const create = await fetch(`${baseUrl}/api/v1/collections`, {
-      method: "POST",
-      headers: { "X-Chroma-Token": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: COLLECTION_NAME }),
-    });
-    if (!create.ok) throw new Error(`Chroma create collection error ${create.status}`);
-    const data = await create.json();
-    return data.id || data.uuid;
-  }
   if (!res.ok) throw new Error(`Chroma get collection error ${res.status}`);
-  const data = await res.json();
+  const list = await res.json();
+  if (Array.isArray(list) && list.length > 0) {
+    return list[0].id || list[0].uuid;
+  }
+  const create = await fetch(`${baseUrl}/api/v1/collections`, {
+    method: "POST",
+    headers: { "X-Chroma-Token": apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ name: COLLECTION_NAME }),
+  });
+  if (!create.ok) throw new Error(`Chroma create collection error ${create.status}`);
+  const data = await create.json();
   return data.id || data.uuid;
 }
 
