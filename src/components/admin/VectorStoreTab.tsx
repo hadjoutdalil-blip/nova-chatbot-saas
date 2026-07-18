@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2 } from "lucide-react";
+import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2, Loader2 } from "lucide-react";
 
 interface ChunkRow {
   id: string;
@@ -45,6 +45,8 @@ export default function VectorStoreTab({ clientId, token }: Props) {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [testing, setTesting] = useState(false);
   const [viewChunk, setViewChunk] = useState<ChunkRow | null>(null);
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<string | null>(null);
 
   function loadData(p: number, q: string) {
     setLoading(true);
@@ -83,6 +85,33 @@ export default function VectorStoreTab({ clientId, token }: Props) {
     setTesting(false);
   }
 
+  async function handleMigrate() {
+    setMigrating(true);
+    setMigrateResult(null);
+    try {
+      const res = await fetch("/api/migrate-vector", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ clientId }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setMigrateResult(`Erreur: ${data.error}`);
+      } else {
+        const log = data.results?.[0];
+        if (log) {
+          setMigrateResult(`${log.documents || 0} document(s), ${log.kbEntries || 0} KB indexé(s)${log.errors?.length ? `, ${log.errors.length} erreur(s)` : ""}`);
+        } else {
+          setMigrateResult("Migration terminée");
+        }
+        loadData(1, search);
+      }
+    } catch (err: any) {
+      setMigrateResult(`Erreur: ${err.message}`);
+    }
+    setMigrating(false);
+  }
+
   const totalPages = Math.ceil(total / 20);
 
   return (
@@ -93,15 +122,41 @@ export default function VectorStoreTab({ clientId, token }: Props) {
           Documents indexés
         </h2>
         {perDoc.length === 0 ? (
-          <p className="text-gray-400 text-sm py-4 text-center">Aucun document vectorisé pour ce client</p>
+          <div className="text-center py-4">
+            <p className="text-gray-400 text-sm mb-3">Aucun document vectorisé pour ce client</p>
+            <button
+              onClick={handleMigrate}
+              disabled={migrating}
+              className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {migrating ? <Loader2 size={14} className="animate-spin" /> : <Database size={14} />}
+              {migrating ? "Indexation en cours..." : "Indexer les documents et KB"}
+            </button>
+            {migrateResult && (
+              <p className="text-xs text-gray-500 mt-2">{migrateResult}</p>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {perDoc.map((d: any) => (
               <div key={d.docId} className="flex items-center justify-between text-sm">
                 <span className="text-gray-700 truncate">{d.source}</span>
-                <span className="text-emerald-600 font-medium shrink-0 ml-3">{d.chunks} chunks</span>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span className="text-emerald-600 font-medium">{d.chunks} chunks</span>
+                  <button
+                    onClick={handleMigrate}
+                    disabled={migrating}
+                    className="text-gray-400 hover:text-emerald-600 p-1"
+                    title="Re-indexer"
+                  >
+                    <Database size={13} />
+                  </button>
+                </div>
               </div>
             ))}
+            {migrateResult && (
+              <p className="text-xs text-gray-500 mt-1">{migrateResult}</p>
+            )}
           </div>
         )}
       </div>

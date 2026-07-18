@@ -32,14 +32,21 @@ export async function GET(req: NextRequest) {
     ORDER BY chunks DESC
   `);
 
+  let perDocWhere = "";
+  const perDocParams: any[] = [];
+  if (clientId) {
+    perDocParams.push(clientId);
+    perDocWhere = `WHERE dc."clientId" = $1`;
+  }
   const perDoc = await pool.query(`
     SELECT dc."docId", dc.source, dc."clientId", c.name AS client_name, COUNT(*)::int AS chunks
     FROM document_chunks dc
     JOIN "Client" c ON c.id = dc."clientId"
+    ${perDocWhere}
     GROUP BY dc."docId", dc.source, dc."clientId", c.name
     ORDER BY chunks DESC
     LIMIT 50
-  `);
+  `, perDocParams);
 
   let where = "";
   const params: any[] = [];
