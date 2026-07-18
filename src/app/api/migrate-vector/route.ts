@@ -4,9 +4,9 @@ import { getAuthUser } from "@/lib/api-auth";
 import { syncDocumentChunks } from "@/lib/vector-store";
 import { chunkDocument } from "@/lib/rag-utils";
 import { generateEmbeddings } from "@/lib/embeddings";
-import { neon } from "@neondatabase/serverless";
+import { Pool } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL!);
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,13 +58,13 @@ export async function POST(req: NextRequest) {
             const embeddings = await generateEmbeddings(texts, client.hfApiKey);
 
             /* Delete existing KB chunks */
-            await sql('DELETE FROM document_chunks WHERE "docId" = $1', [kb.id]);
+            await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [kb.id]);
 
             for (let i = 0; i < chunks.length; i++) {
               const c = chunks[i];
               const rowId = `${kb.id}__kb__${i}`;
               const embeddingStr = `[${embeddings[i].join(",")}]`;
-              await sql(
+              await pool.query(
                 `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
                 [rowId, client.id, kb.id, c.id, c.content, c.source, c.section, c.keywords.join(", "), kb.source_url || "", kb.valid_until || "", embeddingStr]

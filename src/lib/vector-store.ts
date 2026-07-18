@@ -1,8 +1,8 @@
-import { neon } from "@neondatabase/serverless";
+import { Pool } from "@neondatabase/serverless";
 import { chunkDocument, ChunkMeta } from "./rag-utils";
 import { generateEmbeddings } from "./embeddings";
 
-const sql = neon(process.env.DATABASE_URL!);
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
 const VECTOR_DIM = 1024;
 
@@ -10,28 +10,33 @@ let tableEnsured = false;
 
 async function ensureTable() {
   if (tableEnsured) return;
-  await sql("CREATE EXTENSION IF NOT EXISTS vector");
-  await sql(`
-    CREATE TABLE IF NOT EXISTS document_chunks (
-      id TEXT PRIMARY KEY,
-      "clientId" TEXT NOT NULL,
-      "docId" TEXT NOT NULL,
-      "chunkId" TEXT NOT NULL,
-      content TEXT NOT NULL,
-      source TEXT NOT NULL DEFAULT '',
-      section TEXT NOT NULL DEFAULT '',
-      keywords TEXT NOT NULL DEFAULT '',
-      source_url TEXT NOT NULL DEFAULT '',
-      valid_until TEXT NOT NULL DEFAULT '',
-      embedding vector(${VECTOR_DIM})
-    )
-  `);
-  await sql('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
-  await sql('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
+  const client = await pool.connect();
   try {
-    await sql("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)");
-  } catch {
-    // ivfflat requires existing rows; safe to ignore on empty table
+    await client.query("CREATE EXTENSION IF NOT EXISTS vector");
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS document_chunks (
+        id TEXT PRIMARY KEY,
+        "clientId" TEXT NOT NULL,
+        "docId" TEXT NOT NULL,
+        "chunkId" TEXT NOT NULL,
+        content TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT '',
+        section TEXT NOT NULL DEFAULT '',
+        keywords TEXT NOT NULL DEFAULT '',
+        source_url TEXT NOT NULL DEFAULT '',
+        valid_until TEXT NOT NULL DEFAULT '',
+        embedding vector(${VECTOR_DIM})
+      )
+    `);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
+    try {
+      await client.query("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)");
+    } catch {
+      // ivfflat requires existing rows; safe to ignore on empty table
+    }
+  } finally {
+    client.release();
   }
   tableEnsured = true;
 }
@@ -58,21 +63,26 @@ export async function syncDocumentChunks(
   const texts = chunks.map((c) => c.content);
   const embeddings = await generateEmbeddings(texts, hfApiKey);
 
-  for (let i = 0; i < chunks.length; i++) {
-    const c = chunks[i];
-    const rowId = `${docId}__${i}`;
-    const embeddingStr = `[${embeddings[i].join(",")}]`;
-    await sql(
-      `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
-      [rowId, clientId, docId, c.id, c.content, c.source, c.section, c.keywords.join(", "), sourceUrl, validUntil || "", embeddingStr]
-    );
+  const client = await pool.connect();
+  try {
+    for (let i = 0; i < chunks.length; i++) {
+      const c = chunks[i];
+      const rowId = `${docId}__${i}`;
+      const embeddingStr = `[${embeddings[i].join(",")}]`;
+      await client.query(
+        `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
+        [rowId, clientId, docId, c.id, c.content, c.source, c.section, c.keywords.join(", "), sourceUrl, validUntil || "", embeddingStr]
+      );
+    }
+  } finally {
+    client.release();
   }
 }
 
 export async function deleteDocChunks(docId: string) {
   await ensureTable();
-  await sql('DELETE FROM document_chunks WHERE "docId" = $1', [docId]);
+  await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [docId]);
 }
 
 export async function searchChunks(
@@ -83,7 +93,7 @@ export async function searchChunks(
   await ensureTable();
 
   const embeddingStr = `[${questionEmbedding.join(",")}]`;
-  const rows = await sql(
+  const { rows } = await pool.query(
     `SELECT *,
       1 - (embedding <=> $1::vector) AS score
     FROM document_chunks
