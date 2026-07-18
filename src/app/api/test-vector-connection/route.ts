@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
       const res = await fetch(`${chromaUrl}/api/v1/collections?name=nova_chunks`, {
         headers: { "X-Chroma-Token": chromaApiKey },
       });
-      if (res.ok || res.status === 404) {
+      const text = await res.text();
+      if (!text.startsWith("<")) {
         results.chroma = { ok: true };
       } else {
-        const text = await res.text().catch(() => "");
-        results.chroma = { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+        results.chroma = { ok: false, error: `L'URL renvoie du HTML (${res.status}) — vérifie l'URL ChromaDB Cloud` };
       }
     } catch (err: any) {
       results.chroma = { ok: false, error: err.message };

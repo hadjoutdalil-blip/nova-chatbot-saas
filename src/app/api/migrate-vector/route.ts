@@ -10,8 +10,10 @@ async function getCollectionId(baseUrl: string, apiKey: string): Promise<string 
     const res = await fetch(`${baseUrl}/api/v1/collections?name=nova_chunks`, {
       headers: { "X-Chroma-Token": apiKey },
     });
-    if (!res.ok) throw new Error(`Chroma get collection error ${res.status}`);
-    const list = await res.json();
+    const body = await res.text();
+    if (!res.ok) throw new Error(`Chroma get collection ${res.status}: ${body.slice(0, 200)}`);
+    let list;
+    try { list = JSON.parse(body); } catch { throw new Error(`Chroma returned HTML instead of JSON (${res.status}) - vérifie l'URL ChromaDB`); }
     if (Array.isArray(list) && list.length > 0) {
       return list[0].id || list[0].uuid || null;
     }
@@ -20,11 +22,12 @@ async function getCollectionId(baseUrl: string, apiKey: string): Promise<string 
       headers: { "X-Chroma-Token": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "nova_chunks" }),
     });
-    if (!create.ok) throw new Error(`Chroma create error ${create.status}`);
-    const data = await create.json().catch(() => ({}));
+    const createBody = await create.text();
+    if (!create.ok) throw new Error(`Chroma create ${create.status}: ${createBody.slice(0, 200)}`);
+    const data = JSON.parse(createBody);
     return data.id || data.uuid || null;
   } catch (err: any) {
-    throw new Error(`Chroma connection: ${err.message}`);
+    throw new Error(`Chroma: ${err.message}`);
   }
 }
 
