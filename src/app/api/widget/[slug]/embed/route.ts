@@ -787,7 +787,7 @@ function sendMessage(text){
     var metaScore=0;
     var metaMessageId="";
     function processBuffer(){
-      var lines=buffer.split("\n");
+      var lines=buffer.split("\\n");
       buffer=lines.pop()||"";
       for(var li=0;li<lines.length;li++){
         var line=lines[li];
