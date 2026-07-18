@@ -29,9 +29,6 @@ model Client {
   relanceText  String   @default("")
   useVectorRag Boolean  @default(false)
   hfApiKey      String   @default("")
-  chromaApiKey  String   @default("")
-  chromaTenant  String   @default("default")
-  chromaDatabase String @default("default")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

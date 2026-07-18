@@ -6,7 +6,7 @@ import { extractIP, lookupGeo } from "@/lib/geo";
 import { norm, calcSimilarity, ChunkMeta, chunkDocument, parseChunks, findBestChunks } from "@/lib/rag-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
 import { generateEmbedding } from "@/lib/embeddings";
-import { searchChunks as vectorSearchChunks } from "@/lib/vector-store";
+import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 
@@ -562,10 +562,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.chromaApiKey && client.chromaTenant && client.chromaDatabase && client.hfApiKey) {
+    if (client.useVectorRag && client.hfApiKey) {
       try {
         const embedding = await generateEmbedding(message, client.hfApiKey);
-        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
@@ -752,10 +752,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.chromaApiKey && client.chromaTenant && client.chromaDatabase && client.hfApiKey) {
+    if (client.useVectorRag && client.hfApiKey) {
       try {
         const embedding = await generateEmbedding(message, client.hfApiKey);
-        const results = await vectorSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);

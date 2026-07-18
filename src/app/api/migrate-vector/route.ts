@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChromaClient } from "chromadb";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { syncDocumentChunks } from "@/lib/vector-store";
 import { chunkDocument } from "@/lib/rag-utils";
 import { generateEmbeddings } from "@/lib/embeddings";
+import { neon } from "@neondatabase/serverless";
 
-const COLLECTION_NAME = "nova_chunks";
-const noopEmbed = { generate: async (_texts: string[]) => [] };
-
-async function getOrCreateCollection(apiKey: string, tenant: string, database: string): Promise<any> {
-  const client = new ChromaClient({
-    host: "api.trychroma.com",
-    ssl: true,
-    headers: { "X-Chroma-Token": apiKey },
-    tenant,
-    database,
-  });
-  return client.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: noopEmbed });
-}
+const sql = neon(process.env.DATABASE_URL!);
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,22 +18,20 @@ export async function POST(req: NextRequest) {
 
     const clients = await db.prisma.client.findMany({
       where,
-      select: { id: true, name: true, chunkSize: true, chromaApiKey: true, chromaTenant: true, chromaDatabase: true, hfApiKey: true },
+      select: { id: true, name: true, chunkSize: true, hfApiKey: true },
     });
 
     const results: any[] = [];
 
     for (const client of clients) {
       try {
-        if (!client.chromaApiKey || !client.chromaTenant || !client.chromaDatabase || !client.hfApiKey) {
-          results.push({ client: client.name || client.id, status: "skipped", reason: "credentials manquants" });
+        if (!client.hfApiKey) {
+          results.push({ client: client.name || client.id, status: "skipped", reason: "clé API embedding manquante" });
           continue;
         }
 
         const log: any = { client: client.name || client.id, documents: 0, kbEntries: 0, errors: [] };
         const chunkSize = client.chunkSize ?? 600;
-
-        const collection = await getOrCreateCollection(client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
 
         /* ── Documents ── */
         const docs = await db.prisma.clientDocument.findMany({
@@ -53,7 +39,7 @@ export async function POST(req: NextRequest) {
         });
         for (const doc of docs) {
           try {
-            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.chromaApiKey, client.chromaTenant, client.chromaDatabase, client.hfApiKey);
+            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.hfApiKey);
             log.documents++;
           } catch (err: any) {
             log.errors.push(`doc ${doc.id}: ${err.message}`);
@@ -70,20 +56,19 @@ export async function POST(req: NextRequest) {
 
             const texts = chunks.map((c) => c.content);
             const embeddings = await generateEmbeddings(texts, client.hfApiKey);
-            const ids = chunks.map((c, i) => `${kb.id}__kb__${i}`);
-            const metadatas = chunks.map((c) => ({
-              clientId: client.id,
-              docId: kb.id,
-              chunkId: c.id,
-              source: c.source,
-              section: c.section,
-              keywords: c.keywords.join(", "),
-              source_url: kb.source_url || "",
-              valid_until: kb.valid_until || "",
-            }));
 
-            await collection.delete({ where: { docId: kb.id } }).catch(() => {});
-            await collection.add({ ids, embeddings, metadatas });
+            /* Delete existing KB chunks */
+            await sql`DELETE FROM document_chunks WHERE "docId" = ${kb.id}`;
+
+            for (let i = 0; i < chunks.length; i++) {
+              const c = chunks[i];
+              const rowId = `${kb.id}__kb__${i}`;
+              const embeddingStr = `[${embeddings[i].join(",")}]`;
+              await sql`
+                INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
+                VALUES (${rowId}, ${client.id}, ${kb.id}, ${c.id}, ${c.content}, ${c.source}, ${c.section}, ${c.keywords.join(", ")}, ${kb.source_url || ""}, ${kb.valid_until || ""}, ${embeddingStr}::vector)
+              `;
+            }
             log.kbEntries++;
           } catch (err: any) {
             log.errors.push(`kb ${kb.id}: ${err.message}`);

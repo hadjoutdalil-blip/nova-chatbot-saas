@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { chunkDocument, parseChunks, findBestChunks, ChunkMeta } from "@/lib/rag-utils";
 import { generateEmbedding } from "@/lib/embeddings";
-import { searchChunks as vectorSearchChunks } from "@/lib/vector-store";
+import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
 
 /* ── Recherche par mots-clés en fallback ── */
 function keywordSearch(question: string, chunks: any[]): any[] {
@@ -59,10 +59,10 @@ export async function POST(req: NextRequest) {
   let topChunks: ChunkMeta[] = [];
   let matchedByKeyword = false;
 
-  if (client.useVectorRag && client.chromaApiKey && client.chromaTenant && client.chromaDatabase && client.hfApiKey) {
+  if (client.useVectorRag && client.hfApiKey) {
     try {
       const embedding = await generateEmbedding(question, client.hfApiKey);
-      const results = await vectorSearchChunks(client.id, embedding, topNChunks, client.chromaApiKey, client.chromaTenant, client.chromaDatabase);
+      const results = await pgSearchChunks(client.id, embedding, topNChunks);
       topChunks = results.map((r) => r.chunk);
     } catch (err) {
       console.error("[Vector RAG test] error, falling back to keyword:", err);

@@ -470,7 +470,7 @@ export default function ClientKBPage() {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-all disabled:opacity-50"
               >
                 {migrating ? <Loader2 size={15} className="animate-spin" /> : <Database size={15} />}
-                {migrating ? "Migration..." : "Migrer vers ChromaDB"}
+                {migrating ? "Migration..." : "Migrer vers pgvector"}
               </button>
               <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
                 <BookOpen size={15} /> {transferring ? "Transfert..." : "Transférer vers la KB"}

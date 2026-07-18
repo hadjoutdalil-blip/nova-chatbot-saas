@@ -99,8 +99,8 @@ export default function SettingsPage() {
           </select>
         </div>
 
-        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (Cohere + ChromaDB)</h2>
-        <p className="text-sm text-gray-500 -mt-3">Crédentials par défaut pour la recherche sémantique vectorielle.</p>
+        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (Cohere + pgvector)</h2>
+        <p className="text-sm text-gray-500 -mt-3">Clé API par défaut pour la recherche sémantique vectorielle.</p>
 
         <div>
           <label className="block text-sm font-medium mb-1">Clé API Embedding (Cohere)</label>
@@ -108,42 +108,6 @@ export default function SettingsPage() {
             type="password" placeholder="clé API Cohere"
             value={config.hfApiKey || ""}
             onChange={(e) => setConfig({ ...config, hfApiKey: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">URL ChromaDB</label>
-          <input
-            type="text" placeholder="https://xxx.xxx.gcp.chromacloud.com"
-            value={config.chromaUrl || ""}
-            onChange={(e) => setConfig({ ...config, chromaUrl: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Clé API ChromaDB</label>
-          <input
-            type="password" placeholder="clé d'API Chroma"
-            value={config.chromaApiKey || ""}
-            onChange={(e) => setConfig({ ...config, chromaApiKey: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Tenant ChromaDB</label>
-          <input
-            type="text" placeholder="default"
-            value={config.chromaTenant || "default"}
-            onChange={(e) => setConfig({ ...config, chromaTenant: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Database ChromaDB</label>
-          <input
-            type="text" placeholder="default"
-            value={config.chromaDatabase || "default"}
-            onChange={(e) => setConfig({ ...config, chromaDatabase: e.target.value })}
             className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
           />
         </div>
@@ -156,12 +120,12 @@ export default function SettingsPage() {
               const res = await fetch("/api/test-vector-connection", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                body: JSON.stringify({ hfApiKey: config.hfApiKey, chromaApiKey: config.chromaApiKey, chromaTenant: config.chromaTenant, chromaDatabase: config.chromaDatabase }),
+                body: JSON.stringify({ hfApiKey: config.hfApiKey }),
               });
               const text = await res.text();
               setTestResult(JSON.parse(text));
             }}
-            disabled={testing || (!config.hfApiKey && !config.chromaApiKey)}
+            disabled={testing || !config.hfApiKey}
             className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
           >
             {testing ? <Loader2 size={15} className="animate-spin" /> : null}
@@ -170,7 +134,6 @@ export default function SettingsPage() {
           {testResult && (
             <div className="flex items-center gap-2 text-sm">
               {testResult.embedding && (testResult.embedding.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Embedding OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Embedding: {testResult.embedding.error}</span>)}
-              {testResult.chroma && (testResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Chroma: {testResult.chroma.error}</span>)}
             </div>
           )}
         </div>
@@ -194,8 +157,8 @@ function MigrateButton({ token }: { token: () => string }) {
 
   return (
     <div className="border-t border-gray-100 pt-4 mt-4">
-      <h3 className="font-semibold text-sm text-gray-700 mb-2">Migration vers ChromaDB</h3>
-      <p className="text-xs text-gray-500 mb-3">Indexe tous les documents et entrées KB existants dans la base vectorielle.</p>
+      <h3 className="font-semibold text-sm text-gray-700 mb-2">Migration vers pgvector</h3>
+      <p className="text-xs text-gray-500 mb-3">Indexe tous les documents et entrées KB existants dans la base vectorielle PostgreSQL.</p>
       <button
         onClick={async () => {
           setMigrating(true);
@@ -217,7 +180,7 @@ function MigrateButton({ token }: { token: () => string }) {
         className="flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
       >
         {migrating ? <Loader2 size={15} className="animate-spin" /> : null}
-        {migrating ? "Migration en cours..." : "Migrer vers ChromaDB"}
+        {migrating ? "Migration en cours..." : "Migrer vers pgvector"}
       </button>
       {migrateResult && (
         <pre className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono overflow-auto max-h-60 text-gray-700">{migrateResult}</pre>

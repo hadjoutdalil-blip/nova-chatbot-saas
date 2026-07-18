@@ -50,9 +50,6 @@ export default function AppSettingsPage() {
         relanceText: form.relanceText,
         useVectorRag: form.useVectorRag,
         hfApiKey: form.hfApiKey,
-        chromaApiKey: form.chromaApiKey,
-        chromaTenant: form.chromaTenant,
-        chromaDatabase: form.chromaDatabase,
       }),
     });
     setSaving(false);
@@ -167,25 +164,13 @@ export default function AppSettingsPage() {
               </div>
               <label className="flex items-center gap-3 cursor-pointer mb-4">
                 <input type="checkbox" checked={!!form.useVectorRag} onChange={(e) => setForm({ ...form, useVectorRag: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (Cohere + ChromaDB)</span>
+                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (Cohere + pgvector)</span>
               </label>
               {form.useVectorRag && (
                 <div className="space-y-3 pl-6 border-l-2 border-emerald-100">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Embedding (optionnel, sinon globale)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Embedding Cohere</label>
                     <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="clé API Cohere" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API ChromaDB (optionnel, sinon globale)</label>
-                    <input type="password" value={form.chromaApiKey || ""} onChange={(e) => setForm({ ...form, chromaApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Tenant ChromaDB (optionnel, sinon global)</label>
-                    <input type="text" value={form.chromaTenant || "default"} onChange={(e) => setForm({ ...form, chromaTenant: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="default" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Database ChromaDB (optionnel, sinon global)</label>
-                    <input type="text" value={form.chromaDatabase || "default"} onChange={(e) => setForm({ ...form, chromaDatabase: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="default" />
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -195,13 +180,13 @@ export default function AppSettingsPage() {
                         const res = await fetch("/api/test-vector-connection", {
                           method: "POST",
                           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                          body: JSON.stringify({ hfApiKey: form.hfApiKey, chromaApiKey: form.chromaApiKey, chromaTenant: form.chromaTenant, chromaDatabase: form.chromaDatabase }),
+                          body: JSON.stringify({ hfApiKey: form.hfApiKey }),
                         });
                         const text = await res.text();
                         setVectorTestResult(JSON.parse(text));
                         setTestVector(false);
                       }}
-                      disabled={testVector || (!form.hfApiKey && !form.chromaApiKey)}
+                      disabled={testVector || !form.hfApiKey}
                       className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50"
                     >
                       {testVector ? <Loader2 size={13} className="animate-spin" /> : null}
@@ -210,7 +195,6 @@ export default function AppSettingsPage() {
                     {vectorTestResult && (
                       <div className="flex items-center gap-2 text-xs">
                         {vectorTestResult.embedding && (vectorTestResult.embedding.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Embedding OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Embedding</span>)}
-                        {vectorTestResult.chroma && (vectorTestResult.chroma.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Chroma OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Chroma</span>)}
                       </div>
                     )}
                   </div>
