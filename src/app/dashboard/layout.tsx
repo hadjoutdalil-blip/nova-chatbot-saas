@@ -8,6 +8,7 @@ import {
   Users,
   UserCog,
   BookOpen,
+  Database,
   BarChart3,
   Settings,
   LogOut,
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/clients", label: "Clients", icon: Users },
   { href: "/dashboard/users", label: "Utilisateurs", icon: UserCog },
   { href: "/dashboard/kb", label: "Base de connaissances", icon: BookOpen },
+  { href: "/dashboard/vector-store", label: "Base vectorielle", icon: Database },
   { href: "/dashboard/analytics", label: "Statistiques", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
 ];
