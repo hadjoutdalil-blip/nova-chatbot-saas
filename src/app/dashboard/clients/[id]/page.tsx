@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Building2, Brain, BarChart3, BookOpen, FlaskConical, CheckSquare, Database,
+  Building2, Brain, BarChart3, BookOpen, FlaskConical, CheckSquare, Database, TrendingUp,
   Download, Plus, Search, FileText, Inbox, Edit3, Trash2, Thermometer, Layers, PanelRightClose,
   Globe, MessageSquare, ThumbsUp, Shield,
 } from "lucide-react";
@@ -11,6 +11,7 @@ import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
 import VectorStoreTab from "@/components/admin/VectorStoreTab";
+import RAGStatsTab from "@/components/admin/RAGStatsTab";
 
 const PLANS = [
   { id: "ecommerce", name: "Chatbot E-commerce", price: "$299/mois" },
@@ -52,6 +53,7 @@ const TABS = [
   { id: "analytics", label: "Analytiques", icon: <BarChart3 size={16} /> },
   { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
   { id: "vector", label: "Base vectorielle", icon: <Database size={16} /> },
+  { id: "rag-stats", label: "Stats RAG", icon: <TrendingUp size={16} /> },
   { id: "test", label: "Test", icon: <FlaskConical size={16} /> },
   { id: "evaluation", label: "Évaluation", icon: <CheckSquare size={16} /> },
 ];
@@ -695,6 +697,11 @@ export default function EditClientPage() {
         {/* ── Base vectorielle ── */}
         {tab === "vector" && (
           <VectorStoreTab clientId={id} token={token} />
+        )}
+
+        {/* ── Stats RAG ── */}
+        {tab === "rag-stats" && (
+          <RAGStatsTab clientId={id} token={token} />
         )}
 
         {/* ── Test ── */}
