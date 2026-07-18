@@ -12,6 +12,8 @@ import {
   Settings,
   LogOut,
   FlaskConical,
+  Database,
+  TrendingUp,
 } from "lucide-react";
 
 function getPayload(): { userId: string; clientId: string; role: string } | null {
@@ -32,6 +34,8 @@ const NAV = [
   { href: "/app/widget", label: "Mon widget", icon: MessageCircle },
   { href: "/app/conversations", label: "Conversations", icon: MessageSquare },
   { href: "/app/analytics", label: "Statistiques", icon: BarChart3 },
+  { href: "/app/vector-store", label: "Base vectorielle", icon: Database },
+  { href: "/app/rag-stats", label: "Stats RAG", icon: TrendingUp },
   { href: "/app/settings", label: "Paramètres", icon: Settings },
 ];
 

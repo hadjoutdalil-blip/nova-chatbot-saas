@@ -4,10 +4,10 @@ import { getAuthUser } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
   const user = getAuthUser(req);
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const url = new URL(req.url);
-  const clientId = url.searchParams.get("clientId");
+  const clientId = url.searchParams.get("clientId") || (user.role !== "admin" ? user.clientId : null);
   const days = parseInt(url.searchParams.get("days") || "30");
 
   const where: any = {};

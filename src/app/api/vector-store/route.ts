@@ -7,10 +7,10 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
 export async function GET(req: NextRequest) {
   const user = getAuthUser(req);
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const url = new URL(req.url);
-  const clientId = url.searchParams.get("clientId");
+  const clientId = url.searchParams.get("clientId") || (user.role !== "admin" ? user.clientId : null);
   const search = url.searchParams.get("search");
   const page = parseInt(url.searchParams.get("page") || "1");
   const limit = parseInt(url.searchParams.get("limit") || "20");
@@ -91,10 +91,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const { question, clientId, topN = 5, hfApiKey: reqApiKey } = await req.json();
+  const { question, clientId: reqClientId, topN = 5, hfApiKey: reqApiKey } = await req.json();
   if (!question) return NextResponse.json({ error: "question requise" }, { status: 400 });
+
+  const clientId = reqClientId || (user.role !== "admin" ? user.clientId : null);
 
   // Use provided key or fetch from global settings
   let hfApiKey = reqApiKey;
