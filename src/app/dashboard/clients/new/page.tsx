@@ -35,6 +35,7 @@ export default function NewClientPage() {
     aiModel: "openai/gpt-oss-20b",
     apiKey: "",
     kbThreshold: 60,
+    keywordThreshold: 50,
   });
   const [error, setError] = useState("");
 

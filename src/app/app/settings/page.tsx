@@ -40,6 +40,7 @@ export default function AppSettingsPage() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
       body: JSON.stringify({
         kbThreshold: form.kbThreshold,
+        keywordThreshold: form.keywordThreshold,
         ragThreshold: form.ragThreshold,
         tempQA: form.tempQA,
         tempRAG: form.tempRAG,
@@ -90,12 +91,19 @@ export default function AppSettingsPage() {
                 <SlidersHorizontal size={16} className="text-emerald-600" />
                 <h2 className="font-semibold text-gray-900">Seuils de confiance</h2>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
                     Seuil QA (N1) : {form.kbThreshold ?? 80}%
                   </label>
                   <input type="range" min={10} max={100} value={form.kbThreshold ?? 80} onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })} className="w-full accent-emerald-600" />
+                  <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                    Seuil Mot-clé : {form.keywordThreshold ?? 50}%
+                  </label>
+                  <input type="range" min={10} max={100} value={form.keywordThreshold ?? 50} onChange={(e) => setForm({ ...form, keywordThreshold: +e.target.value })} className="w-full accent-emerald-600" />
                   <div className="flex justify-between text-xs text-gray-400 mt-0.5"><span>10%</span><span>100%</span></div>
                 </div>
                 <div>

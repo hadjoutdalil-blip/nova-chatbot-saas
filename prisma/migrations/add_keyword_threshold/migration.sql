@@ -1,0 +1,1 @@
+ALTER TABLE "Client" ADD COLUMN "keywordThreshold" INTEGER NOT NULL DEFAULT 50;

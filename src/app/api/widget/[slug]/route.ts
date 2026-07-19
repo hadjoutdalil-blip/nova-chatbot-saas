@@ -18,6 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     logo: client.logo,
     primaryColor: client.primaryColor,
     kbThreshold: client.kbThreshold,
+    keywordThreshold: client.keywordThreshold,
     relanceActive: client.relanceActive,
     siteContext: client.siteContext,
     relanceText: client.relanceText,

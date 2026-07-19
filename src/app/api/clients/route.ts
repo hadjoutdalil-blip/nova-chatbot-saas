@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       aiModel: body.aiModel || def("defaultAiModel", "openai/gpt-oss-20b"),
       aiProvider: body.aiProvider || def("defaultAiProvider", "groq"),
       kbThreshold: body.kbThreshold ?? +def("defaultKbThreshold", "60"),
+      keywordThreshold: body.keywordThreshold ?? 50,
       relanceActive: body.relanceActive ?? def("defaultRelanceActive", "true") === "true",
       siteContext: body.siteContext || "",
       relanceText: body.relanceText || "",

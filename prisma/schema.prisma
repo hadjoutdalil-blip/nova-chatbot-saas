@@ -18,6 +18,7 @@ model Client {
   aiModel      String   @default("llama-3.1-8b-instant")
   aiProvider   String   @default("groq")
   kbThreshold  Int      @default(80)
+  keywordThreshold Int @default(50)
   ragThreshold Int      @default(72)
   tempQA       Float    @default(0.05)
   tempRAG      Float    @default(0.10)

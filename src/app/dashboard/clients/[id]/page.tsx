@@ -341,7 +341,7 @@ export default function EditClientPage() {
                 <h2 className="font-semibold text-gray-900">Configuration IA</h2>
               </div>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Seuil QA (N1) : <span className="text-emerald-600 font-semibold">{form.kbThreshold ?? 80}%</span>
@@ -350,6 +350,18 @@ export default function EditClientPage() {
                       type="range" min={10} max={100}
                       value={form.kbThreshold ?? 80}
                       onChange={(e) => setForm({ ...form, kbThreshold: +e.target.value })}
+                      className="w-full accent-emerald-600"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400 mt-1"><span>10%</span><span>100%</span></div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Seuil Mot-clé : <span className="text-emerald-600 font-semibold">{form.keywordThreshold ?? 50}%</span>
+                    </label>
+                    <input
+                      type="range" min={10} max={100}
+                      value={form.keywordThreshold ?? 50}
+                      onChange={(e) => setForm({ ...form, keywordThreshold: +e.target.value })}
                       className="w-full accent-emerald-600"
                     />
                     <div className="flex justify-between text-xs text-gray-400 mt-1"><span>10%</span><span>100%</span></div>

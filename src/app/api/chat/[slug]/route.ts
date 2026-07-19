@@ -576,9 +576,9 @@ async function handleStreamingRequest(
         }));
 
         const { match, score, isKeyword } = findBestMatch(message, KB);
-        const kbThreshold = isKeyword ? 50 : (client.kbThreshold ?? 80);
-        const ragThreshold = client.ragThreshold ?? 40;
+        const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
 
+        const ragThreshold = client.ragThreshold ?? 40;
         /* Short query guard */
         if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
           send("metadata", { messageId, source: "skip", score: 0 });
@@ -863,7 +863,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }));
 
   const { match, score, isKeyword } = findBestMatch(message, KB);
-  const kbThreshold = isKeyword ? 50 : (client.kbThreshold ?? 80);
+  const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
   const ragThreshold = client.ragThreshold ?? 40;
 
   /* ── Short query guard (only if no good KB match) ── */
