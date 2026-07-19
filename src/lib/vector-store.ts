@@ -18,19 +18,6 @@ async function ensureTable() {
   const client = await pool.connect();
   try {
     await client.query("CREATE EXTENSION IF NOT EXISTS vector");
-    const tableCheck = await client.query(`
-      SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables WHERE table_name = 'document_chunks'
-      ) AS exists, (
-        SELECT atttypmod FROM pg_attribute
-        JOIN pg_class ON pg_attribute.attrelid = pg_class.oid
-        WHERE pg_class.relname = 'document_chunks' AND pg_attribute.attname = 'embedding'
-      ) AS dim
-    `);
-    const row = tableCheck.rows[0];
-    if (row?.exists && row?.dim !== null && row?.dim - 4 < TABLE_DIM) {
-      await client.query("DROP TABLE document_chunks");
-    }
     await client.query(`
       CREATE TABLE IF NOT EXISTS document_chunks (
         id TEXT PRIMARY KEY,
@@ -57,6 +44,36 @@ async function ensureTable() {
     client.release();
   }
   tableEnsured = true;
+}
+
+export async function recreateTable() {
+  const client = await pool.connect();
+  try {
+    await client.query("DROP TABLE IF EXISTS document_chunks");
+    await client.query(`
+      CREATE TABLE document_chunks (
+        id TEXT PRIMARY KEY,
+        "clientId" TEXT NOT NULL,
+        "docId" TEXT NOT NULL,
+        "chunkId" TEXT NOT NULL,
+        content TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT '',
+        section TEXT NOT NULL DEFAULT '',
+        keywords TEXT NOT NULL DEFAULT '',
+        source_url TEXT NOT NULL DEFAULT '',
+        valid_until TEXT NOT NULL DEFAULT '',
+        embedding vector(${TABLE_DIM})
+      )
+    `);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
+    try {
+      await client.query("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)");
+    } catch {}
+    tableEnsured = true;
+  } finally {
+    client.release();
+  }
 }
 
 function padEmbeddings(embeddings: number[][], provider: string): number[][] {

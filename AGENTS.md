@@ -12,3 +12,9 @@
 ## API
 - `GET /api/vector-index-status?clientId=xxx` — retourne docs/KB avec leur état d'indexation
 - `POST /api/migrate-vector` — accessible aux clients pour leur propre client (plus besoin d'être admin)
+
+## Fix : `ensureTable()` ne droppe plus la table automatiquement (`vector-store.ts`)
+- Suppression du `DROP TABLE` dans `ensureTable()` — la table n'est plus jamais détruite automatiquement
+- Nouvelle fonction `recreateTable()` exportée, utilisée uniquement par `migrate-vector` lors d'une migration complète (admin, sans clientId)
+- La migration par client (bouton "Indexer documents + KB") n'affecte que les chunks de ce client
+- Les données vectorielles ne peuvent plus être perdues par un redémarrage serveur / cold start

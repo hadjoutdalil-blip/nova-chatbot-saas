@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
-import { syncDocumentChunks } from "@/lib/vector-store";
+import { syncDocumentChunks, recreateTable } from "@/lib/vector-store";
 import { chunkDocument } from "@/lib/rag-utils";
 import { generateEmbeddings } from "@/lib/embeddings";
 import { Pool } from "@neondatabase/serverless";
@@ -19,6 +19,11 @@ export async function POST(req: NextRequest) {
     // Only admin can run for all clients; others only for their own
     if (user.role !== "admin" && targetClientId !== user.clientId)
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    // Full migration (no clientId): recreate table with correct dimension
+    if (user.role === "admin" && !clientId) {
+      await recreateTable();
+    }
 
     const where = user.role === "admin" && !clientId ? { useVectorRag: true } : { id: targetClientId };
     const clients = await db.prisma.client.findMany({
