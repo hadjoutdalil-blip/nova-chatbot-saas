@@ -28,7 +28,7 @@ async function ensureTable() {
       ) AS dim
     `);
     const row = tableCheck.rows[0];
-    if (row?.exists && row?.dim !== null && row?.dim !== TABLE_DIM + 4) {
+    if (row?.exists && row?.dim !== null && row?.dim - 4 < TABLE_DIM) {
       await client.query("DROP TABLE document_chunks");
     }
     await client.query(`
