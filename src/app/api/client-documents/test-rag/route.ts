@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
 
   if (client.useVectorRag && client.hfApiKey) {
     try {
-      const embedding = await generateEmbedding(question, client.hfApiKey);
-      const results = await pgSearchChunks(client.id, embedding, topNChunks);
+      const embedding = await generateEmbedding(question, client.hfApiKey, client.embeddingProvider);
+      const results = await pgSearchChunks(client.id, embedding, topNChunks, client.embeddingProvider);
       topChunks = results.map((r) => r.chunk);
     } catch (err) {
       console.error("[Vector RAG test] error, falling back to keyword:", err);

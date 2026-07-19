@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
   const client = await db.prisma.client.findUnique({ where: { id: clientId } });
   if (client?.useVectorRag && client.hfApiKey) {
-    syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, client.hfApiKey).catch((err) => console.error("[Vector Sync]", err));
+    syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, client.hfApiKey, client.embeddingProvider).catch((err) => console.error("[Vector Sync]", err));
   }
 
   return NextResponse.json({

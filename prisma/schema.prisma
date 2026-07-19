@@ -27,8 +27,9 @@ model Client {
   relanceActive Boolean @default(true)
   siteContext  String   @default("")
   relanceText  String   @default("")
-  useVectorRag Boolean  @default(false)
-  hfApiKey      String   @default("")
+  useVectorRag     Boolean  @default(false)
+  embeddingProvider String  @default("cohere")
+  hfApiKey          String   @default("")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

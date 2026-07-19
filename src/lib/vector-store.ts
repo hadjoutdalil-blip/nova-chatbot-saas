@@ -1,10 +1,15 @@
 import { Pool } from "@neondatabase/serverless";
 import { chunkDocument, ChunkMeta } from "./rag-utils";
-import { generateEmbeddings } from "./embeddings";
+import { generateEmbeddings, getEmbeddingDimension } from "./embeddings";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
-const VECTOR_DIM = 384;
+const TABLE_DIM = getEmbeddingDimension("nomic"); // 768 — supports both Cohere (padded) and Nomic
+
+function padToDim(vec: number[], dim: number): number[] {
+  if (vec.length >= dim) return vec;
+  return [...vec, ...new Array(dim - vec.length).fill(0)];
+}
 
 let tableEnsured = false;
 
@@ -13,7 +18,6 @@ async function ensureTable() {
   const client = await pool.connect();
   try {
     await client.query("CREATE EXTENSION IF NOT EXISTS vector");
-    // Check if table exists with wrong vector dimension, recreate if needed
     const tableCheck = await client.query(`
       SELECT EXISTS (
         SELECT 1 FROM information_schema.tables WHERE table_name = 'document_chunks'
@@ -24,7 +28,7 @@ async function ensureTable() {
       ) AS dim
     `);
     const row = tableCheck.rows[0];
-    if (row?.exists && row?.dim !== null && row?.dim !== VECTOR_DIM + 4) {
+    if (row?.exists && row?.dim !== null && row?.dim !== TABLE_DIM + 4) {
       await client.query("DROP TABLE document_chunks");
     }
     await client.query(`
@@ -39,7 +43,7 @@ async function ensureTable() {
         keywords TEXT NOT NULL DEFAULT '',
         source_url TEXT NOT NULL DEFAULT '',
         valid_until TEXT NOT NULL DEFAULT '',
-        embedding vector(${VECTOR_DIM})
+        embedding vector(${TABLE_DIM})
       )
     `);
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
@@ -55,6 +59,12 @@ async function ensureTable() {
   tableEnsured = true;
 }
 
+function padEmbeddings(embeddings: number[][], provider: string): number[][] {
+  const targetDim = getEmbeddingDimension(provider);
+  if (targetDim >= TABLE_DIM) return embeddings;
+  return embeddings.map((e) => padToDim(e, TABLE_DIM));
+}
+
 export async function syncDocumentChunks(
   docId: string,
   clientId: string,
@@ -64,6 +74,7 @@ export async function syncDocumentChunks(
   validUntil: string | null,
   chunkSize: number,
   hfApiKey: string,
+  embeddingProvider = "cohere",
 ) {
   await ensureTable();
   await deleteDocChunks(docId);
@@ -75,7 +86,7 @@ export async function syncDocumentChunks(
   if (chunks.length === 0) return;
 
   const texts = chunks.map((c) => c.content);
-  const embeddings = await generateEmbeddings(texts, hfApiKey);
+  const embeddings = padEmbeddings(await generateEmbeddings(texts, hfApiKey, embeddingProvider), embeddingProvider);
 
   const client = await pool.connect();
   try {
@@ -103,10 +114,11 @@ export async function searchChunks(
   clientId: string,
   questionEmbedding: number[],
   topN: number,
+  provider = "cohere",
 ): Promise<{ chunk: ChunkMeta; score: number }[]> {
   await ensureTable();
-
-  const embeddingStr = `[${questionEmbedding.join(",")}]`;
+  const queryVec = padToDim(questionEmbedding, TABLE_DIM);
+  const embeddingStr = `[${queryVec.join(",")}]`;
   const { rows } = await pool.query(
     `SELECT *,
       1 - (embedding <=> $1::vector) AS score

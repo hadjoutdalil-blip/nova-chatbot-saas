@@ -49,6 +49,7 @@ export default function AppSettingsPage() {
         relanceActive: form.relanceActive,
         relanceText: form.relanceText,
         useVectorRag: form.useVectorRag,
+        embeddingProvider: form.embeddingProvider,
         hfApiKey: form.hfApiKey,
       }),
     });
@@ -164,13 +165,20 @@ export default function AppSettingsPage() {
               </div>
               <label className="flex items-center gap-3 cursor-pointer mb-4">
                 <input type="checkbox" checked={!!form.useVectorRag} onChange={(e) => setForm({ ...form, useVectorRag: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (Cohere + pgvector)</span>
+                <span className="text-sm font-medium text-gray-700">Activer la recherche vectorielle (pgvector)</span>
               </label>
               {form.useVectorRag && (
                 <div className="space-y-3 pl-6 border-l-2 border-emerald-100">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Embedding Cohere</label>
-                    <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="clé API Cohere" />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Provider d'embedding</label>
+                    <select value={form.embeddingProvider || "cohere"} onChange={(e) => setForm({ ...form, embeddingProvider: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
+                      <option value="cohere">Cohere (embed-english-light-v3.0)</option>
+                      <option value="nomic">Nomic (nomic-embed-text-v1.5)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Embedding</label>
+                    <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="clé API Cohere ou Nomic" />
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -193,8 +201,9 @@ export default function AppSettingsPage() {
                       {testVector ? "Test..." : "Tester la connexion"}
                     </button>
                     {vectorTestResult && (
-                      <div className="flex items-center gap-2 text-xs">
-                        {vectorTestResult.embedding && (vectorTestResult.embedding.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Embedding OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Embedding</span>)}
+                      <div className="flex flex-col gap-1 text-xs">
+                        {vectorTestResult.cohere && (vectorTestResult.cohere.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Cohere OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Cohere</span>)}
+                        {vectorTestResult.nomic && (vectorTestResult.nomic.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Nomic OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Nomic</span>)}
                       </div>
                     )}
                   </div>

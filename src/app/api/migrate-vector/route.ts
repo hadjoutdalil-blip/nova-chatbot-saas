@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     const clients = await db.prisma.client.findMany({
       where,
-      select: { id: true, name: true, chunkSize: true, hfApiKey: true },
+      select: { id: true, name: true, chunkSize: true, hfApiKey: true, embeddingProvider: true },
     });
 
     const results: any[] = [];
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         });
         for (const doc of docs) {
           try {
-            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.hfApiKey);
+            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, client.hfApiKey, client.embeddingProvider);
             log.documents++;
           } catch (err: any) {
             log.errors.push(`doc ${doc.id}: ${err.message}`);
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
             if (chunks.length === 0) continue;
 
             const texts = chunks.map((c) => c.content);
-            const embeddings = await generateEmbeddings(texts, client.hfApiKey);
+            const embeddings = await generateEmbeddings(texts, client.hfApiKey, client.embeddingProvider);
 
             /* Delete existing KB chunks */
             await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [kb.id]);

@@ -99,13 +99,25 @@ export default function SettingsPage() {
           </select>
         </div>
 
-        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (Cohere + pgvector)</h2>
-        <p className="text-sm text-gray-500 -mt-3">Clé API par défaut pour la recherche sémantique vectorielle.</p>
+        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (pgvector)</h2>
+        <p className="text-sm text-gray-500 -mt-3">Clé API pour la recherche sémantique vectorielle.</p>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Clé API Embedding (Cohere)</label>
+          <label className="block text-sm font-medium mb-1">Provider d'embedding</label>
+          <select
+            value={config.embeddingProvider || "cohere"}
+            onChange={(e) => setConfig({ ...config, embeddingProvider: e.target.value })}
+            className="w-full border rounded-lg px-3 py-2"
+          >
+            <option value="cohere">Cohere (embed-english-light-v3.0)</option>
+            <option value="nomic">Nomic (nomic-embed-text-v1.5)</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Clé API Embedding</label>
           <input
-            type="password" placeholder="clé API Cohere"
+            type="password" placeholder="clé API Cohere ou Nomic"
             value={config.hfApiKey || ""}
             onChange={(e) => setConfig({ ...config, hfApiKey: e.target.value })}
             className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
@@ -132,8 +144,9 @@ export default function SettingsPage() {
             {testing ? "Test en cours..." : "Tester la connexion"}
           </button>
           {testResult && (
-            <div className="flex items-center gap-2 text-sm">
-              {testResult.embedding && (testResult.embedding.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Embedding OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Embedding: {testResult.embedding.error}</span>)}
+            <div className="flex flex-col gap-1 text-sm">
+              {testResult.cohere && (testResult.cohere.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Cohere OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Cohere: {testResult.cohere.error}</span>)}
+              {testResult.nomic && (testResult.nomic.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Nomic OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Nomic: {testResult.nomic.error}</span>)}
             </div>
           )}
         </div>

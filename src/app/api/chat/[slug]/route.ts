@@ -637,7 +637,7 @@ async function handleStreamingRequest(
           });
           let topChunks: ChunkMeta[] = [];
           if (client.useVectorRag && client.hfApiKey) {
-            try { const embedding = await generateEmbedding(message, client.hfApiKey); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3); topChunks = results.map((r) => r.chunk); } catch {}
+            try { const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
@@ -711,7 +711,7 @@ async function handleStreamingRequest(
           });
           let topChunks: ChunkMeta[] = [];
           if (client.useVectorRag && client.hfApiKey) {
-            try { const embedding = await generateEmbedding(message, client.hfApiKey); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3); topChunks = results.map((r) => r.chunk); } catch {}
+            try { const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
@@ -931,8 +931,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     let topChunks: ChunkMeta[] = [];
     if (client.useVectorRag && client.hfApiKey) {
       try {
-        const embedding = await generateEmbedding(message, client.hfApiKey);
-        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3);
+        const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
@@ -1121,8 +1121,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     let topChunks: ChunkMeta[] = [];
     if (client.useVectorRag && client.hfApiKey) {
       try {
-        const embedding = await generateEmbedding(message, client.hfApiKey);
-        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3);
+        const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);

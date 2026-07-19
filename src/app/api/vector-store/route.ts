@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
   }
   if (!hfApiKey) return NextResponse.json({ error: "Clé API Cohere non configurée" }, { status: 400 });
 
-  const embedding = await generateEmbedding(question, hfApiKey);
+  const embedding = await generateEmbedding(question, hfApiKey, "cohere");
   const embeddingStr = `[${embedding.join(",")}]`;
 
   let where = "";
