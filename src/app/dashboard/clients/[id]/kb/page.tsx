@@ -219,7 +219,7 @@ export default function ClientKBPage() {
         body: JSON.stringify({ clientId: id, content: directImport, source: importSource || "import-direct" }),
       });
       const data = await res.json();
-      if (res.ok) setDirectResult(`✓ ${data.chunksCount} extraits vectorisés (${data.docId.slice(0, 8)}…)`);
+      if (res.ok) setDirectResult(`✓ Contenu vectorisé et indexé (${data.docId.slice(0, 8)}…)`);
       else setDirectResult(`✗ ${data.error}`);
     } catch (err: any) {
       setDirectResult(`✗ ${err.message}`);
