@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import KBModal from "@/components/admin/KBModal";
-import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X, Database, Loader2 } from "lucide-react";
+import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X, Database, Loader2, Zap } from "lucide-react";
 
 interface KBEntry {
   id: string;
@@ -76,6 +76,10 @@ export default function ClientKBPage() {
   const [saving, setSaving] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [migrateResult, setMigrateResult] = useState<string | null>(null);
+  const [directImport, setDirectImport] = useState("");
+  const [importSource, setImportSource] = useState("");
+  const [importingDirect, setImportingDirect] = useState(false);
+  const [directResult, setDirectResult] = useState<string | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -202,6 +206,25 @@ export default function ClientKBPage() {
     }
     setUploading(false);
     e.target.value = "";
+  }
+
+  async function handleDirectImport() {
+    if (!directImport.trim()) return;
+    setImportingDirect(true);
+    setDirectResult(null);
+    try {
+      const res = await fetch("/api/vector-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ clientId: id, content: directImport, source: importSource || "import-direct" }),
+      });
+      const data = await res.json();
+      if (res.ok) setDirectResult(`✓ ${data.chunksCount} extraits vectorisés (${data.docId.slice(0, 8)}…)`);
+      else setDirectResult(`✗ ${data.error}`);
+    } catch (err: any) {
+      setDirectResult(`✗ ${err.message}`);
+    }
+    setImportingDirect(false);
   }
 
   async function handleDeleteDoc(docId: string) {
@@ -479,6 +502,27 @@ export default function ClientKBPage() {
             {migrateResult && (
               <pre className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono overflow-auto max-h-60 text-gray-700">{migrateResult}</pre>
             )}
+          </div>
+
+          <div className="bg-white backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
+              <Zap size={18} className="text-purple-600" />
+              <h2 className="font-semibold text-gray-900">Import vectoriel direct</h2>
+            </div>
+            <p className="text-xs text-gray-400">Collez du texte brut ou JSON pour le vectoriser et l&apos;indexer immédiatement dans pgvector.</p>
+            <div className="flex gap-2">
+              <input type="text" value={importSource} onChange={(e) => setImportSource(e.target.value)} placeholder="Nom source (optionnel)" className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all" />
+            </div>
+            <textarea value={directImport} onChange={(e) => setDirectImport(e.target.value)} rows={5} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-mono" placeholder="Collez ici le contenu à vectoriser..." />
+            <div className="flex items-center gap-3">
+              <button onClick={handleDirectImport} disabled={importingDirect || !directImport.trim()} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 shadow-lg shadow-purple-200">
+                {importingDirect ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+                {importingDirect ? "Vectorisation..." : "Vectoriser et importer"}
+              </button>
+              {directResult && (
+                <span className={`text-sm ${directResult.startsWith("✓") ? "text-green-600" : "text-red-600"}`}>{directResult}</span>
+              )}
+            </div>
           </div>
         </div>
       )}
