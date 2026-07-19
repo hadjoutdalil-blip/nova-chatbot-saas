@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Brain, Database } from "lucide-react";
 
 const PROVIDER_MODELS: Record<string, string[]> = {
   groq: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3-32b", "qwen/qwen3.6-27b", "meta-llama/llama-4-scout-17b-16e-instruct"],
@@ -10,7 +10,13 @@ const PROVIDER_MODELS: Record<string, string[]> = {
   gemini: ["gemini-2.5-flash"],
 };
 
+const TABS = [
+  { id: "ia", label: "IA par défaut", icon: Brain },
+  { id: "vector", label: "RAG Vectoriel", icon: Database },
+];
+
 export default function SettingsPage() {
+  const [tab, setTab] = useState("ia");
   const [config, setConfig] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -44,122 +50,147 @@ export default function SettingsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Paramètres généraux</h1>
 
-      <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl space-y-5">
-
-        <h2 className="font-semibold text-lg border-b pb-2">Configuration IA par défaut</h2>
-        <p className="text-sm text-gray-500 -mt-3">Ces valeurs sont utilisées comme valeurs par défaut lors de la création d&apos;un nouveau client.</p>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Fournisseur par défaut</label>
-            <select
-              value={config.defaultAiProvider}
-              onChange={(e) => setConfig({ ...config, defaultAiProvider: e.target.value, defaultAiModel: "" })}
-              className="w-full border rounded-lg px-3 py-2"
+      <div className="flex gap-1 mb-6 bg-gray-100/80 rounded-xl p-1 w-fit">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
-              <option value="groq">Groq</option>
-              <option value="cerebras">Cerebras</option>
-              <option value="xai">xAI Grok</option>
-              <option value="gemini">Google Gemini</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Modèle par défaut</label>
-            <select
-              value={config.defaultAiModel}
-              onChange={(e) => setConfig({ ...config, defaultAiModel: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="">— Sélectionner —</option>
-              {models.map((m) => (<option key={m} value={m}>{m}</option>))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Seuil de confiance KB par défaut : {config.defaultKbThreshold}%</label>
-          <input
-            type="range" min={10} max={100}
-            value={config.defaultKbThreshold || 60}
-            onChange={(e) => setConfig({ ...config, defaultKbThreshold: e.target.value })}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-gray-400"><span>10%</span><span>100%</span></div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Relance IA par défaut</label>
-          <select
-            value={config.defaultRelanceActive || "true"}
-            onChange={(e) => setConfig({ ...config, defaultRelanceActive: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="true">Active</option>
-            <option value="false">Désactivée</option>
-          </select>
-        </div>
-
-        <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (pgvector)</h2>
-        <p className="text-sm text-gray-500 -mt-3">Clé API pour la recherche sémantique vectorielle.</p>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Provider d'embedding</label>
-          <select
-            value={config.embeddingProvider || "cohere"}
-            onChange={(e) => setConfig({ ...config, embeddingProvider: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="cohere">Cohere (embed-english-light-v3.0)</option>
-            <option value="nomic">Nomic (nomic-embed-text-v1.5)</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Clé API Embedding</label>
-          <input
-            type="password" placeholder="clé API Cohere ou Nomic"
-            value={config.hfApiKey || ""}
-            onChange={(e) => setConfig({ ...config, hfApiKey: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
-          />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={async () => {
-              setTesting(true);
-              setTestResult(null);
-              const res = await fetch("/api/test-vector-connection", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                body: JSON.stringify({ hfApiKey: config.hfApiKey }),
-              });
-              const text = await res.text();
-              setTestResult(JSON.parse(text));
-            }}
-            disabled={testing || !config.hfApiKey}
-            className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-          >
-            {testing ? <Loader2 size={15} className="animate-spin" /> : null}
-            {testing ? "Test en cours..." : "Tester la connexion"}
-          </button>
-          {testResult && (
-            <div className="flex flex-col gap-1 text-sm">
-              {testResult.cohere && (testResult.cohere.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Cohere OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Cohere: {testResult.cohere.error}</span>)}
-              {testResult.nomic && (testResult.nomic.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Nomic OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Nomic: {testResult.nomic.error}</span>)}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button onClick={handleSave} disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50">
-            {saving ? "Enregistrement..." : "Enregistrer"}
-          </button>
-          {saved && <span className="text-green-600 text-sm">✓ Enregistré</span>}
-        </div>
-
-        <MigrateButton token={token} />
+              <Icon size={16} /> {t.label}
+            </button>
+          );
+        })}
       </div>
+
+      {tab === "ia" && (
+        <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl space-y-5">
+          <h2 className="font-semibold text-lg border-b pb-2">Configuration IA par défaut</h2>
+          <p className="text-sm text-gray-500 -mt-3">Ces valeurs sont utilisées comme valeurs par défaut lors de la création d&apos;un nouveau client.</p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Fournisseur par défaut</label>
+              <select
+                value={config.defaultAiProvider}
+                onChange={(e) => setConfig({ ...config, defaultAiProvider: e.target.value, defaultAiModel: "" })}
+                className="w-full border rounded-lg px-3 py-2"
+              >
+                <option value="groq">Groq</option>
+                <option value="cerebras">Cerebras</option>
+                <option value="xai">xAI Grok</option>
+                <option value="gemini">Google Gemini</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Modèle par défaut</label>
+              <select
+                value={config.defaultAiModel}
+                onChange={(e) => setConfig({ ...config, defaultAiModel: e.target.value })}
+                className="w-full border rounded-lg px-3 py-2"
+              >
+                <option value="">— Sélectionner —</option>
+                {models.map((m) => (<option key={m} value={m}>{m}</option>))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Seuil de confiance KB par défaut : {config.defaultKbThreshold}%</label>
+            <input
+              type="range" min={10} max={100}
+              value={config.defaultKbThreshold || 60}
+              onChange={(e) => setConfig({ ...config, defaultKbThreshold: e.target.value })}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-gray-400"><span>10%</span><span>100%</span></div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Relance IA par défaut</label>
+            <select
+              value={config.defaultRelanceActive || "true"}
+              onChange={(e) => setConfig({ ...config, defaultRelanceActive: e.target.value })}
+              className="w-full border rounded-lg px-3 py-2"
+            >
+              <option value="true">Active</option>
+              <option value="false">Désactivée</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button onClick={handleSave} disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50">
+              {saving ? "Enregistrement..." : "Enregistrer"}
+            </button>
+            {saved && <span className="text-green-600 text-sm">✓ Enregistré</span>}
+          </div>
+        </div>
+      )}
+
+      {tab === "vector" && (
+        <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl space-y-5">
+          <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (pgvector)</h2>
+          <p className="text-sm text-gray-500 -mt-3">Clé API pour la recherche sémantique vectorielle.</p>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Provider d'embedding</label>
+            <select
+              value={config.embeddingProvider || "cohere"}
+              onChange={(e) => setConfig({ ...config, embeddingProvider: e.target.value })}
+              className="w-full border rounded-lg px-3 py-2"
+            >
+              <option value="cohere">Cohere (embed-english-light-v3.0)</option>
+              <option value="nomic">Nomic (nomic-embed-text-v1.5)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Clé API Embedding</label>
+            <input
+              type="password" placeholder="clé API Cohere ou Nomic"
+              value={config.hfApiKey || ""}
+              onChange={(e) => setConfig({ ...config, hfApiKey: e.target.value })}
+              className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={async () => {
+                setTesting(true);
+                setTestResult(null);
+                const res = await fetch("/api/test-vector-connection", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                  body: JSON.stringify({ hfApiKey: config.hfApiKey }),
+                });
+                const text = await res.text();
+                setTestResult(JSON.parse(text));
+              }}
+              disabled={testing || !config.hfApiKey}
+              className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            >
+              {testing ? <Loader2 size={15} className="animate-spin" /> : null}
+              {testing ? "Test en cours..." : "Tester la connexion"}
+            </button>
+            {testResult && (
+              <div className="flex flex-col gap-1 text-sm">
+                {testResult.cohere && (testResult.cohere.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Cohere OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Cohere: {testResult.cohere.error}</span>)}
+                {testResult.nomic && (testResult.nomic.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Nomic OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Nomic: {testResult.nomic.error}</span>)}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button onClick={handleSave} disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50">
+              {saving ? "Enregistrement..." : "Enregistrer"}
+            </button>
+            {saved && <span className="text-green-600 text-sm">✓ Enregistré</span>}
+          </div>
+
+          <MigrateButton token={token} />
+        </div>
+      )}
     </div>
   );
 }

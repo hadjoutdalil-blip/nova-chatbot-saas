@@ -11,11 +11,16 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 export async function POST(req: NextRequest) {
   try {
     const user = getAuthUser(req);
-    if (!user || user.role !== "admin") return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const { clientId } = await req.json().catch(() => ({}));
-    const where = clientId ? { id: clientId } : { useVectorRag: true };
+    const targetClientId = clientId || user.clientId;
 
+    // Only admin can run for all clients; others only for their own
+    if (user.role !== "admin" && targetClientId !== user.clientId)
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    const where = user.role === "admin" && !clientId ? { useVectorRag: true } : { id: targetClientId };
     const clients = await db.prisma.client.findMany({
       where,
       select: { id: true, name: true, chunkSize: true, hfApiKey: true, embeddingProvider: true },

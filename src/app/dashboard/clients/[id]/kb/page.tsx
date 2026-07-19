@@ -23,6 +23,7 @@ interface KBEntry {
 const TABS = [
   { id: "kb", label: "KB Experte", icon: BookOpen },
   { id: "documents", label: "Documents contextuels", icon: FileText },
+  { id: "vectoriel", label: "Base Vectorielle", icon: Database },
 ];
 
 function parseContextChunks(siteContext: string) {
@@ -80,6 +81,11 @@ export default function ClientKBPage() {
   const [importSource, setImportSource] = useState("");
   const [importingDirect, setImportingDirect] = useState(false);
   const [directResult, setDirectResult] = useState<string | null>(null);
+  const [indexStatus, setIndexStatus] = useState<any>(null);
+  const [loadingIndexStatus, setLoadingIndexStatus] = useState(false);
+  const [indexingDocs, setIndexingDocs] = useState(false);
+  const [indexingKB, setIndexingKB] = useState(false);
+  const [indexResult, setIndexResult] = useState<string | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -277,6 +283,17 @@ export default function ClientKBPage() {
     setSaving(false);
   }
 
+  async function loadIndexStatus() {
+    if (!id) return;
+    setLoadingIndexStatus(true);
+    try {
+      const res = await fetch(`/api/vector-index-status?clientId=${id}`, { headers: { Authorization: `Bearer ${token()}` } });
+      if (res.ok) setIndexStatus(await res.json());
+    } catch {} finally { setLoadingIndexStatus(false); }
+  }
+
+  useEffect(() => { if (tab === "vectoriel") loadIndexStatus(); }, [tab]);
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
@@ -285,7 +302,7 @@ export default function ClientKBPage() {
         <h1 className="text-2xl font-bold">Base de connaissances</h1>
       </div>
 
-      <p className="text-gray-500 mb-4">{tab === "kb" ? "Gérez la base de connaissances experte." : "Gérez les documents et le contexte entreprise utilisés par la RAG."}</p>
+      <p className="text-gray-500 mb-4">{tab === "kb" ? "Gérez la base de connaissances experte." : tab === "vectoriel" ? "Importez du texte dans la base vectorielle et indexez les documents/KB existants." : "Gérez les documents et le contexte entreprise utilisés par la RAG."}</p>
 
       <div className="flex gap-1 mb-6 bg-gray-100/80 rounded-xl p-1 w-fit">
         {TABS.map((t) => {
@@ -503,7 +520,21 @@ export default function ClientKBPage() {
               <pre className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono overflow-auto max-h-60 text-gray-700">{migrateResult}</pre>
             )}
           </div>
+          </div>
+      )}
 
+      {tab === "vectoriel" && (
+        <div className="space-y-5 max-w-2xl">
+          {/* RAG activé ? */}
+          {(!client?.useVectorRag || !client?.hfApiKey) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+              {!client?.useVectorRag
+                ? "Le RAG vectoriel n'est pas activé pour ce client. Activez-le dans Paramètres → RAG Vectoriel."
+                : "Clé API embedding non configurée. Configurez-la dans Paramètres → RAG Vectoriel."}
+            </div>
+          )}
+
+          {/* Import direct */}
           <div className="bg-white backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
               <Zap size={18} className="text-purple-600" />
@@ -523,6 +554,107 @@ export default function ClientKBPage() {
                 <span className={`text-sm ${directResult.startsWith("✓") ? "text-green-600" : "text-red-600"}`}>{directResult}</span>
               )}
             </div>
+          </div>
+
+          {/* Indexation des documents et KB */}
+          <div className="bg-white backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
+              <Database size={18} className="text-emerald-600" />
+              <h2 className="font-semibold text-gray-900">Indexation</h2>
+            </div>
+
+            {loadingIndexStatus ? (
+              <p className="text-sm text-gray-400">Chargement du statut d'indexation...</p>
+            ) : indexStatus ? (
+              <div className="space-y-4">
+                {/* Résumé */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-emerald-50 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold text-emerald-700">{indexStatus.indexedDocs}/{indexStatus.totalDocs}</p>
+                    <p className="text-xs text-emerald-600">Documents indexés</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold text-blue-700">{indexStatus.indexedKB}/{indexStatus.totalKB}</p>
+                    <p className="text-xs text-blue-600">Entrées KB indexées</p>
+                  </div>
+                </div>
+
+                {/* Boutons d'indexation */}
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={async () => {
+                      setIndexingDocs(true); setIndexResult(null);
+                      try {
+                        const res = await fetch("/api/migrate-vector", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                          body: JSON.stringify({ clientId: id }),
+                        });
+                        const data = await res.json();
+                        const summary = data.results?.[0] || {};
+                        setIndexResult(`✓ Documents: ${summary.documents ?? 0} indexés, KB: ${summary.kbEntries ?? 0} indexés`);
+                        loadIndexStatus();
+                      } catch (err: any) { setIndexResult(`✗ ${err.message}`); }
+                      setIndexingDocs(false);
+                    }}
+                    disabled={indexingDocs || indexingKB}
+                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all disabled:opacity-50"
+                  >
+                    {indexingDocs ? <Loader2 size={15} className="animate-spin" /> : <Database size={15} />}
+                    {indexingDocs ? "Indexation..." : "Indexer documents + KB"}
+                  </button>
+                </div>
+
+                {indexResult && (
+                  <p className={`text-sm ${indexResult.startsWith("✓") ? "text-green-600" : "text-red-600"}`}>{indexResult}</p>
+                )}
+
+                {/* Détail documents */}
+                {indexStatus.docs.filter((d: any) => d.indexed).length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Documents déjà indexés ({indexStatus.indexedDocs})</h3>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {indexStatus.docs.filter((d: any) => d.indexed).map((d: any) => (
+                        <div key={d.id} className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+                          <span className="truncate">{d.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {indexStatus.docs.filter((d: any) => !d.indexed).length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Documents non indexés ({indexStatus.totalDocs - indexStatus.indexedDocs})</h3>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {indexStatus.docs.filter((d: any) => !d.indexed).map((d: any) => (
+                        <div key={d.id} className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
+                          <span className="truncate">{d.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Détail KB */}
+                {indexStatus.kb.filter((k: any) => k.indexed).length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Entrées KB déjà indexées ({indexStatus.indexedKB})</h3>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {indexStatus.kb.filter((k: any) => k.indexed).map((k: any) => (
+                        <div key={k.id} className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+                          <span className="truncate">{k.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Connectez-vous pour voir le statut.</p>
+            )}
           </div>
         </div>
       )}
