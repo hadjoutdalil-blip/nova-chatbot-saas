@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, MessageCircle, CheckCircle, ArrowRight, Brain, Cpu, Gauge } from "lucide-react";
+import { BookOpen, MessageCircle, CheckCircle, ArrowRight, Brain, Cpu, Gauge, Database } from "lucide-react";
 
 export default function AppDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState({ kb: 0 });
   const [tokenUsage, setTokenUsage] = useState<any[]>([]);
   const [totals, setTotals] = useState({ totalUsed: 0, totalLimit: 0, totalPct: 0, month: "" });
+  const [embedUsage, setEmbedUsage] = useState<{ totalCalls: number; byProvider: Record<string, { calls: number; label: string }>; keys: any[] } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -23,6 +24,10 @@ export default function AppDashboard() {
         setTokenUsage(data.providers || []);
         setTotals({ totalUsed: data.totalUsed || 0, totalLimit: data.totalLimit || 0, totalPct: data.totalPct || 0, month: data.month || "" });
       })
+      .catch(() => {});
+    fetch("/api/embedding-usage", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then(setEmbedUsage)
       .catch(() => {});
   }, []);
 
@@ -116,6 +121,41 @@ export default function AppDashboard() {
                   <span className="text-[11px] text-gray-400">
                     {u.remaining >= 1000000 ? (u.remaining / 1000000).toFixed(1) + "M" : (u.remaining >= 1000 ? (u.remaining / 1000).toFixed(0) + "K" : u.remaining)} restants
                   </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Embedding Usage */}
+      <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-elevated mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Database size={18} className="text-purple-600" />
+            <h2 className="font-semibold text-gray-900">Consommation Embedding</h2>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500">{embedUsage?.totalCalls ?? 0} appel{(embedUsage?.totalCalls ?? 0) !== 1 ? "s" : ""}</span>
+          </div>
+        </div>
+
+        {!embedUsage || embedUsage.keys.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">Aucune consommation pour le moment.</p>
+        ) : (
+          <div className="space-y-3">
+            {embedUsage.keys.map((k) => (
+              <div key={k.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">
+                    {k.provider}
+                  </span>
+                  <span className="text-sm text-gray-700">{k.label}</span>
+                  {!k.isActive && <span className="text-xs text-gray-400">(désactivée)</span>}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span>{k.usageCount} appel{k.usageCount !== 1 ? "s" : ""}</span>
+                  {k.lastUsedAt && <span>Dernier : {new Date(k.lastUsedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>}
                 </div>
               </div>
             ))}
