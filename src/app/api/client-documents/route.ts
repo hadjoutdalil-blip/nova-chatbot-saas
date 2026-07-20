@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 import { syncDocumentChunks } from "@/lib/vector-store";
+import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 
 function getTargetClientId(req: NextRequest, user: { userId: string; clientId: string; role: string }): string {
   const url = new URL(req.url);
@@ -111,8 +112,13 @@ export async function POST(req: NextRequest) {
   });
 
   const client = await db.prisma.client.findUnique({ where: { id: clientId } });
-  if (client?.useVectorRag && client.hfApiKey) {
-    syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, client.hfApiKey, client.embeddingProvider).catch((err) => console.error("[Vector Sync]", err));
+  if (client?.useVectorRag) {
+    const activeKey = await getActiveEmbeddingKey(clientId);
+    const apiKey = activeKey?.key || client.hfApiKey;
+    const provider = activeKey?.provider || client.embeddingProvider;
+    if (apiKey) {
+      syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, apiKey, provider).catch((err) => console.error("[Vector Sync]", err));
+    }
   }
 
   return NextResponse.json({

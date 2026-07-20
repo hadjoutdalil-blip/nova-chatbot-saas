@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 import { deleteDocChunks, syncDocumentChunks } from "@/lib/vector-store";
+import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = getAuthUser(req);
@@ -113,8 +114,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     const vClient = await db.prisma.client.findUnique({ where: { id: existing.clientId } });
-    if (vClient?.useVectorRag && vClient.hfApiKey) {
-      syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, vClient.hfApiKey, vClient.embeddingProvider).catch((err) => console.error("[Vector Sync Update]", err));
+    if (vClient?.useVectorRag) {
+      const ak = await getActiveEmbeddingKey(existing.clientId);
+      const apiKey = ak?.key || vClient.hfApiKey;
+      const provider = ak?.provider || vClient.embeddingProvider;
+      if (apiKey) {
+        syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, apiKey, provider).catch((err) => console.error("[Vector Sync Update]", err));
+      }
     }
 
     return NextResponse.json({

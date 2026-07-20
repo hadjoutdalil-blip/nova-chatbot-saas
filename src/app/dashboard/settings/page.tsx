@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, XCircle, Brain, Database } from "lucide-react";
+import EmbeddingKeysManager from "@/components/admin/EmbeddingKeysManager";
 
 const PROVIDER_MODELS: Record<string, string[]> = {
   groq: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3-32b", "qwen/qwen3.6-27b", "meta-llama/llama-4-scout-17b-16e-instruct"],
@@ -24,6 +25,17 @@ export default function SettingsPage() {
   const [testResult, setTestResult] = useState<Record<string, { ok: boolean; error?: string }> | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
+
+  function getClientId(): string {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return "";
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.clientId || "";
+    } catch { return ""; }
+  }
+
+  const clientId = getClientId();
 
   useEffect(() => {
     fetch("/api/settings", { headers: { Authorization: `Bearer ${token()}` } })
@@ -130,56 +142,8 @@ export default function SettingsPage() {
       {tab === "vector" && (
         <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl space-y-5">
           <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (pgvector)</h2>
-          <p className="text-sm text-gray-500 -mt-3">Clé API pour la recherche sémantique vectorielle.</p>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Provider d'embedding</label>
-            <select
-              value={config.embeddingProvider || "cohere"}
-              onChange={(e) => setConfig({ ...config, embeddingProvider: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="cohere">Cohere (embed-english-light-v3.0)</option>
-              <option value="nomic">Nomic (nomic-embed-text-v1.5)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Clé API Embedding</label>
-            <input
-              type="password" placeholder="clé API Cohere ou Nomic"
-              value={config.hfApiKey || ""}
-              onChange={(e) => setConfig({ ...config, hfApiKey: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={async () => {
-                setTesting(true);
-                setTestResult(null);
-                const res = await fetch("/api/test-vector-connection", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                  body: JSON.stringify({ hfApiKey: config.hfApiKey }),
-                });
-                const text = await res.text();
-                setTestResult(JSON.parse(text));
-              }}
-              disabled={testing || !config.hfApiKey}
-              className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-            >
-              {testing ? <Loader2 size={15} className="animate-spin" /> : null}
-              {testing ? "Test en cours..." : "Tester la connexion"}
-            </button>
-            {testResult && (
-              <div className="flex flex-col gap-1 text-sm">
-                {testResult.cohere && (testResult.cohere.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Cohere OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Cohere: {testResult.cohere.error}</span>)}
-                {testResult.nomic && (testResult.nomic.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={14} /> Nomic OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={14} /> Nomic: {testResult.nomic.error}</span>)}
-              </div>
-            )}
-          </div>
+          <EmbeddingKeysManager clientId={clientId} token={token} />
 
           <div className="flex items-center gap-3">
             <button onClick={handleSave} disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50">

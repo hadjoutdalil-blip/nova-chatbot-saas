@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 import { syncDocumentChunks } from "@/lib/vector-store";
+import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
@@ -14,7 +15,11 @@ export async function POST(req: NextRequest) {
   const client = await db.prisma.client.findUnique({ where: { id: clientId } });
   if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
   if (!client.useVectorRag) return NextResponse.json({ error: "RAG vectoriel désactivé pour ce client" }, { status: 400 });
-  if (!client.hfApiKey) return NextResponse.json({ error: "Clé API embedding non configurée" }, { status: 400 });
+
+  const activeKey = await getActiveEmbeddingKey(clientId);
+  const apiKey = activeKey?.key || client.hfApiKey;
+  const provider = activeKey?.provider || client.embeddingProvider;
+  if (!apiKey) return NextResponse.json({ error: "Clé API embedding non configurée" }, { status: 400 });
 
   const docId = randomUUID();
   const src = source || "import-direct";
@@ -27,8 +32,8 @@ export async function POST(req: NextRequest) {
     "",
     null,
     client.chunkSize || 500,
-    client.hfApiKey,
-    client.embeddingProvider,
+    apiKey,
+    provider,
   );
 
   return NextResponse.json({ docId, chunksCount: -1, source: src });

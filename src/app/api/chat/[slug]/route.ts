@@ -10,6 +10,7 @@ import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 import { sseEvent } from "@/lib/stream-utils";
+import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -636,8 +637,10 @@ async function handleStreamingRequest(
             where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
           });
           let topChunks: ChunkMeta[] = [];
-          if (client.useVectorRag && client.hfApiKey) {
-            try { const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
+          const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
+          const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
+          if (client.useVectorRag && embedApiKey) {
+            try { const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
@@ -710,8 +713,10 @@ async function handleStreamingRequest(
             where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
           });
           let topChunks: ChunkMeta[] = [];
-          if (client.useVectorRag && client.hfApiKey) {
-            try { const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
+          const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
+          const apiKey = activeKey?.key || client.hfApiKey;
+          if (client.useVectorRag && apiKey) {
+            try { const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
@@ -929,9 +934,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.hfApiKey) {
+    const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
+    const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
+    if (client.useVectorRag && embedApiKey) {
       try {
-        const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider);
+        const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider);
         const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
@@ -1119,9 +1126,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
-    if (client.useVectorRag && client.hfApiKey) {
+    const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
+    const apiKey = activeKey?.key || client.hfApiKey;
+    if (client.useVectorRag && apiKey) {
       try {
-        const embedding = await generateEmbedding(message, client.hfApiKey, client.embeddingProvider);
+        const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider);
         const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {

@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/api-auth";
 import { chunkDocument, parseChunks, findBestChunks, ChunkMeta } from "@/lib/rag-utils";
 import { generateEmbedding } from "@/lib/embeddings";
 import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
+import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 
 /* ── Recherche par mots-clés en fallback ── */
 function keywordSearch(question: string, chunks: any[]): any[] {
@@ -59,10 +60,14 @@ export async function POST(req: NextRequest) {
   let topChunks: ChunkMeta[] = [];
   let matchedByKeyword = false;
 
-  if (client.useVectorRag && client.hfApiKey) {
+  const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
+  const apiKey = activeKey?.key || client.hfApiKey;
+  const provider = activeKey?.provider || client.embeddingProvider;
+
+  if (client.useVectorRag && apiKey) {
     try {
-      const embedding = await generateEmbedding(question, client.hfApiKey, client.embeddingProvider);
-      const results = await pgSearchChunks(client.id, embedding, topNChunks, client.embeddingProvider);
+      const embedding = await generateEmbedding(question, apiKey, provider);
+      const results = await pgSearchChunks(client.id, embedding, topNChunks, provider);
       topChunks = results.map((r) => r.chunk);
     } catch (err) {
       console.error("[Vector RAG test] error, falling back to keyword:", err);
