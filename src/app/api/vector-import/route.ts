@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
   const activeKey = await getActiveEmbeddingKey(clientId);
   const apiKey = activeKey?.key || client.hfApiKey;
   const provider = activeKey?.provider || client.embeddingProvider;
+  const embedKeyId = activeKey?.id;
   if (!apiKey) return NextResponse.json({ error: "Clé API embedding non configurée" }, { status: 400 });
 
   const docId = randomUUID();
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
     client.chunkSize || 500,
     apiKey,
     provider,
+    embedKeyId,
   );
 
   return NextResponse.json({ docId, chunksCount: -1, source: src });

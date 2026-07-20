@@ -16,6 +16,8 @@ interface EmbeddingKeyEntry {
   label: string;
   key: string;
   isActive: boolean;
+  usageCount: number;
+  lastUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -146,6 +148,10 @@ export default function EmbeddingKeysManager({ clientId, token }: Props) {
                     <button onClick={() => { const s = new Set(showKeys); s.has(entry.id) ? s.delete(entry.id) : s.add(entry.id); setShowKeys(s); }} className="text-gray-400 hover:text-gray-600 transition-colors">
                       {showKeys.has(entry.id) ? <EyeOff size={13} /> : <Eye size={13} />}
                     </button>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                    <span>{entry.usageCount ?? 0} appel{(entry.usageCount ?? 0) !== 1 ? "s" : ""}</span>
+                    {entry.lastUsedAt && <span>Dernier usage : {new Date(entry.lastUsedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">

@@ -179,14 +179,16 @@ model ApiKey {
 }
 
 model EmbeddingKey {
-  id        String   @id @default(uuid())
-  clientId  String
-  provider  String   // "cohere" | "nomic" | "openai"
-  label     String   @default("")
-  key       String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(uuid())
+  clientId   String
+  provider   String    // "cohere" | "nomic" | "openai"
+  label      String    @default("")
+  key        String
+  isActive   Boolean   @default(true)
+  usageCount Int       @default(0)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }

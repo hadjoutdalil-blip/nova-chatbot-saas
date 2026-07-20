@@ -10,7 +10,7 @@ import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 import { sseEvent } from "@/lib/stream-utils";
-import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
+import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -641,6 +641,7 @@ async function handleStreamingRequest(
           const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
           if (client.useVectorRag && embedApiKey) {
             try { const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
+            if (embedKeyEntry?.id) trackEmbeddingUsage(embedKeyEntry.id).catch(() => {});
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
@@ -717,6 +718,7 @@ async function handleStreamingRequest(
           const apiKey = activeKey?.key || client.hfApiKey;
           if (client.useVectorRag && apiKey) {
             try { const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
+            if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
@@ -944,6 +946,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
       }
+      if (embedKeyEntry?.id) trackEmbeddingUsage(embedKeyEntry.id).catch(() => {});
     }
     if (topChunks.length === 0) {
       const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
@@ -1136,6 +1139,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
       }
+      if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
     }
     if (topChunks.length === 0) {
       const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));

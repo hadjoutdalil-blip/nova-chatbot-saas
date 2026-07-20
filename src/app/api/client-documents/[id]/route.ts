@@ -119,7 +119,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const apiKey = ak?.key || vClient.hfApiKey;
       const provider = ak?.provider || vClient.embeddingProvider;
       if (apiKey) {
-        syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, apiKey, provider).catch((err) => console.error("[Vector Sync Update]", err));
+        syncDocumentChunks(newDoc.id, existing.clientId, parsedContent, file.name, newDoc.source_url, update.valid_until || existing.valid_until || null, vClient.chunkSize || 500, apiKey, provider, ak?.id).catch((err) => console.error("[Vector Sync Update]", err));
       }
     }
 

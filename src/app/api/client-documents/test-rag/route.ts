@@ -4,7 +4,7 @@ import { getAuthUser } from "@/lib/api-auth";
 import { chunkDocument, parseChunks, findBestChunks, ChunkMeta } from "@/lib/rag-utils";
 import { generateEmbedding } from "@/lib/embeddings";
 import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
-import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
+import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
 
 /* ── Recherche par mots-clés en fallback ── */
 function keywordSearch(question: string, chunks: any[]): any[] {
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error("[Vector RAG test] error, falling back to keyword:", err);
     }
+    if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
   }
 
   if (topChunks.length === 0) {

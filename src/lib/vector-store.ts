@@ -1,6 +1,7 @@
 import { Pool } from "@neondatabase/serverless";
 import { chunkDocument, ChunkMeta } from "./rag-utils";
 import { generateEmbeddings, getEmbeddingDimension } from "./embeddings";
+import { trackEmbeddingUsage } from "./embedding-keys";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
@@ -92,6 +93,7 @@ export async function syncDocumentChunks(
   chunkSize: number,
   hfApiKey: string,
   embeddingProvider = "cohere",
+  embeddingKeyId?: string,
 ) {
   await ensureTable();
   await deleteDocChunks(docId);
@@ -104,6 +106,10 @@ export async function syncDocumentChunks(
 
   const texts = chunks.map((c) => c.content);
   const embeddings = padEmbeddings(await generateEmbeddings(texts, hfApiKey, embeddingProvider), embeddingProvider);
+
+  if (embeddingKeyId) {
+    trackEmbeddingUsage(embeddingKeyId).catch(() => {});
+  }
 
   const client = await pool.connect();
   try {

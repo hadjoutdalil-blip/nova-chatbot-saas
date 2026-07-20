@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     const apiKey = activeKey?.key || client.hfApiKey;
     const provider = activeKey?.provider || client.embeddingProvider;
     if (apiKey) {
-      syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, apiKey, provider).catch((err) => console.error("[Vector Sync]", err));
+      syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, apiKey, provider, activeKey?.id).catch((err) => console.error("[Vector Sync]", err));
     }
   }
 

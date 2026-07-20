@@ -4,7 +4,7 @@ import { getAuthUser } from "@/lib/api-auth";
 import { syncDocumentChunks, recreateTable } from "@/lib/vector-store";
 import { chunkDocument } from "@/lib/rag-utils";
 import { generateEmbeddings } from "@/lib/embeddings";
-import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
+import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
 import { Pool } from "@neondatabase/serverless";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         const ak = await getActiveEmbeddingKey(client.id);
         const apiKey = ak?.key || client.hfApiKey;
         const provider = ak?.provider || client.embeddingProvider;
+        const embedKeyId = ak?.id;
 
         if (!apiKey) {
           results.push({ client: client.name || client.id, status: "skipped", reason: "clé API embedding manquante" });
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
         });
         for (const doc of docs) {
           try {
-            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, apiKey, provider);
+            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, apiKey, provider, embedKeyId);
             log.documents++;
           } catch (err: any) {
             log.errors.push(`doc ${doc.id}: ${err.message}`);
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
 
             const texts = chunks.map((c) => c.content);
             const embeddings = await generateEmbeddings(texts, apiKey, provider);
+            if (embedKeyId) trackEmbeddingUsage(embedKeyId).catch(() => {});
 
             /* Delete existing KB chunks */
             await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [kb.id]);
