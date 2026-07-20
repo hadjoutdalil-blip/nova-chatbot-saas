@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2, Loader2 } from "lucide-react";
+import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2, Loader2, Upload } from "lucide-react";
 
 interface ChunkRow {
   id: string;
@@ -47,6 +47,40 @@ export default function VectorStoreTab({ clientId, token }: Props) {
   const [viewChunk, setViewChunk] = useState<ChunkRow | null>(null);
   const [migrating, setMigrating] = useState(false);
   const [migrateResult, setMigrateResult] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      let content = text;
+      let source = file.name;
+      if (file.name.endsWith(".json")) {
+        const parsed = JSON.parse(text);
+        content = typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2);
+      }
+      const res = await fetch("/api/vector-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ clientId, content, source }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setImportResult(`✓ ${file.name} importé (${data.docId})`);
+        loadData(1, search);
+      } else {
+        setImportResult(`✗ ${data.error}`);
+      }
+    } catch (err: any) {
+      setImportResult(`✗ ${err.message}`);
+    }
+    setImporting(false);
+    e.target.value = "";
+  }
 
   function loadData(p: number, q: string) {
     setLoading(true);
@@ -159,6 +193,25 @@ export default function VectorStoreTab({ clientId, token }: Props) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Importer un fichier */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <Upload size={16} className="text-emerald-600" />
+          <h2 className="font-semibold text-sm">Importer un fichier</h2>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">Importez un fichier .txt ou .json directement dans la base vectorielle.</p>
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer">
+            <span className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
+              {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+              {importing ? "Import..." : "Choisir un fichier"}
+            </span>
+            <input id="vector-import-file" type="file" accept=".txt,.json" className="hidden" onChange={handleImport} disabled={importing} />
+          </label>
+          {importResult && <span className="text-xs text-gray-600">{importResult}</span>}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">

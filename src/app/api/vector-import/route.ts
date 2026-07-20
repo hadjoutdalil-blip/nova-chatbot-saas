@@ -9,8 +9,11 @@ export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const { clientId, content, source } = await req.json();
+  const { clientId: bodyClientId, content, source } = await req.json();
+  const clientId = bodyClientId || user.clientId;
   if (!content || !clientId) return NextResponse.json({ error: "content et clientId requis" }, { status: 400 });
+  if (user.role !== "admin" && clientId !== user.clientId)
+    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
   const client = await db.prisma.client.findUnique({ where: { id: clientId } });
   if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
