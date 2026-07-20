@@ -10,6 +10,7 @@ import {
 import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
+import EmbeddingKeysManager from "@/components/admin/EmbeddingKeysManager";
 import VectorStoreTab from "@/components/admin/VectorStoreTab";
 import RAGStatsTab from "@/components/admin/RAGStatsTab";
 
@@ -446,11 +447,14 @@ export default function EditClientPage() {
           </form>
         )}
 
-        {/* ── Stats ── */}
+        {/* ── Keys ── */}
         {tab === "keys" && (
-          <div className="max-w-2xl">
+          <div className="max-w-2xl space-y-6">
             <Card>
               <ApiKeysManager clientId={id} token={token} />
+            </Card>
+            <Card>
+              <EmbeddingKeysManager clientId={id} token={token} />
             </Card>
           </div>
         )}
