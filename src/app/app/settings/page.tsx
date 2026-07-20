@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Thermometer, Shield, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Save, LogOut, Brain, SlidersHorizontal, MessageSquareText, Thermometer, Shield } from "lucide-react";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
+import EmbeddingKeysManager from "@/components/admin/EmbeddingKeysManager";
 
 const TABS = [
   { id: "ia", label: "Configuration IA", icon: Brain },
@@ -17,8 +18,6 @@ export default function AppSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [tab, setTab] = useState("ia");
-  const [testVector, setTestVector] = useState(false);
-  const [vectorTestResult, setVectorTestResult] = useState<Record<string, { ok: boolean; error?: string }> | null>(null);
 
   function token() { return localStorage.getItem("token") || ""; }
 
@@ -51,7 +50,6 @@ export default function AppSettingsPage() {
         relanceText: form.relanceText,
         useVectorRag: form.useVectorRag,
         embeddingProvider: form.embeddingProvider,
-        hfApiKey: form.hfApiKey,
       }),
     });
     setSaving(false);
@@ -177,43 +175,13 @@ export default function AppSettingsPage() {
               </label>
               {form.useVectorRag && (
                 <div className="space-y-3 pl-6 border-l-2 border-emerald-100">
+                  <p className="text-xs text-gray-500">Les clés d'embedding se gèrent dans l'onglet <strong>Clés API</strong>.</p>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Provider d'embedding</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Provider d'embedding par défaut</label>
                     <select value={form.embeddingProvider || "cohere"} onChange={(e) => setForm({ ...form, embeddingProvider: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
                       <option value="cohere">Cohere (embed-english-light-v3.0)</option>
                       <option value="nomic">Nomic (nomic-embed-text-v1.5)</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Clé API Embedding</label>
-                    <input type="password" value={form.hfApiKey || ""} onChange={(e) => setForm({ ...form, hfApiKey: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono" placeholder="clé API Cohere ou Nomic" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={async () => {
-                        setTestVector(true);
-                        setVectorTestResult(null);
-                        const res = await fetch("/api/test-vector-connection", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                          body: JSON.stringify({ hfApiKey: form.hfApiKey }),
-                        });
-                        const text = await res.text();
-                        setVectorTestResult(JSON.parse(text));
-                        setTestVector(false);
-                      }}
-                      disabled={testVector || !form.hfApiKey}
-                      className="flex items-center gap-1.5 border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      {testVector ? <Loader2 size={13} className="animate-spin" /> : null}
-                      {testVector ? "Test..." : "Tester la connexion"}
-                    </button>
-                    {vectorTestResult && (
-                      <div className="flex flex-col gap-1 text-xs">
-                        {vectorTestResult.cohere && (vectorTestResult.cohere.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Cohere OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Cohere</span>)}
-                        {vectorTestResult.nomic && (vectorTestResult.nomic.ok ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> Nomic OK</span> : <span className="flex items-center gap-1 text-red-600"><XCircle size={12} /> Nomic</span>)}
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -233,9 +201,12 @@ export default function AppSettingsPage() {
       )}
 
       {tab === "keys" && client && (
-        <div className="max-w-2xl">
+        <div className="max-w-2xl space-y-6">
           <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6">
             <ApiKeysManager clientId={client.id} token={token} />
+          </div>
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6">
+            <EmbeddingKeysManager clientId={client.id} token={token} />
           </div>
         </div>
       )}
