@@ -238,7 +238,8 @@ C+=".nw-chip{background:#fff;border:1.5px solid #eef2f6;border-radius:14px;paddi
 C+=".nw-chip:hover{border-color:"+e.primaryColor+";color:"+e.primaryColor+";background:"+e.primaryColor+"08;transform:translateY(-2px);box-shadow:0 4px 12px "+e.primaryColor+"18}";
 C+=".nw-chip .nw-chip-icon{font-size:18px;display:block;margin-bottom:4px}";
 /* suggestion chips */
-C+=".nchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;margin-left:44px}";
+C+=".nchips-label{font-size:11px;color:#64748b;margin-top:14px;margin-bottom:2px;margin-left:44px;line-height:1.4}";
+C+=".nchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;margin-left:44px}";
 C+=".nchip{padding:6px 15px;background:#fff;border:1px solid #eef2f6;border-radius:20px;font-size:12.5px;color:#0d1b2a;font-weight:600;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1);box-shadow:0 1px 3px rgba(0,0,0,.04)}";
 C+=".nchip:hover{background:"+e.primaryColor+";color:#fff;border-color:"+e.primaryColor+";transform:translateY(-1px);box-shadow:0 4px 12px "+e.primaryColor+"33}";
 /* typing */
@@ -624,7 +625,12 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
 }
 function addSuggestions(questions){
   if(!questions||questions.length===0) return;
-  var box=document.getElementById("nm"),cp=document.createElement("div");cp.className="nchips";
+  var box=document.getElementById("nm");
+  var label=document.createElement("div");
+  label.className="nchips-label";
+  label.textContent="\ud83d\udcd0 Suggestions d\u2019experts CETIM \u2014 cliquez pour explorer :";
+  box.appendChild(label);
+  var cp=document.createElement("div");cp.className="nchips";
   for(var ri=0;ri<questions.length;ri++){
     var cc=document.createElement("div");cc.className="nchip";
     cc.textContent=questions[ri];
