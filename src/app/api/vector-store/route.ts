@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "@neondatabase/serverless";
 import { getAuthUser } from "@/lib/api-auth";
 import { generateEmbedding } from "@/lib/embeddings";
+import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
@@ -98,15 +99,20 @@ export async function POST(req: NextRequest) {
 
   const clientId = reqClientId || (user.role !== "admin" ? user.clientId : null);
 
-  // Use provided key or fetch from global settings
-  let hfApiKey = reqApiKey;
-  if (!hfApiKey) {
-    const configRow = await pool.query(`SELECT value FROM "GlobalConfig" WHERE key = 'hfApiKey'`);
-    hfApiKey = configRow.rows[0]?.value || "";
+  // Use active embedding key or fallback
+  let apiKey = reqApiKey;
+  let provider = "cohere";
+  let embedKeyId: string | undefined;
+  if (!apiKey) {
+    const activeKey = clientId ? await getActiveEmbeddingKey(clientId) : null;
+    apiKey = activeKey?.key;
+    provider = activeKey?.provider || "cohere";
+    embedKeyId = activeKey?.id;
   }
-  if (!hfApiKey) return NextResponse.json({ error: "Clé API Cohere non configurée" }, { status: 400 });
+  if (!apiKey) return NextResponse.json({ error: "Clé API embedding non configurée" }, { status: 400 });
 
-  const embedding = await generateEmbedding(question, hfApiKey, "cohere");
+  const embedding = await generateEmbedding(question, apiKey, provider);
+  if (embedKeyId) trackEmbeddingUsage(embedKeyId).catch(() => {});
   const embeddingStr = `[${embedding.join(",")}]`;
 
   let where = "";
