@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const WC_JSON = JSON.stringify(kbEntries.slice(0, 4).map((k: any) => k.question));
 
   const script = `(function(){
-var e={aiColor:"${escapeJs(widgetConfig?.aiColor||"#7c3aed")}",chatUrl:"${escapeJs(chatUrl)}",name:"${escapeJs(name)}",logo:"${escapeJs(logo)}",primaryColor:"${escapeJs(primaryColor)}",position:"${escapeJs(pos)}",marginBottom:${mb},marginRight:${mr},welcomeTitle:"${escapeJs(welcomeTitle)}",welcomeSub:"${escapeJs(welcomeSub)}",showBrand:${showBrand},avatarIcon:"${avatarIcon}",buttonAnimation:"${escapeJs(widgetConfig?.buttonAnimation||"pulse")}",buttonLabel:"${escapeJs(widgetConfig?.buttonLabel??"")}",buttonLabelDuration:${widgetConfig?.buttonLabelDuration??8},maxMessageLength:500,maxHistoryLength:20,proactiveEnabled:${widgetConfig?.proactiveEnabled===true},autoOpenDelay:${widgetConfig?.autoOpenDelay??5},showNotification:${widgetConfig?.showNotification!==false},notificationText:"${escapeJs(widgetConfig?.notificationText??"")}",sendGreeting:${widgetConfig?.sendGreeting===true},scrollTrigger:${widgetConfig?.scrollTrigger??0},exitIntent:${widgetConfig?.exitIntent===true}};
+var e={aiColor:"${escapeJs(widgetConfig?.aiColor||"#7c3aed")}",chatUrl:"${escapeJs(chatUrl)}",name:"${escapeJs(name)}",logo:"${escapeJs(logo)}",primaryColor:"${escapeJs(primaryColor)}",position:"${escapeJs(pos)}",marginBottom:${mb},marginRight:${mr},welcomeTitle:"${escapeJs(welcomeTitle)}",welcomeSub:"${escapeJs(welcomeSub)}",greetingMsg:"${escapeJs(widgetConfig?.greetingMsg||"")}",showBrand:${showBrand},avatarIcon:"${avatarIcon}",buttonAnimation:"${escapeJs(widgetConfig?.buttonAnimation||"pulse")}",buttonLabel:"${escapeJs(widgetConfig?.buttonLabel??"")}",buttonLabelDuration:${widgetConfig?.buttonLabelDuration??8},maxMessageLength:500,maxHistoryLength:20,proactiveEnabled:${widgetConfig?.proactiveEnabled===true},autoOpenDelay:${widgetConfig?.autoOpenDelay??5},showNotification:${widgetConfig?.showNotification!==false},notificationText:"${escapeJs(widgetConfig?.notificationText??"")}",sendGreeting:${widgetConfig?.sendGreeting===true},scrollTrigger:${widgetConfig?.scrollTrigger??0},exitIntent:${widgetConfig?.exitIntent===true}};
 
 var KQ=${KQ_JSON};
 var WC=${WC_JSON};
@@ -456,7 +456,7 @@ function openChat(){
   hasInteracted=true;
   localStorage.setItem(proactiveKey,"1");
   if(e.sendGreeting){
-    setTimeout(function(){addMsg(e.welcomeTitle,"bot","ai")},600);
+    setTimeout(function(){addMsg(e.greetingMsg||e.welcomeTitle,"bot","ai")},600);
   }
 }
 

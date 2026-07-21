@@ -70,6 +70,7 @@ model WidgetConfig {
   showNotification  Boolean @default(true)
   notificationText  String  @default("")
   sendGreeting      Boolean @default(false)
+  greetingMsg       String  @default("")
   scrollTrigger       Int     @default(0)
   exitIntent          Boolean @default(false)
   buttonAnimation     String  @default("pulse")

@@ -24,3 +24,9 @@
 - À chaque déploiement Vercel, cette commande DROP `document_chunks` car cette table n'est pas dans le schéma Prisma
 - Remplacé par `prisma generate && next build` — ne touche plus à la base
 - Les futures modifications du schéma Prisma doivent être appliquées manuellement via des scripts SQL directs (Neon console) ou via `npx prisma db push` local en prenant soin d'ajouter `document_chunks` à `.gitignore` du schéma ou d'utiliser `--skip-drop`
+
+## 2026-07-21 — Ajout `greetingMsg` à `WidgetConfig`
+Exécuter dans la console Neon (ou tout client SQL PostgreSQL) :
+\`\`\`sql
+ALTER TABLE "WidgetConfig" ADD COLUMN IF NOT EXISTS "greetingMsg" TEXT NOT NULL DEFAULT '';
+\`\`\``

@@ -22,6 +22,7 @@ export default function ClientWidgetPage() {
     showNotification: true,
     notificationText: "",
     sendGreeting: false,
+    greetingMsg: "",
     scrollTrigger: 0,
     exitIntent: false,
     buttonAnimation: "pulse",
@@ -65,6 +66,7 @@ export default function ClientWidgetPage() {
             showNotification: wc.showNotification !== false,
             notificationText: wc.notificationText || "",
             sendGreeting: wc.sendGreeting === true,
+            greetingMsg: wc.greetingMsg || "",
             scrollTrigger: wc.scrollTrigger ?? 0,
             exitIntent: wc.exitIntent === true,
             buttonAnimation: wc.buttonAnimation || "pulse",
@@ -336,6 +338,13 @@ export default function ClientWidgetPage() {
                       <input type="checkbox" checked={form.sendGreeting} onChange={(e) => setForm({ ...form, sendGreeting: e.target.checked })} className="rounded" />
                       <span className="text-sm">Message bienvenue auto</span>
                     </label>
+                    {form.sendGreeting && (
+                      <div className="mt-2">
+                        <textarea value={form.greetingMsg} onChange={(e) => setForm({ ...form, greetingMsg: e.target.value })}
+                          placeholder="Bonjour ! Je suis l'assistant CETIM. Posez-moi vos questions..."
+                          rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none" />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

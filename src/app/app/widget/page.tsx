@@ -46,6 +46,7 @@ export default function AppWidgetPage() {
     showNotification: true,
     notificationText: "",
     sendGreeting: false,
+    greetingMsg: "",
     scrollTrigger: 0,
     exitIntent: false,
     buttonAnimation: "pulse",
@@ -91,6 +92,7 @@ export default function AppWidgetPage() {
             showNotification: wc.showNotification !== false,
             notificationText: wc.notificationText || "",
             sendGreeting: wc.sendGreeting === true,
+            greetingMsg: wc.greetingMsg || "",
             scrollTrigger: wc.scrollTrigger ?? 0,
             exitIntent: wc.exitIntent === true,
             buttonAnimation: wc.buttonAnimation || "pulse",
@@ -383,6 +385,15 @@ export default function AppWidgetPage() {
                       <input type="checkbox" checked={form.sendGreeting} onChange={(e) => setForm({ ...form, sendGreeting: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                       <span className="text-sm text-gray-700">Envoyer un message de bienvenue à l&apos;ouverture</span>
                     </label>
+                    {form.sendGreeting && (
+                      <div className="mb-3 mt-2">
+                        <label className="block text-sm text-gray-600 mb-1">Message de bienvenue personnalisé</label>
+                        <textarea value={form.greetingMsg} onChange={(e) => setForm({ ...form, greetingMsg: e.target.value })}
+                          placeholder="Bonjour ! Je suis l'assistant CETIM. Posez-moi vos questions sur nos prestations..."
+                          rows={3}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none" />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
