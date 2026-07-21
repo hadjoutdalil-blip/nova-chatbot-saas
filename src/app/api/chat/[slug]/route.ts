@@ -442,7 +442,7 @@ const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-
 
 function filterResponse(data: any, isVisitor: boolean): any {
   if (!isVisitor) return data;
-  const { source_url, valid_until, suggestions, chunks, documents, ...rest } = data;
+  const { source_url, valid_until, chunks, documents, ...rest } = data;
   return rest;
 }
 
@@ -619,7 +619,8 @@ async function handleStreamingRequest(
         if (ragOnly) {
           if (match && score === 100) {
             const extra: any = {};
-            if (!isVisitor) { extra.source_url = match.source_url || ""; extra.valid_until = match.valid_until || ""; extra.suggestions = findRelated(match, KB, 3); }
+            if (!isVisitor) { extra.source_url = match.source_url || ""; extra.valid_until = match.valid_until || ""; }
+            extra.suggestions = findRelated(match, KB, 3);
             sendDirect(match.answer, "kb", extra);
             finish();
             return;
@@ -668,7 +669,8 @@ async function handleStreamingRequest(
         if (match && score >= kbThreshold) {
           if (score === 100 || !aiMode) {
             const extra: any = {};
-            if (!isVisitor) { extra.source_url = match.source_url || ""; extra.valid_until = match.valid_until || ""; extra.suggestions = findRelated(match, KB, 3); }
+            if (!isVisitor) { extra.source_url = match.source_url || ""; extra.valid_until = match.valid_until || ""; }
+            extra.suggestions = findRelated(match, KB, 3);
             sendDirect(match.answer, "kb", extra);
             finish();
             return;
