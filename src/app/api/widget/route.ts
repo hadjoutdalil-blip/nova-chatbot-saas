@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
         notificationText: body.notificationText ?? undefined,
         sendGreeting: body.sendGreeting ?? undefined,
         greetingMsg: body.greetingMsg ?? undefined,
-        greetingMsg: body.greetingMsg ?? undefined,
         scrollTrigger: body.scrollTrigger ?? undefined,
         exitIntent: body.exitIntent ?? undefined,
         buttonAnimation: body.buttonAnimation ?? undefined,
