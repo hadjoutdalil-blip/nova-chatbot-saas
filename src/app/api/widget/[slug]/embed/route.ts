@@ -49,6 +49,13 @@ var ragKey="nova_rag_"+e.name.replace(/[^a-z0-9]/gi,"_");
 var ragStore=localStorage.getItem(ragKey);
 var ragMode=ragStore==="true";
 
+function updateModeText(){
+  var sk=document.getElementById("na-sk");
+  if(!sk) return;
+  if(ragMode) sk.textContent="\ud83d\udd0d Recherche documentaire active \u2014 je consulte la base technique CETIM";
+  else if(aiMode) sk.textContent="\ud83e\udd16 Mode IA actif \u2014 r\u00e9ponses reformul\u00e9es par l\u2019intelligence artificielle";
+  else sk.textContent="\ud83d\udcac Posez votre question \u00e0 l\u2019expert CETIM \u2014 r\u00e9ponses issues de la base de connaissances";
+}
 function updateAIUI(){
   var btn=document.getElementById("na-ai");
   var av=document.getElementById("na-av");
@@ -66,6 +73,7 @@ function updateAIUI(){
   if(sk)sk.classList.toggle("ai-mode",aiMode);
   if(sendBtn)sendBtn.classList.toggle("ai-mode",aiMode);
   if(bbtn)bbtn.classList.toggle("ai-mode",aiMode);
+  updateModeText();
 }
 function toggleAI(){
   aiMode=!aiMode;
@@ -79,6 +87,7 @@ function updateRAGUI(){
   var ind=document.getElementById("na-rag-ind");
   if(btn)btn.classList.toggle("on",ragMode);
   if(ind)ind.style.display=ragMode?"inline-flex":"none";
+  updateModeText();
 }
 function toggleRAG(){
   ragMode=!ragMode;
@@ -397,7 +406,7 @@ card.className="nova-widget nc";card.id="nc";
 card.setAttribute("role","dialog");
 card.setAttribute("aria-label","Chatbot");
 card.setAttribute("aria-modal","true");
-card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode IA">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="Activer / D\u00e9sactiver le mode RAG (documents)">'+ICONS.file+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">Base de connaissances</span></div><div class="nm" id="nm" role="log" aria-live="polite">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
+card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Mode IA : activer/d\u00e9sactiver l\u2019intelligence artificielle pour des r\u00e9ponses reformul\u00e9es">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="Mode RAG : activer/d\u00e9sactiver la recherche dans les documents techniques CETIM (facture, rapports, r\u00e9f\u00e9rentiels\u2026)">'+ICONS.file+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669" title="Recherche dans les documents techniques CETIM">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">\ud83d\udcac Posez votre question \u00e0 l\u2019expert CETIM</span></div><div class="nm" id="nm" role="log" aria-live="polite">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
 document.body.appendChild(card);
 
 /* Logo onerror fallback */
