@@ -391,7 +391,8 @@ if(e.buttonLabel){
 /* welcome message */
 var welcomeIcoArr=["\\ud83d\\udcac","\\ud83d\\udd0d","\\ud83c\\udf1f","\\ud83d\\udca1"];
 var welcomeIcon=buildAvatarImg();
-var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon+'</div><div class="nw-title">'+escHtml(e.welcomeTitle)+'</div><div class="nw-sub">'+escHtml(e.welcomeSub)+'</div>';
+var welcomeTitle=e.greetingMsg||e.welcomeTitle;
+var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon+'</div><div class="nw-title">'+escHtml(welcomeTitle)+'</div><div class="nw-sub">'+escHtml(e.welcomeSub)+'</div>';
 if(WC.length>0){
   welcomeHtml+='<div class="nw-grid">';
   for(var wi=0;wi<Math.min(WC.length,4);wi++){
@@ -456,7 +457,7 @@ function openChat(){
   hasInteracted=true;
   localStorage.setItem(proactiveKey,"1");
   if(e.sendGreeting){
-    setTimeout(function(){addMsg(e.greetingMsg||e.welcomeTitle,"bot","ai")},600);
+    setTimeout(function(){addMsg(welcomeTitle,"bot","ai")},600);
   }
 }
 
@@ -866,7 +867,7 @@ document.getElementById("na-reset").onclick=function(){
   chatHistory=[];
   var box=document.getElementById("nm");
   var welcomeIcon2=buildAvatarImg();
-  var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon2+'</div><div class="nw-title">'+escHtml(e.welcomeTitle)+'</div><div class="nw-sub">'+escHtml(e.welcomeSub)+'</div>';
+  var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon2+'</div><div class="nw-title">'+escHtml(welcomeTitle)+'</div><div class="nw-sub">'+escHtml(e.welcomeSub)+'</div>';
   if(WC.length>0){
     welcomeHtml+='<div class="nw-grid">';
     for(var wi=0;wi<Math.min(WC.length,4);wi++){
