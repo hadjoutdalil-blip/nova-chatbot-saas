@@ -708,7 +708,8 @@ async function handleStreamingRequest(
 
         /* NIVEAU 2 : RAG */
         const hasSiteContext = !!(client.siteContext?.trim());
-        const hasAnyDoc = hasSiteContext || !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+        const hasClientDoc = !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+        const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag;
         if (score < 100 && hasAnyDoc) {
           const siteChunks = parseChunks(client.siteContext || "");
           const now = new Date();
@@ -1116,7 +1117,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 2 : RAG — recherche documentaire (sauf si réponse KB exacte) ── */
   const hasSiteContext = !!(client.siteContext?.trim());
-  const hasAnyDoc = hasSiteContext || !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+  const hasClientDoc = !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+  const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag;
   if (score < 100 && hasAnyDoc) {
     const siteChunks = parseChunks(client.siteContext || "");
     const now = new Date();
