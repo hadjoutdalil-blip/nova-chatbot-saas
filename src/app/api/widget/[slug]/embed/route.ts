@@ -786,6 +786,7 @@ function sendMessage(text){
     var metaProvider="";
     var metaScore=0;
     var metaMessageId="";
+    var metaSuggestions=null;
     function processBuffer(){
       var lines=buffer.split("\\n");
       buffer=lines.pop()||"";
@@ -795,12 +796,14 @@ function sendMessage(text){
         if(line.indexOf("data: ")===0){
           var rawData=line.slice(6);
           if(evType==="metadata"){
-            try{var md=JSON.parse(rawData);metaSource=md.source||"";metaProvider=md.provider||"";metaScore=md.score||0;metaMessageId=md.messageId||""}catch(_){}
+            try{var md=JSON.parse(rawData);metaSource=md.source||"";metaProvider=md.provider||"";metaScore=md.score||0;metaMessageId=md.messageId||"";metaSuggestions=md.suggestions||null}catch(_){}
             streamingEl=createStreamingBubble();
           }else if(evType==="token"){
             try{var td=JSON.parse(rawData);if(td.content){streamingText+=td.content;updateStreamingBubble(streamingEl,streamingText)}}catch(_){}
           }else if(evType==="done"){
             finalizeStreaming(streamingEl,streamingText,metaSource,metaProvider,metaScore,metaMessageId);
+            if(metaSuggestions) addSuggestions(metaSuggestions);
+            metaSuggestions=null;
           }
           evType="message";
         }
