@@ -66,7 +66,7 @@ export default function ClientVectorStorePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setImportResult(`✓ ${file.name} importé (${data.docId})`);
+        setImportResult(`✓ ${file.name} importé — ${data.chunksCount ?? "?"} chunks (${data.docId.slice(0, 8)}…)`);
         loadData(1, search);
       } else {
         setImportResult(`✗ ${data.error}`);

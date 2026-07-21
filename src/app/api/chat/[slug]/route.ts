@@ -641,7 +641,7 @@ async function handleStreamingRequest(
           const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
           if (client.useVectorRag && embedApiKey) {
-            try { const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
+            try { const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
             if (embedKeyEntry?.id) trackEmbeddingUsage(embedKeyEntry.id).catch(() => {});
           }
           if (topChunks.length === 0) {
@@ -720,7 +720,7 @@ async function handleStreamingRequest(
           const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const apiKey = activeKey?.key || client.hfApiKey;
           if (client.useVectorRag && apiKey) {
-            try { const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); } catch {}
+            try { const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] vector search results:", topChunks.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
             if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
           }
           if (topChunks.length === 0) {

@@ -4,6 +4,9 @@ import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 import { syncDocumentChunks } from "@/lib/vector-store";
 import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
+import { Pool } from "@neondatabase/serverless";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
@@ -28,18 +31,30 @@ export async function POST(req: NextRequest) {
   const docId = randomUUID();
   const src = source || "import-direct";
 
-  await syncDocumentChunks(
-    docId,
-    clientId,
-    content,
-    src,
-    "",
-    null,
-    client.chunkSize || 500,
-    apiKey,
-    provider,
-    embedKeyId,
-  );
+  try {
+    await syncDocumentChunks(
+      docId,
+      clientId,
+      content,
+      src,
+      "",
+      null,
+      client.chunkSize || 500,
+      apiKey,
+      provider,
+      embedKeyId,
+    );
+  } catch (err: any) {
+    console.error("[vector-import] syncDocumentChunks error:", err?.message || err);
+    return NextResponse.json({ error: `Erreur d'import: ${err?.message || err}` }, { status: 500 });
+  }
 
-  return NextResponse.json({ docId, chunksCount: -1, source: src });
+  // Verify data was inserted
+  let chunksCount = 0;
+  try {
+    const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM document_chunks WHERE "docId" = $1', [docId]);
+    chunksCount = rows[0]?.cnt || 0;
+  } catch {}
+
+  return NextResponse.json({ docId, chunksCount, source: src });
 }
