@@ -4,14 +4,14 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefi
 
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL || "";
-  const opts: any = { datasourceUrl: url };
   if (url.includes("neon.tech")) {
     try {
       const { PrismaNeon } = require("@prisma/adapter-neon");
-      opts.adapter = new PrismaNeon({ connectionString: url });
+      const adapter = new PrismaNeon({ connectionString: url });
+      return new PrismaClient({ adapter });
     } catch {}
   }
-  return new PrismaClient(opts);
+  return new PrismaClient();
 }
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient();
