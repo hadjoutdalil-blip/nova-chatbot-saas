@@ -1,12 +1,15 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL!;
-  const adapter = new PrismaNeon({ connectionString });
-  return new PrismaClient({ adapter });
+  const url = process.env.DATABASE_URL!;
+  if (url.includes("neon.tech")) {
+    const { PrismaNeon } = require("@prisma/adapter-neon");
+    const adapter = new PrismaNeon({ connectionString: url });
+    return new PrismaClient({ adapter });
+  }
+  return new PrismaClient();
 }
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient();
