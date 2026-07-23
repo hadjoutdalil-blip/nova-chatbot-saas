@@ -42,6 +42,8 @@ model Client {
   localImportFiles   LocalImportFile[]
   activityReports    ActivityReport[]
   qualityAlerts      QualityAlert[]
+  knowledgeGaps      KnowledgeGap[]
+  pendingKBEntries   PendingKBEntry[]
   aiUsageLogs        AIUsageLog[]
   conversations      Conversation[]
   messageFeedback    MessageFeedback[]
@@ -303,4 +305,48 @@ model QualityAlert {
   @@index([clientId])
   @@index([type])
   @@index([createdAt])
+}
+
+model KnowledgeGap {
+  id              String   @id @default(uuid())
+  clientId        String
+  question        String
+  escalationMsg   String
+  expertResponse  String   @default("")
+  context         String   @default("")
+  confidence      Float    @default(0)
+  status          String   @default("pending")
+  kbEntryId       String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PendingKBEntry {
+  id            String   @id @default(uuid())
+  clientId      String
+  question      String
+  answer        String
+  keywords      String   @default("")
+  category      String   @default("")
+  source        String   @default("escalade-learning")
+  confidence    Float    @default(0)
+  gapId         String?
+  status        String   @default("pending")
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([status])
 }

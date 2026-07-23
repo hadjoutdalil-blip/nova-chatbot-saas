@@ -12,6 +12,7 @@ import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 import { sseEvent } from "@/lib/stream-utils";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
 import { findRelevantDocs } from "@/lib/doc-manager";
+import { captureEscalade } from "@/lib/knowledge-gap";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -682,7 +683,10 @@ async function handleStreamingRequest(
           if (isKeyword && match?.answer && score >= 60 && score < kbThreshold) { sendDirect(match.answer, "kb"); finish(); return; }
           const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
           const escResult = await streamAIResponse(escSystem, escUser, client.tempEscalade ?? 0.20, "escalade", 800);
-          if (escResult) { finish(); return; }
+          if (escResult) {
+            captureEscalade({ clientId: client.id, question: message, escalationMsg: escResult, context: pageUrl || "" }).catch(console.error);
+            finish(); return;
+          }
           sendDirect("Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer.", "fallback");
           finish();
           return;
@@ -762,7 +766,10 @@ async function handleStreamingRequest(
         /* NIVEAU 3 : ESCALADE */
         const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
         const escResult = await streamAIResponse(escSystem, escUser, client.tempEscalade ?? 0.20, "escalade", 800);
-        if (escResult) { finish(); return; }
+        if (escResult) {
+          captureEscalade({ clientId: client.id, question: message, escalationMsg: escResult, context: pageUrl || "" }).catch(console.error);
+          finish(); return;
+        }
         sendDirect("Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.", "fallback");
         finish();
       } catch (err) {
@@ -1238,6 +1245,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
+    captureEscalade({ clientId: client.id, question: message, escalationMsg: text, context: pageUrl || "" }).catch(console.error);
     const { response: enrichedEsc, docLinks } = await enrichWithDocLinks(client.id, message, text);
     saveConversation(client, history || [], message, enrichedEsc, "escalade", providerInfo.label, score, geoPromise);
     saveUsage(client.id, providerInfo.id, model, usage);
