@@ -11,6 +11,7 @@ import {
   Database,
   BarChart3,
   Settings,
+  FileText,
   LogOut,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/kb", label: "Base de connaissances", icon: BookOpen },
   { href: "/dashboard/vector-store", label: "Base vectorielle", icon: Database },
   { href: "/dashboard/analytics", label: "Statistiques", icon: BarChart3 },
+  { href: "/dashboard/api-docs", label: "API & Automation", icon: FileText },
   { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 
