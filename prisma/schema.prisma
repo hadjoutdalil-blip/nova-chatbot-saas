@@ -40,6 +40,7 @@ model Client {
   clientDocuments    ClientDocument[]
   clientLocalDocs    ClientLocalDoc[]
   localImportFiles   LocalImportFile[]
+  activityReports    ActivityReport[]
   aiUsageLogs        AIUsageLog[]
   conversations      Conversation[]
   messageFeedback    MessageFeedback[]
@@ -255,4 +256,31 @@ model LocalImportFile {
 
   @@unique([clientId, fileName])
   @@index([clientId])
+}
+
+model ActivityReport {
+  id             String   @id @default(uuid())
+  clientId       String
+  period         String
+  periodStart    DateTime
+  periodEnd      DateTime
+  kbEntriesAdded Int      @default(0)
+  docsImported   Int      @default(0)
+  chunksIndexed  Int      @default(0)
+  errorsCount    Int      @default(0)
+  errorDetails   String   @default("[]")
+  resolutionRate Float    @default(0)
+  totalQuestions Int      @default(0)
+  answered       Int      @default(0)
+  escalated      Int      @default(0)
+  failed         Int      @default(0)
+  generatedAt    DateTime @default(now())
+  sentAt         DateTime?
+  sentVia        String?
+  recipientEmail String?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([period])
 }
