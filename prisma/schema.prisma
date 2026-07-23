@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Client {
@@ -35,15 +34,17 @@ model Client {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  users           User[]
-  widgetConfigs   WidgetConfig[]
-  kbEntries       KBEntry[]
-  clientDocuments ClientDocument[]
-  aiUsageLogs     AIUsageLog[]
-  conversations   Conversation[]
-  messageFeedback MessageFeedback[]
-  apiKeys         ApiKey[]
-  embeddingKeys   EmbeddingKey[]
+  users              User[]
+  widgetConfigs      WidgetConfig[]
+  kbEntries          KBEntry[]
+  clientDocuments    ClientDocument[]
+  clientLocalDocs    ClientLocalDoc[]
+  localImportFiles   LocalImportFile[]
+  aiUsageLogs        AIUsageLog[]
+  conversations      Conversation[]
+  messageFeedback    MessageFeedback[]
+  apiKeys            ApiKey[]
+  embeddingKeys      EmbeddingKey[]
 }
 
 model User {
@@ -213,4 +214,45 @@ model Conversation {
   updatedAt DateTime @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model ClientLocalDoc {
+  id            String   @id @default(uuid())
+  clientId      String
+  fileName      String
+  originalName  String
+  storagePath   String
+  mimeType      String   @default("")
+  fileSize      Int      @default(0)
+  content       String   @default("")
+  sourceUrl     String   @default("")
+  title         String
+  description   String   @default("")
+  topics        String   @default("")
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([sourceUrl])
+}
+
+model LocalImportFile {
+  id            String   @id @default(uuid())
+  clientId      String
+  fileName      String
+  filePath      String
+  fileHash      String
+  chunkCount    Int      @default(0)
+  kbCount       Int      @default(0)
+  lastIndexedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, fileName])
+  @@index([clientId])
 }

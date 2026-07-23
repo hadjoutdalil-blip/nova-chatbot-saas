@@ -11,6 +11,7 @@ import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 import { sseEvent } from "@/lib/stream-utils";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
+import { findRelevantDocs } from "@/lib/doc-manager";
 
 const PROVIDERS: Record<string, { endpoint: string; label: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", label: "Groq" },
@@ -446,6 +447,28 @@ function filterResponse(data: any, isVisitor: boolean): any {
   return rest;
 }
 
+async function enrichWithDocLinks(clientId: string, question: string, response: string): Promise<{ response: string; docLinks: { id: string; title: string; url: string }[] }> {
+  try {
+    const words = question.split(/\s+/).filter((w: string) => w.length > 3);
+    const keywords = words.slice(0, 5);
+    if (keywords.length === 0) return { response, docLinks: [] };
+
+    const docs = await findRelevantDocs(clientId, keywords);
+    if (docs.length === 0) return { response, docLinks: [] };
+
+    const docLinks = docs.map((d) => ({
+      id: d.id,
+      title: d.title,
+      url: `/api/docs/${d.id}/download`,
+    }));
+
+    const linksText = "\n\n" + docs.map((d) => `- [${d.title}](/api/docs/${d.id}/download)`).join("\n");
+    return { response: response + linksText, docLinks };
+  } catch {
+    return { response, docLinks: [] };
+  }
+}
+
 export async function OPTIONS() {
   return NextResponse.json(null, { headers: corsHeaders });
 }
@@ -600,19 +623,21 @@ async function handleStreamingRequest(
             const aiStream = await callAIStream(apiKey, providerInfo.id, model, system, userMsg, temperature, history || [], maxTokens);
             const text = await consumeAIStream(aiStream);
             if (!text || text.trim().toUpperCase() === "NO_MATCH") return null;
-            send("metadata", { messageId, source, provider: provObj.label, score });
-            send("token", { content: text });
-            saveConversation(client, history || [], message, text, source, provObj.label, score, geoPromise);
+            const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, text);
+            send("metadata", { messageId, source, provider: provObj.label, score, docLinks });
+            send("token", { content: enrichedText });
+            saveConversation(client, history || [], message, enrichedText, source, provObj.label, score, geoPromise);
             saveUsage(client.id, providerInfo.id, model, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
-            return text;
+            return enrichedText;
           } catch { return null; }
         }
 
         /* ── Helper: send a direct (non-AI) response ── */
-        function sendDirect(response: string, source: string, extra?: any) {
-          send("metadata", { messageId, source, score, ...extra });
-          send("token", { content: response });
-          saveConversation(client, history || [], message, response, source, "", score, geoPromise);
+        async function sendDirect(response: string, source: string, extra?: any) {
+          const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, response);
+          send("metadata", { messageId, source, score, docLinks, ...extra });
+          send("token", { content: enrichedText });
+          saveConversation(client, history || [], message, enrichedText, source, "", score, geoPromise);
         }
 
         /* ── RAG ONLY MODE ── */
@@ -1179,26 +1204,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (qaResponse && ragResponse) {
     const heuristicWinner = compareWithHeuristic(qaResponse, ragResponse);
     if (heuristicWinner === "rag") {
-      return NextResponse.json(filterResponse({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, isVisitor), { headers: corsHeaders });
+      const { response: enrichedRag, docLinks } = await enrichWithDocLinks(client.id, message, ragResponse);
+      return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, docLinks }, isVisitor), { headers: corsHeaders });
     }
     if (heuristicWinner === "kb") {
-      return NextResponse.json(filterResponse({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, isVisitor), { headers: corsHeaders });
+      const { response: enrichedQa, docLinks } = await enrichWithDocLinks(client.id, message, qaResponse);
+      return NextResponse.json(filterResponse({ messageId, response: enrichedQa, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3), docLinks }, isVisitor), { headers: corsHeaders });
     }
     try {
       const aiWinner = await compareWithAI(message, qaResponse, ragResponse, apiKey, providerInfo.id, model);
       if (aiWinner === "rag") {
-        return NextResponse.json(filterResponse({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, isVisitor), { headers: corsHeaders });
+        const { response: enrichedRag, docLinks } = await enrichWithDocLinks(client.id, message, ragResponse);
+        return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, docLinks }, isVisitor), { headers: corsHeaders });
       }
     } catch { /* fallback to QA */ }
-    return NextResponse.json(filterResponse({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, isVisitor), { headers: corsHeaders });
+    const { response: enrichedQa, docLinks } = await enrichWithDocLinks(client.id, message, qaResponse);
+    return NextResponse.json(filterResponse({ messageId, response: enrichedQa, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3), docLinks }, isVisitor), { headers: corsHeaders });
   }
 
   if (qaResponse) {
-    return NextResponse.json(filterResponse({ messageId, response: qaResponse, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3) }, isVisitor), { headers: corsHeaders });
+    const { response: enrichedQa, docLinks } = await enrichWithDocLinks(client.id, message, qaResponse);
+    return NextResponse.json(filterResponse({ messageId, response: enrichedQa, source: "qa", provider: qaProvider, score, source_url: match?.source_url || "", valid_until: match?.valid_until || "", suggestions: findRelated(match, KB, 3), docLinks }, isVisitor), { headers: corsHeaders });
   }
 
   if (ragResponse) {
-    return NextResponse.json(filterResponse({ messageId, response: ragResponse, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta }, isVisitor), { headers: corsHeaders });
+    const { response: enrichedRag, docLinks } = await enrichWithDocLinks(client.id, message, ragResponse);
+    return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, docLinks }, isVisitor), { headers: corsHeaders });
   }
 
   /* ── NIVEAU 3 : ESCALADE ── */
@@ -1207,10 +1238,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
-    saveConversation(client, history || [], message, text, "escalade", providerInfo.label, score, geoPromise);
+    const { response: enrichedEsc, docLinks } = await enrichWithDocLinks(client.id, message, text);
+    saveConversation(client, history || [], message, enrichedEsc, "escalade", providerInfo.label, score, geoPromise);
     saveUsage(client.id, providerInfo.id, model, usage);
     await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
-    return NextResponse.json(filterResponse({ messageId, response: text, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch }, isVisitor), { headers: corsHeaders });
+    return NextResponse.json(filterResponse({ messageId, response: enrichedEsc, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch, docLinks }, isVisitor), { headers: corsHeaders });
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
     const fallbackResp = contactInfo
