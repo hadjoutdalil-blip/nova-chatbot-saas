@@ -41,6 +41,7 @@ model Client {
   clientLocalDocs    ClientLocalDoc[]
   localImportFiles   LocalImportFile[]
   activityReports    ActivityReport[]
+  qualityAlerts      QualityAlert[]
   aiUsageLogs        AIUsageLog[]
   conversations      Conversation[]
   messageFeedback    MessageFeedback[]
@@ -283,4 +284,23 @@ model ActivityReport {
 
   @@index([clientId])
   @@index([period])
+}
+
+model QualityAlert {
+  id            String   @id @default(uuid())
+  clientId      String
+  type          String
+  severity      String   @default("low")
+  description   String
+  entryIds      String   @default("[]")
+  autoFixed     Boolean  @default(false)
+  fixedAt       DateTime?
+  fixedBy       String?
+  createdAt     DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([type])
+  @@index([createdAt])
 }
