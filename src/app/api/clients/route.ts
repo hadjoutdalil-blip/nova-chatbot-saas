@@ -6,9 +6,12 @@ import { PLAN_KB_TEMPLATES } from "@/lib/plans";
 
 export async function GET(req: NextRequest) {
   const user = getAuthUser(req);
-  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  const isImportAuth = req.headers.get("x-import-key") === process.env.IMPORT_API_KEY;
+  if (!user && !isImportAuth) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const clients = await db.prisma.client.findMany();
+  const clients = await db.prisma.client.findMany({
+    select: { id: true, name: true, slug: true, plan: true, siteContext: true },
+  });
   return NextResponse.json(clients);
 }
 
