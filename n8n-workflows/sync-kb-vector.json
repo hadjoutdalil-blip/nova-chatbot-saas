@@ -1,0 +1,289 @@
+{
+  "name": "Nova - Sync KB + Vector (Formulaire Client)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "nova-sync",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-form",
+      "name": "Formulaire",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "nova-sync-form"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/clients",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-import-key",
+              "value": "TA_CLE_API"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-clients",
+      "name": "Liste Clients",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const clients = $input.first().json;\nconst options = clients.map(c => `<option value=\"${c.id}\">${c.name} (${c.slug})</option>`).join('');\n\nconst html = `<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Nova - Synchronisation KB</title>\n  <style>\n    * { box-sizing: border-box; margin: 0; padding: 0; }\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }\n    .card { background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 480px; }\n    h1 { font-size: 20px; color: #1a1a2e; margin-bottom: 4px; }\n    .subtitle { color: #6b7280; font-size: 13px; margin-bottom: 24px; }\n    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }\n    select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 16px; background: white; }\n    select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }\n    .checkbox-group { margin-bottom: 20px; }\n    .checkbox-group label { display: flex; align-items: center; gap: 8px; font-weight: 400; cursor: pointer; }\n    .checkbox-group input[type=checkbox] { width: 16px; height: 16px; accent-color: #3b82f6; }\n    button { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }\n    button:hover { background: #2563eb; }\n    button:disabled { background: #93c5fd; cursor: not-allowed; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h1>\\u{1F680} Synchronisation Base de Connaissances</h1>\n    <p class=\"subtitle\">Importe le site web et les fichiers locaux vers la KB et le vector store</p>\n    <form method=\"POST\" action=\"/webhook/nova-sync-run\">\n      <label for=\"clientId\">Client</label>\n      <select name=\"clientId\" id=\"clientId\" required>\n        <option value=\"\" disabled selected>-- Choisir un client --</option>\n        ${options}\n      </select>\n\n      <div class=\"checkbox-group\">\n        <label><input type=\"checkbox\" name=\"webImport\" value=\"true\" checked> Import site web</label>\n        <label><input type=\"checkbox\" name=\"localImport\" value=\"true\" checked> Import fichiers locaux</label>\n        <label><input type=\"checkbox\" name=\"checkIndex\" value=\"true\" checked> V\\u00e9rifier indexation</label>\n      </div>\n\n      <button type=\"submit\">Lancer la synchronisation</button>\n    </form>\n  </div>\n</body>\n</html>`;\n\nreturn [{ json: { html } }];"
+      },
+      "id": "build-form",
+      "name": "Build HTML Form",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "text/html; charset=utf-8" }
+            ]
+          }
+        }
+      },
+      "id": "respond-form",
+      "name": "Return Form",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nova-sync-run",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-submit",
+      "name": "Form Submit",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 520],
+      "webhookId": "nova-sync-run"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst clientId = body.clientId;\nconst webImport = body.webImport === 'true';\nconst localImport = body.localImport === 'true';\nconst checkIndex = body.checkIndex === 'true';\n\nreturn [{ json: { clientId, webImport, localImport, checkIndex } }];"
+      },
+      "id": "parse-form",
+      "name": "Parse Form Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 520]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "web-import-check",
+              "leftValue": "={{ $json.webImport }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-web",
+      "name": "Web Import?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [640, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/web-import",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-import-key", "value": "TA_CLE_API" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "clientId", "value": "={{ $json.clientId }}" },
+            { "name": "url", "value": "https://estin.dz" },
+            { "name": "scrapeDocs", "value": "true" },
+            { "name": "mode", "value": "upsert" }
+          ]
+        },
+        "options": { "timeout": 120000 }
+      },
+      "id": "web-import",
+      "name": "Web Import - Site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "local-import-check",
+              "leftValue": "={{ $json.localImport }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-local",
+      "name": "Local Import?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [640, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/local-import",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-import-key", "value": "TA_CLE_API" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "clientId", "value": "={{ $json.clientId }}" }
+          ]
+        },
+        "options": { "timeout": 120000 }
+      },
+      "id": "local-import",
+      "name": "Local Import - Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 540]
+    },
+    {
+      "parameters": {
+        "jsCode": "const clientId = $('Parse Form Data').first().json.clientId;\nreturn [{ json: { clientId } }];"
+      },
+      "id": "merge-results",
+      "name": "Get Client ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 460]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:3000/api/vector-index-status?clientId={{ $json.clientId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-import-key", "value": "TA_CLE_API" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-index",
+      "name": "Check Index Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst webResult = $('Web Import - Site').first()?.json || null;\nconst localResult = $('Local Import - Files').first()?.json || null;\nconst indexStatus = input;\n\nconst html = `<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Nova - R\\u00e9sultat</title>\n  <style>\n    * { box-sizing: border-box; margin: 0; padding: 0; }\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }\n    .card { background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 560px; }\n    h1 { font-size: 20px; color: #16a34a; margin-bottom: 16px; }\n    .section { margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; }\n    .section h3 { font-size: 13px; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }\n    .stat { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }\n    .stat .label { color: #374151; }\n    .stat .value { font-weight: 600; color: #1a1a2e; }\n    a { display: inline-block; margin-top: 16px; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600; }\n    a:hover { background: #2563eb; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h1>\\u2705 Synchronisation termin\\u00e9e</h1>\n\n    ${webResult ? `<div class=\"section\"><h3>\\u{1F310} Site Web</h3>\n      <div class=\"stat\"><span class=\"label\">Chunks texte</span><span class=\"value\">${webResult.textChunks || 0}</span></div>\n      <div class=\"stat\"><span class=\"label\">Documents</span><span class=\"value\">${webResult.docsStored || 0}</span></div>\n      <div class=\"stat\"><span class=\"label\">Entr\\u00e9es KB</span><span class=\"value\">${webResult.kbEntries || 0}</span></div>\n      <div class=\"stat\"><span class=\"label\">Doublons ignor\\u00e9s</span><span class=\"value\">${webResult.duplicatesSkipped || 0}</span></div>\n    </div>` : ''}\n\n    ${localResult ? `<div class=\"section\"><h3>\\u{1F4C1} Fichiers Locaux</h3>\n      <div class=\"stat\"><span class=\"label\">Fichiers trait\\u00e9s</span><span class=\"value\">${localResult.filesProcessed || 0}</span></div>\n      <div class=\"stat\"><span class=\"label\">Entr\\u00e9es KB</span><span class=\"value\">${localResult.kbEntries || 0}</span></div>\n      <div class=\"stat\"><span class=\"label\">Chunks</span><span class=\"value\">${localResult.chunks || 0}</span></div>\n    </div>` : ''}\n\n    ${indexStatus ? `<div class=\"section\"><h3>\\u{1F9E0} Indexation Vectorielle</h3>\n      <div class=\"stat\"><span class=\"label\">Documents index\\u00e9s</span><span class=\"value\">${indexStatus.documents?.length || 0}</span></div>\n      <div class=\"stat\"><span class=\"label\">Entr\\u00e9es KB index\\u00e9es</span><span class=\"value\">${indexStatus.kbEntries?.length || 0}</span></div>\n    </div>` : ''}\n\n    <a href=\"/webhook/nova-sync\">\\u2190 Nouvelle synchronisation</a>\n  </div>\n</body>\n</html>`;\n\nreturn [{ json: { html } }];"
+      },
+      "id": "build-result",
+      "name": "Build Result HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 460]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "text/html; charset=utf-8" }
+            ]
+          }
+        }
+      },
+      "id": "respond-result",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1760, 460]
+    }
+  ],
+  "connections": {
+    "Formulaire": {
+      "main": [[{ "node": "Liste Clients", "type": "main", "index": 0 }]]
+    },
+    "Liste Clients": {
+      "main": [[{ "node": "Build HTML Form", "type": "main", "index": 0 }]]
+    },
+    "Build HTML Form": {
+      "main": [[{ "node": "Return Form", "type": "main", "index": 0 }]]
+    },
+    "Form Submit": {
+      "main": [[{ "node": "Parse Form Data", "type": "main", "index": 0 }]]
+    },
+    "Parse Form Data": {
+      "main": [[
+        { "node": "Web Import?", "type": "main", "index": 0 },
+        { "node": "Local Import?", "type": "main", "index": 0 }
+      ]]
+    },
+    "Web Import?": {
+      "main": [
+        [{ "node": "Web Import - Site", "type": "main", "index": 0 }],
+        [{ "node": "Get Client ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Local Import?": {
+      "main": [
+        [{ "node": "Local Import - Files", "type": "main", "index": 0 }],
+        [{ "node": "Get Client ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Web Import - Site": {
+      "main": [[{ "node": "Get Client ID", "type": "main", "index": 0 }]]
+    },
+    "Local Import - Files": {
+      "main": [[{ "node": "Get Client ID", "type": "main", "index": 0 }]]
+    },
+    "Get Client ID": {
+      "main": [[{ "node": "Check Index Status", "type": "main", "index": 0 }]]
+    },
+    "Check Index Status": {
+      "main": [[{ "node": "Build Result HTML", "type": "main", "index": 0 }]]
+    },
+    "Build Result HTML": {
+      "main": [[{ "node": "Return Result", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "timezone": "Europe/Paris" }
+}
