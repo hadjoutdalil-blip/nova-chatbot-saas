@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Building2, Brain, BarChart3, BookOpen, FlaskConical, CheckSquare, Database, TrendingUp,
   Download, Plus, Search, FileText, Inbox, Edit3, Trash2, Thermometer, Layers, PanelRightClose,
-  Globe, MessageSquare, ThumbsUp, Shield,
+  Globe, MessageSquare, ThumbsUp, Shield, RefreshCw, Upload, Loader2, CheckCircle2, XCircle, Lightbulb,
 } from "lucide-react";
 import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
@@ -50,6 +50,8 @@ const TABS = [
   { id: "general", label: "Général", icon: <Building2 size={16} /> },
   { id: "ai", label: "IA", icon: <Brain size={16} /> },
   { id: "keys", label: "Clés API", icon: <Shield size={16} /> },
+  { id: "sync", label: "Sync", icon: <RefreshCw size={16} /> },
+  { id: "auto-improve", label: "Auto-amélioration", icon: <Lightbulb size={16} /> },
   { id: "stats", label: "Stats", icon: <BarChart3 size={16} /> },
   { id: "analytics", label: "Analytiques", icon: <BarChart3 size={16} /> },
   { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
@@ -78,6 +80,15 @@ export default function EditClientPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
+  const [syncingWeb, setSyncingWeb] = useState(false);
+  const [syncingLocal, setSyncingLocal] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
+
+  const [autoProposals, setAutoProposals] = useState<any[]>([]);
+  const [autoStats, setAutoStats] = useState<any>(null);
+  const [autoLoading, setAutoLoading] = useState(false);
+  const [autoAnalyzing, setAutoAnalyzing] = useState(false);
+
   // widget tab removed — config gérée depuis /app/widget
 
   function token() { return localStorage.getItem("token") || ""; }
@@ -98,6 +109,11 @@ export default function EditClientPage() {
       .then((data) => setAnalytics(data))
       .catch(() => setAnalytics(null))
       .finally(() => setAnalyticsLoading(false));
+  }, [tab, id]);
+
+  useEffect(() => {
+    if (tab !== "auto-improve" || !id) return;
+    loadAutoImprovements();
   }, [tab, id]);
 
   async function loadKb() {
@@ -223,6 +239,75 @@ export default function EditClientPage() {
     } catch { setError("Erreur d'import"); }
     setKbImporting(false);
     e.target.value = "";
+  }
+
+  async function handleWebSync() {
+    setSyncingWeb(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/web-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ clientId: id, url: form.siteContext || "", scrapeDocs: true, mode: "upsert" }),
+      });
+      const data = await res.json();
+      if (res.ok) setSyncResult({ type: "web", ...data });
+      else setError(data.error || "Erreur lors de l'import web");
+    } catch { setError("Erreur réseau"); }
+    setSyncingWeb(false);
+  }
+
+  async function handleLocalSync() {
+    setSyncingLocal(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/local-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ clientId: id }),
+      });
+      const data = await res.json();
+      if (res.ok) setSyncResult({ type: "local", ...data });
+      else setError(data.error || "Erreur lors de l'import local");
+    } catch { setError("Erreur réseau"); }
+    setSyncingLocal(false);
+  }
+
+  async function loadAutoImprovements() {
+    setAutoLoading(true);
+    try {
+      const res = await fetch(`/api/auto-improvement?clientId=${id}`, { headers: { Authorization: `Bearer ${token()}` } });
+      const data = await res.json();
+      setAutoProposals(data.proposals || []);
+      setAutoStats(data.stats || null);
+    } catch {}
+    setAutoLoading(false);
+  }
+
+  async function handleAutoAnalyze() {
+    setAutoAnalyzing(true);
+    try {
+      const res = await fetch("/api/auto-improvement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ clientId: id, days: 30, minOccurrences: 2 }),
+      });
+      const data = await res.json();
+      await loadAutoImprovements();
+    } catch { setError("Erreur lors de l'analyse"); }
+    setAutoAnalyzing(false);
+  }
+
+  async function handleAutoValidate(proposalId: string, action: "approve" | "reject") {
+    try {
+      await fetch("/api/auto-improvement/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ proposalId, action }),
+      });
+      await loadAutoImprovements();
+      if (action === "approve") await loadKb();
+    } catch { setError("Erreur lors de la validation"); }
   }
 
   if (!form) return (
@@ -456,6 +541,217 @@ export default function EditClientPage() {
             <Card>
               <EmbeddingKeysManager clientId={id} token={token} />
             </Card>
+          </div>
+        )}
+
+        {/* ── Sync ── */}
+        {tab === "sync" && (
+          <div className="max-w-2xl space-y-6">
+            <Card>
+              <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
+                <Globe size={18} className="text-blue-600" />
+                <h2 className="font-semibold text-gray-900">Import site web</h2>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Scrape le site web du client, extrait le texte et les documents, injecte dans la KB et le vector store.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleWebSync}
+                  disabled={syncingWeb}
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2.5 text-sm rounded-xl"
+                >
+                  {syncingWeb ? (
+                    <><Loader2 size={16} className="animate-spin" /> Import en cours...</>
+                  ) : (
+                    <><RefreshCw size={16} /> Sync site web</>
+                  )}
+                </button>
+                {form.siteContext && (
+                  <span className="text-xs text-gray-400 truncate max-w-[300px]">{form.siteContext}</span>
+                )}
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-50">
+                <Upload size={18} className="text-emerald-600" />
+                <h2 className="font-semibold text-gray-900">Import fichiers locaux</h2>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Importe les fichiers .txt, .json, .md depuis <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">/data/import/{form.slug}/</code> sur le serveur.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleLocalSync}
+                  disabled={syncingLocal}
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2.5 text-sm rounded-xl"
+                >
+                  {syncingLocal ? (
+                    <><Loader2 size={16} className="animate-spin" /> Import en cours...</>
+                  ) : (
+                    <><RefreshCw size={16} /> Import fichiers locaux</>
+                  )}
+                </button>
+              </div>
+            </Card>
+
+            {syncResult && (
+              <Card>
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                  <CheckCircle2 size={18} className="text-emerald-600" />
+                  <h2 className="font-semibold text-gray-900">Résultat</h2>
+                </div>
+                {syncResult.error ? (
+                  <div className="flex items-center gap-2 text-red-600 text-sm">
+                    <XCircle size={16} /> {syncResult.error}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {syncResult.textChunks !== undefined && (
+                      <div className="text-center p-3 bg-blue-50 rounded-xl">
+                        <div className="text-2xl font-bold text-blue-600">{syncResult.textChunks}</div>
+                        <div className="text-xs text-gray-500 mt-1">Chunks texte</div>
+                      </div>
+                    )}
+                    {syncResult.docsStored !== undefined && (
+                      <div className="text-center p-3 bg-purple-50 rounded-xl">
+                        <div className="text-2xl font-bold text-purple-600">{syncResult.docsStored}</div>
+                        <div className="text-xs text-gray-500 mt-1">Documents</div>
+                      </div>
+                    )}
+                    {syncResult.kbEntries !== undefined && (
+                      <div className="text-center p-3 bg-emerald-50 rounded-xl">
+                        <div className="text-2xl font-bold text-emerald-600">{syncResult.kbEntries}</div>
+                        <div className="text-xs text-gray-500 mt-1">Entrées KB</div>
+                      </div>
+                    )}
+                    {syncResult.chunks !== undefined && (
+                      <div className="text-center p-3 bg-amber-50 rounded-xl">
+                        <div className="text-2xl font-bold text-amber-600">{syncResult.chunks}</div>
+                        <div className="text-xs text-gray-500 mt-1">Chunks vectoriels</div>
+                      </div>
+                    )}
+                    {syncResult.filesProcessed !== undefined && (
+                      <div className="text-center p-3 bg-blue-50 rounded-xl">
+                        <div className="text-2xl font-bold text-blue-600">{syncResult.filesProcessed}</div>
+                        <div className="text-xs text-gray-500 mt-1">Fichiers traités</div>
+                      </div>
+                    )}
+                    {syncResult.duplicatesSkipped !== undefined && syncResult.duplicatesSkipped > 0 && (
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <div className="text-2xl font-bold text-gray-500">{syncResult.duplicatesSkipped}</div>
+                        <div className="text-xs text-gray-500 mt-1">Doublons ignorés</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* ── Auto-amélioration ── */}
+        {tab === "auto-improve" && (
+          <div className="max-w-3xl space-y-6">
+            <Card>
+              <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-50">
+                <div className="flex items-center gap-2">
+                  <Lightbulb size={18} className="text-amber-500" />
+                  <h2 className="font-semibold text-gray-900">Auto-amélioration</h2>
+                </div>
+                <button
+                  onClick={handleAutoAnalyze}
+                  disabled={autoAnalyzing}
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 text-sm rounded-xl"
+                >
+                  {autoAnalyzing ? (
+                    <><Loader2 size={14} className="animate-spin" /> Analyse...</>
+                  ) : (
+                    <><RefreshCw size={14} /> Analyser les conversations</>
+                  )}
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Identifie les questions récurrentes sans bonne réponse (escalades, fallbacks, scores bas) et propose des entrées KB à valider.
+              </p>
+              {autoStats && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-amber-50 rounded-xl">
+                    <div className="text-2xl font-bold text-amber-600">{autoStats.pending}</div>
+                    <div className="text-xs text-gray-500 mt-1">En attente</div>
+                  </div>
+                  <div className="text-center p-3 bg-emerald-50 rounded-xl">
+                    <div className="text-2xl font-bold text-emerald-600">{autoStats.approved}</div>
+                    <div className="text-xs text-gray-500 mt-1">Approuvées</div>
+                  </div>
+                  <div className="text-center p-3 bg-red-50 rounded-xl">
+                    <div className="text-2xl font-bold text-red-600">{autoStats.rejected}</div>
+                    <div className="text-xs text-gray-500 mt-1">Rejetées</div>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {autoLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={20} className="animate-spin text-gray-400" />
+                <span className="ml-2 text-gray-400 text-sm">Chargement...</span>
+              </div>
+            ) : autoProposals.length === 0 ? (
+              <Card padding="lg" className="text-center">
+                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                  <Lightbulb size={24} className="text-gray-400" />
+                </div>
+                <p className="text-gray-400 text-sm mb-1">Aucune proposition pour le moment.</p>
+                <p className="text-gray-400 text-xs">Lancez l&apos;analyse pour détecter les questions sans réponse.</p>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {autoProposals.map((p: any) => (
+                  <Card key={p.id} padding="sm" hover>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium text-gray-900 text-sm truncate">{p.question}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            p.status === "pending" ? "bg-amber-100 text-amber-700" :
+                            p.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                            "bg-red-100 text-red-700"
+                          }`}>
+                            {p.status === "pending" ? "En attente" : p.status === "approved" ? "Approuvée" : "Rejetée"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{p.answer}</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                          <span>{p.occurrences} occurrences</span>
+                          <span>Score moyen: {p.avgScore}%</span>
+                          {p.keywords && (
+                            <span className="truncate max-w-[200px]">{typeof p.keywords === "string" ? p.keywords : p.keywords.join(", ")}</span>
+                          )}
+                        </div>
+                      </div>
+                      {p.status === "pending" && (
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handleAutoValidate(p.id, "approve")}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                          >
+                            <CheckCircle2 size={12} /> Approuver
+                          </button>
+                          <button
+                            onClick={() => handleAutoValidate(p.id, "reject")}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <XCircle size={12} /> Rejeter
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
