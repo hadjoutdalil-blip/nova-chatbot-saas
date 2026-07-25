@@ -248,7 +248,7 @@ export default function EditClientPage() {
       const res = await fetch("/api/web-import", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ clientId: id, url: form.siteContext || "", scrapeDocs: true, mode: "upsert" }),
+        body: JSON.stringify({ clientId: id }),
       });
       const data = await res.json();
       if (res.ok) setSyncResult({ type: "web", ...data });
@@ -379,6 +379,17 @@ export default function EditClientPage() {
                 <h2 className="font-semibold text-gray-900">Contexte entreprise</h2>
               </div>
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">URL du site web</label>
+                  <input
+                    type="url"
+                    value={form.siteUrl || ""}
+                    onChange={(e) => setForm({ ...form, siteUrl: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-150"
+                    placeholder="https://example.com"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Utilisé pour le scraping automatique (onglet Sync)</p>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Contexte du site</label>
                   <textarea
@@ -567,8 +578,10 @@ export default function EditClientPage() {
                     <><RefreshCw size={16} /> Sync site web</>
                   )}
                 </button>
-                {form.siteContext && (
-                  <span className="text-xs text-gray-400 truncate max-w-[300px]">{form.siteContext}</span>
+                {form.siteUrl ? (
+                  <span className="text-xs text-gray-400 truncate max-w-[300px]">{form.siteUrl}</span>
+                ) : (
+                  <span className="text-xs text-amber-500">Aucun site configuré — ajoutez l&apos;URL dans l&apos;onglet Général</span>
                 )}
               </div>
             </Card>
