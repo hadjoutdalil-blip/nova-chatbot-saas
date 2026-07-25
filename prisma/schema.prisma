@@ -351,3 +351,20 @@ model PendingKBEntry {
   @@index([clientId])
   @@index([status])
 }
+
+model DocumentChunk {
+  id         String   @id
+  clientId   String
+  docId      String
+  chunkId    String
+  content    String
+  source     String   @default("")
+  section    String   @default("")
+  keywords   String   @default("")
+  source_url String   @default("")
+  valid_until String  @default("")
+  embedding  Unsupported("vector")?
+
+  @@index([clientId])
+  @@index([docId])
+}
