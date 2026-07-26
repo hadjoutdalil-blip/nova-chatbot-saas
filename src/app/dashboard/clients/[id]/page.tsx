@@ -83,6 +83,7 @@ export default function EditClientPage() {
   const [syncingWeb, setSyncingWeb] = useState(false);
   const [syncingLocal, setSyncingLocal] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
+  const [syncContent, setSyncContent] = useState("");
 
   const [autoProposals, setAutoProposals] = useState<any[]>([]);
   const [autoStats, setAutoStats] = useState<any>(null);
@@ -241,18 +242,25 @@ export default function EditClientPage() {
     e.target.value = "";
   }
 
-  async function handleWebSync() {
+  async function handleWebSync(contentOverride?: string) {
     setSyncingWeb(true);
     setSyncResult(null);
     try {
+      const body: any = { clientId: id };
+      if (contentOverride) {
+        body.content = contentOverride;
+        body.url = form.siteUrl || "";
+      }
       const res = await fetch("/api/web-import", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ clientId: id }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (res.ok) setSyncResult({ type: "web", ...data });
-      else setError(data.error || "Erreur lors de l'import web");
+      if (res.ok) {
+        setSyncResult({ type: "web", ...data });
+        setSyncContent("");
+      } else setError(data.error || "Erreur lors de l'import web");
     } catch { setError("Erreur réseau"); }
     setSyncingWeb(false);
   }
@@ -566,23 +574,54 @@ export default function EditClientPage() {
               <p className="text-sm text-gray-500 mb-4">
                 Scrape le site web du client, extrait le texte et les documents, injecte dans la KB et le vector store.
               </p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleWebSync}
-                  disabled={syncingWeb}
-                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2.5 text-sm rounded-xl"
-                >
-                  {syncingWeb ? (
-                    <><Loader2 size={16} className="animate-spin" /> Import en cours...</>
-                  ) : (
-                    <><RefreshCw size={16} /> Sync site web</>
-                  )}
-                </button>
-                {form.siteUrl ? (
+
+              {form.siteUrl && (
+                <div className="flex items-center gap-3 mb-4">
+                  <button
+                    onClick={() => handleWebSync()}
+                    disabled={syncingWeb || !form.siteUrl}
+                    className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2.5 text-sm rounded-xl"
+                  >
+                    {syncingWeb ? (
+                      <><Loader2 size={16} className="animate-spin" /> Import en cours...</>
+                    ) : (
+                      <><RefreshCw size={16} /> Scraping automatique</>
+                    )}
+                  </button>
                   <span className="text-xs text-gray-400 truncate max-w-[300px]">{form.siteUrl}</span>
-                ) : (
-                  <span className="text-xs text-amber-500">Aucun site configuré — ajoutez l&apos;URL dans l&apos;onglet Général</span>
-                )}
+                </div>
+              )}
+
+              <div className="border-t border-gray-100 pt-4 mt-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Ou collez le contenu du site
+                </label>
+                <p className="text-xs text-gray-400 mb-2">
+                  Copiez le texte depuis le site dans votre navigateur, puis collez-le ici.
+                </p>
+                <textarea
+                  value={syncContent}
+                  onChange={(e) => setSyncContent(e.target.value)}
+                  rows={6}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-150 font-mono text-xs"
+                  placeholder="Collez ici le contenu textuel du site web..."
+                />
+                <div className="flex items-center justify-between mt-3">
+                  {form.siteUrl && (
+                    <span className="text-xs text-gray-400">URL: {form.siteUrl}</span>
+                  )}
+                  <button
+                    onClick={() => handleWebSync(syncContent)}
+                    disabled={syncingWeb || !syncContent.trim()}
+                    className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2.5 text-sm rounded-xl ml-auto"
+                  >
+                    {syncingWeb ? (
+                      <><Loader2 size={16} className="animate-spin" /> Import en cours...</>
+                    ) : (
+                      <><Upload size={16} /> Importer le contenu</>
+                    )}
+                  </button>
+                </div>
               </div>
             </Card>
 
