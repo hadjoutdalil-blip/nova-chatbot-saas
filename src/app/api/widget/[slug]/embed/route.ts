@@ -653,7 +653,7 @@ function createStreamingBubble(){
   var bubbleCls=(aiMode)?"nmsg-bbl ai-enhanced":"nmsg-bbl";
   row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'"><span class="nstxt"></span><span class="ncur">|</span></div><div class="nts">'+time+'</div></div>';
   box.appendChild(row);
-  row.scrollIntoView({behavior:"instant",block:"nearest"});
+  row.scrollIntoView({behavior:"instant",block:"start"});
   return row;
 }
 function updateStreamingBubble(row,text){
