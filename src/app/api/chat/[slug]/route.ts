@@ -634,11 +634,11 @@ async function handleStreamingRequest(
         }
 
         /* ── Helper: send a direct (non-AI) response ── */
-        async function sendDirect(response: string, source: string, extra?: any) {
-          const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, response);
-          send("metadata", { messageId, source, score, docLinks, ...extra });
-          send("token", { content: enrichedText });
-          saveConversation(client, history || [], message, enrichedText, source, "", score, geoPromise);
+        function sendDirect(response: string, source: string, extra?: any) {
+          send("metadata", { messageId, source, score, ...extra });
+          send("token", { content: response });
+          saveConversation(client, history || [], message, response, source, "", score, geoPromise);
+          enrichWithDocLinks(client.id, message, response).catch(() => {});
         }
 
         /* ── RAG ONLY MODE ── */
