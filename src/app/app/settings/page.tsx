@@ -50,6 +50,8 @@ export default function AppSettingsPage() {
         relanceText: form.relanceText,
         useVectorRag: form.useVectorRag,
         embeddingProvider: form.embeddingProvider,
+        siteUrl: form.siteUrl,
+        siteContext: form.siteContext,
       }),
     });
     setSaving(false);

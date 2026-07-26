@@ -10,7 +10,16 @@ export async function GET(req: NextRequest) {
   if (!user && !isImportAuth) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const clients = await db.prisma.client.findMany({
-    select: { id: true, name: true, slug: true, plan: true, siteContext: true },
+    select: {
+      id: true, name: true, slug: true, plan: true, siteContext: true, siteUrl: true,
+      logo: true, primaryColor: true,
+      aiProvider: true, aiModel: true,
+      kbThreshold: true, keywordThreshold: true, ragThreshold: true,
+      tempQA: true, tempRAG: true, tempEscalade: true,
+      chunkSize: true, topNChunks: true,
+      relanceActive: true, relanceText: true,
+      useVectorRag: true, embeddingProvider: true, hfApiKey: true,
+    },
   });
   return NextResponse.json(clients);
 }
