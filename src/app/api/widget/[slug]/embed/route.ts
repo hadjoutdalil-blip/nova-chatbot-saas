@@ -643,7 +643,6 @@ function addSuggestions(questions){
     cp.appendChild(cc);
   }
   box.appendChild(cp);
-  box.scrollTop=box.scrollHeight;
 }
 function createStreamingBubble(){
   var box=document.getElementById("nm"),row=document.createElement("div");
@@ -653,7 +652,9 @@ function createStreamingBubble(){
   var bubbleCls=(aiMode)?"nmsg-bbl ai-enhanced":"nmsg-bbl";
   row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'"><span class="nstxt"></span><span class="ncur">|</span></div><div class="nts">'+time+'</div></div>';
   box.appendChild(row);
-  row.scrollIntoView({behavior:"instant",block:"start"});
+  // Positionne le haut du message en haut de la zone visible (après le padding 20px)
+  var br=box.getBoundingClientRect(),rr=row.getBoundingClientRect();
+  box.scrollTop+=rr.top-br.top-20;
   return row;
 }
 function updateStreamingBubble(row,text){
@@ -709,7 +710,6 @@ function finalizeStreaming(row,text,source,provider,score,messageId){
   }
   chatHistory.push({role:"assistant",content:text});
   if(chatHistory.length>e.maxHistoryLength) chatHistory=chatHistory.slice(-e.maxHistoryLength);
-  box.scrollTop=box.scrollHeight;
 }
 function showTyping(){
   var box=document.getElementById("nm");
