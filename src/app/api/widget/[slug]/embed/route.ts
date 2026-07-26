@@ -652,17 +652,24 @@ function createStreamingBubble(){
   var aiCls=(aiMode)?" ai":"";
   var bubbleCls=(aiMode)?"nmsg-bbl ai-enhanced":"nmsg-bbl";
   row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'"><span class="nstxt"></span><span class="ncur">|</span></div><div class="nts">'+time+'</div></div>';
-  box.appendChild(row);box.scrollTop=box.scrollHeight;
+  box.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
   return row;
 }
+var _streamScrollLocked=false;
 function updateStreamingBubble(row,text){
   if(!row) return;
   var el=row.querySelector(".nstxt");
   if(el) el.innerHTML=renderMarkdown(text);
-  var box=document.getElementById("nm");box.scrollTop=box.scrollHeight;
+  var box=document.getElementById("nm");
+  if(!_streamScrollLocked){
+    _streamScrollLocked=true;
+    row.scrollIntoView({behavior:"smooth",block:"start"});
+  }
 }
 function finalizeStreaming(row,text,source,provider,score,messageId){
   if(!row) return;
+  _streamScrollLocked=false;
   var box=document.getElementById("nm");
   var time=formatTime();
   var aiCls=(aiMode)?" ai":"";
