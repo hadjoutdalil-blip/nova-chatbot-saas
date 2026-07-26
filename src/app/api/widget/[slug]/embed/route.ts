@@ -797,7 +797,22 @@ function sendMessage(text){
     var buffer="";
     var evType="message";
     var streamingEl=null;
-    var streamingText="";
+    var displayedText="";
+    var pendingBuffer="";
+    var streamDone=false;
+    var typewriterTimer=null;
+    function typewriterTick(){
+      if(pendingBuffer.length>0){
+        displayedText+=pendingBuffer[0];
+        pendingBuffer=pendingBuffer.slice(1);
+        updateStreamingBubble(streamingEl,displayedText);
+      }
+      if(streamDone&&pendingBuffer.length===0&&typewriterTimer){
+        clearInterval(typewriterTimer);typewriterTimer=null;
+        finalizeStreaming(streamingEl,displayedText,metaSource,metaProvider,metaScore,metaMessageId);
+        if(metaSuggestions){addSuggestions(metaSuggestions);metaSuggestions=null}
+      }
+    }
     var metaSource="";
     var metaProvider="";
     var metaScore=0;
@@ -814,12 +829,12 @@ function sendMessage(text){
           if(evType==="metadata"){
             try{var md=JSON.parse(rawData);metaSource=md.source||"";metaProvider=md.provider||"";metaScore=md.score||0;metaMessageId=md.messageId||"";metaSuggestions=md.suggestions||null}catch(_){}
             streamingEl=createStreamingBubble();
+            displayedText="";pendingBuffer="";streamDone=false;
+            if(!typewriterTimer) typewriterTimer=setInterval(typewriterTick,20);
           }else if(evType==="token"){
-            try{var td=JSON.parse(rawData);if(td.content){streamingText+=td.content;updateStreamingBubble(streamingEl,streamingText)}}catch(_){}
+            try{var td=JSON.parse(rawData);if(td.content) pendingBuffer+=td.content}catch(_){}
           }else if(evType==="done"){
-            finalizeStreaming(streamingEl,streamingText,metaSource,metaProvider,metaScore,metaMessageId);
-            if(metaSuggestions) addSuggestions(metaSuggestions);
-            metaSuggestions=null;
+            streamDone=true;
           }
           evType="message";
         }
