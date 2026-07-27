@@ -37,4 +37,24 @@ ALTER TABLE "WidgetConfig" ADD COLUMN IF NOT EXISTS "widgetWidth" INTEGER NOT NU
 ALTER TABLE "WidgetConfig" ADD COLUMN IF NOT EXISTS "widgetHeight" INTEGER NOT NULL DEFAULT 700;
 ALTER TABLE "WidgetConfig" ADD COLUMN IF NOT EXISTS "widgetMaxWidth" INTEGER NOT NULL DEFAULT 820;
 ALTER TABLE "WidgetConfig" ADD COLUMN IF NOT EXISTS "widgetMaxHeight" INTEGER NOT NULL DEFAULT 820;
+\`\`\`
+
+## 2026-07-27 — Table `PublicProposal` (questions libres par client)
+\`\`\`sql
+CREATE TABLE IF NOT EXISTS "PublicProposal" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "clientId" TEXT NOT NULL REFERENCES "Client"("id") ON DELETE CASCADE,
+  "question" TEXT NOT NULL,
+  "answer" TEXT NOT NULL DEFAULT '',
+  "theme" TEXT NOT NULL DEFAULT '',
+  "confidence" REAL NOT NULL DEFAULT 0,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "submitter" TEXT NOT NULL DEFAULT '',
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS "PublicProposal_clientId_idx" ON "PublicProposal"("clientId");
+CREATE INDEX IF NOT EXISTS "PublicProposal_status_idx" ON "PublicProposal"("status");
+CREATE INDEX IF NOT EXISTS "PublicProposal_theme_idx" ON "PublicProposal"("theme");
+CREATE INDEX IF NOT EXISTS "PublicProposal_createdAt_idx" ON "PublicProposal"("createdAt");
 \`\`\``

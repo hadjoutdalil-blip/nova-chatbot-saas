@@ -45,6 +45,7 @@ model Client {
   qualityAlerts      QualityAlert[]
   knowledgeGaps      KnowledgeGap[]
   pendingKBEntries   PendingKBEntry[]
+  publicProposals    PublicProposal[]
   aiUsageLogs        AIUsageLog[]
   conversations      Conversation[]
   messageFeedback    MessageFeedback[]
@@ -354,6 +355,26 @@ model PendingKBEntry {
 
   @@index([clientId])
   @@index([status])
+}
+
+model PublicProposal {
+  id          String   @id @default(uuid())
+  clientId    String
+  question    String
+  answer      String   @default("")
+  theme       String   @default("")
+  confidence  Float    @default(0)
+  status      String   @default("pending")
+  submitter   String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([status])
+  @@index([theme])
+  @@index([createdAt])
 }
 
 model DocumentChunk {
