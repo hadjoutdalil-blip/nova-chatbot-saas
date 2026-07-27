@@ -57,4 +57,20 @@ CREATE INDEX IF NOT EXISTS "PublicProposal_clientId_idx" ON "PublicProposal"("cl
 CREATE INDEX IF NOT EXISTS "PublicProposal_status_idx" ON "PublicProposal"("status");
 CREATE INDEX IF NOT EXISTS "PublicProposal_theme_idx" ON "PublicProposal"("theme");
 CREATE INDEX IF NOT EXISTS "PublicProposal_createdAt_idx" ON "PublicProposal"("createdAt");
-\`\`\``
+\`\`\`
+
+## 2026-07-27 — Google OAuth pour page propositions (`/proposals/[slug]`)
+- La page `/proposals/[slug]` nécessite désormais une connexion via Google Gmail
+- L'email Google est automatiquement utilisé comme `submitter` (lecture seule)
+- **Configuration obligatoire** dans Google Cloud Console avant utilisation :
+  1. Aller sur https://console.cloud.google.com/apis/credentials
+  2. Créer un OAuth 2.0 Client ID (type : Web application)
+  3. Ajouter `http://localhost:3000` (dév) et `https://votresite.com` (prod) dans **Authorized JavaScript origins**
+  4. Copier le **Client ID** dans `.env` :
+     ```
+     NEXT_PUBLIC_GOOGLE_CLIENT_ID="xxx.apps.googleusercontent.com"
+     GOOGLE_CLIENT_SECRET="GOCSPX-..."
+     ```
+- Le `GOOGLE_CLIENT_SECRET` n'est pas utilisé côté frontend (uniquement pour validation future côté serveur)
+- API : `POST /api/auth/google` — vérifie l'idToken via `tokeninfo` endpoint et retourne `{ email, name, picture }`
+- Frontend : Google Identity Services (`accounts.google.com/gsi/client`) chargé dynamiquement ; callback appelle l'API de vérification ; le token utilisateur est stocké dans `localStorage`
