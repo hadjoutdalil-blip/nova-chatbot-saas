@@ -26,6 +26,7 @@ export default function ProposalsPage() {
   const [conf, setConf] = useState(0);
   const [submitter, setSubmitter] = useState("");
   const [selTheme, setSelTheme] = useState("");
+  const [customTheme, setCustomTheme] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
   const [answering, setAnswering] = useState<string | null>(null);
 
@@ -54,7 +55,7 @@ export default function ProposalsPage() {
       const res = await fetch(`/api/proposals/${slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: question.trim(), answer: ans.trim(), theme: selTheme, submitter: submitter.trim() }),
+        body: JSON.stringify({ question: question.trim(), answer: ans.trim(), theme: selTheme === "__other__" ? customTheme.trim() : selTheme, submitter: submitter.trim() }),
       });
       if (!res.ok) throw new Error("Erreur");
       const data = await res.json();
@@ -63,6 +64,7 @@ export default function ProposalsPage() {
       setAns("");
       setConf(0);
       setSelTheme("");
+      setCustomTheme("");
       setStatusMsg("Proposition envoyée !");
     } catch {
       setStatusMsg("Erreur lors de l'envoi.");
@@ -113,7 +115,13 @@ export default function ProposalsPage() {
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2">
                   <option value="">Sélectionner un thème</option>
                   {themes.map((t) => <option key={t} value={t}>{t}</option>)}
+                  <option value="__other__">Autre (saisir ci-dessous)</option>
                 </select>
+                {selTheme === "__other__" && (
+                  <input value={customTheme} onChange={(e) => setCustomTheme(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2"
+                    placeholder="Nouveau thème..." required />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Votre nom (optionnel)</label>
