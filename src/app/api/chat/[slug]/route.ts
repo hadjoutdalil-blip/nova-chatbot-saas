@@ -91,8 +91,82 @@ function buildContext(client: any, pageUrl?: string, pageTitle?: string): string
   return parts.length > 0 ? `\n\nCONTEXTE :\n${parts.join("\n")}` : "";
 }
 
+/* ── LANG HELPERS ────────────────────────────────────── */
+const LANG_CMD: Record<string, string> = {
+  fr: "Réponds toujours en français",
+  en: "Always answer in English",
+  ar: "أجب دائمًا بالعربية",
+};
+function langInstruction(lang: string): string {
+  return LANG_CMD[lang] || LANG_CMD.fr;
+}
+
+const LANG_FALLBACK: Record<string, Record<string, string>> = {
+  fr: {
+    avis: "Je suis l'assistant de {name}. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?",
+    hors_sujet: "Je suis l'assistant technique de {name}. Je suis spécialisé dans les services techniques. Puis-je vous aider avec un de ces sujets ?",
+    default: "Bonjour ! Je suis l'assistant de {name}. Comment puis-je vous aider ?",
+    avis_ai: "Merci pour votre retour ! Chez {name}, nous proposons des services techniques de qualité. Que puis-je vous aider ?",
+    hors_sujet_ai: "Je suis l'assistant technique de {name}. Je peux vous renseigner sur nos services techniques. En quoi puis-je vous être utile ?",
+    default_ai: "Bonjour ! Je suis l'assistant de {name}. Comment puis-je vous aider avec nos services techniques ?",
+    rag_no_ai: "Le mode RAG nécessite une clé API IA.",
+    rag_no_key: "Aucune clé API disponible pour le mode RAG.",
+    rag_no_ai_long: "Le mode RAG nécessite une clé API IA. Veuillez activer le mode IA ou désactiver le mode RAG.",
+    rag_no_key_long: "Aucune clé API disponible pour le mode RAG. Veuillez configurer une clé API.",
+    no_match_contact: "Je n'ai pas trouvé de réponse précise à votre question. 🎯\n\nN'hésitez pas à nous contacter directement :\n\n{contact}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !",
+    no_match: "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.",
+    escalade_fail: "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.",
+    escalade_fail_strict: "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer.",
+    internal_error: "Une erreur interne s'est produite. Veuillez réessayer.",
+    escalade_fail_contact: "Je n'ai pas pu traiter votre demande pour le moment. 📋\n\n{contact}",
+    no_match_fallback_contact: "Je n'ai pas trouvé de réponse précise à votre question. 🎯\n\nN'hésitez pas à nous contacter directement, notre équipe se fera un plaisir de vous renseigner :\n\n{contact}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !",
+  },
+  en: {
+    avis: "I am the assistant of {name}. I am here to inform you about our technical services. How can I help you?",
+    hors_sujet: "I am the technical assistant of {name}. I specialize in technical services. Can I help you with one of these topics?",
+    default: "Hello! I am the assistant of {name}. How can I help you?",
+    avis_ai: "Thank you for your feedback! At {name}, we offer quality technical services. How can I help you?",
+    hors_sujet_ai: "I am the technical assistant of {name}. I can help you with our technical services. How can I assist you?",
+    default_ai: "Hello! I am the assistant of {name}. How can I help you with our technical services?",
+    rag_no_ai: "RAG mode requires an AI API key.",
+    rag_no_key: "No API key available for RAG mode.",
+    rag_no_ai_long: "RAG mode requires an AI API key. Please enable AI mode or disable RAG mode.",
+    rag_no_key_long: "No API key available for RAG mode. Please configure an API key.",
+    no_match_contact: "I couldn't find an exact answer to your question. 🎯\n\nFeel free to contact us directly:\n\n{contact}\n\n💬 **You can also rephrase your question**, I am here to help!",
+    no_match: "I couldn't find an answer in my knowledge base. Please contact us for more information.",
+    escalade_fail: "I couldn't process your request at the moment. Please try again or contact our team.",
+    escalade_fail_strict: "I couldn't process your request at the moment. Please try again.",
+    internal_error: "An internal error occurred. Please try again.",
+    escalade_fail_contact: "I couldn't process your request at the moment. 📋\n\n{contact}",
+    no_match_fallback_contact: "I couldn't find an exact answer to your question. 🎯\n\nFeel free to contact us directly, our team will be happy to help:\n\n{contact}\n\n💬 **You can also rephrase your question**, I am here to help!",
+  },
+  ar: {
+    avis: "أنا مساعد {name}. أنا هنا لإعلامك بخدماتنا الفنية. كيف يمكنني مساعدتك؟",
+    hors_sujet: "أنا المساعد الفني لـ {name}. أنا متخصص في الخدمات الفنية. هل يمكنني مساعدتك في أحد هذه المواضيع؟",
+    default: "مرحبًا! أنا مساعد {name}. كيف يمكنني مساعدتك؟",
+    avis_ai: "شكرًا لملاحظاتك! في {name}، نقدم خدمات فنية عالية الجودة. كيف يمكنني مساعدتك؟",
+    hors_sujet_ai: "أنا المساعد الفني لـ {name}. يمكنني إعلامك بخدماتنا الفنية. كيف يمكنني مساعدتك؟",
+    default_ai: "مرحبًا! أنا مساعد {name}. كيف يمكنني مساعدتك بخدماتنا الفنية؟",
+    rag_no_ai: "وضع RAG يتطلب مفتاح API للذكاء الاصطناعي.",
+    rag_no_key: "لا يوجد مفتاح API متاح لوضع RAG.",
+    rag_no_ai_long: "وضع RAG يتطلب مفتاح API للذكاء الاصطناعي. يرجى تفعيل وضع الذكاء الاصطناعي أو تعطيل وضع RAG.",
+    rag_no_key_long: "لا يوجد مفتاح API متاح لوضع RAG. يرجى تكوين مفتاح API.",
+    no_match_contact: "لم أتمكن من العثور على إجابة دقيقة لسؤالك. 🎯\n\nلا تتردد في الاتصال بنا مباشرة:\n\n{contact}\n\n💬 **يمكنك أيضًا إعادة صياغة سؤالك**، أنا هنا للمساعدة!",
+    no_match: "لم أتمكن من العثور على إجابة في قاعدة المعرفة الخاصة بي. يرجى الاتصال بنا لمزيد من المعلومات.",
+    escalade_fail: "لم أتمكن من معالجة طلبك في الوقت الحالي. يرجى المحاولة مرة أخرى أو الاتصال بفريقنا.",
+    escalade_fail_strict: "لم أتمكن من معالجة طلبك في الوقت الحالي. يرجى المحاولة مرة أخرى.",
+    internal_error: "حدث خطأ داخلي. يرجى المحاولة مرة أخرى.",
+    escalade_fail_contact: "لم أتمكن من معالجة طلبك في الوقت الحالي. 📋\n\n{contact}",
+    no_match_fallback_contact: "لم أتمكن من العثور على إجابة دقيقة لسؤالك. 🎯\n\nلا تتردد في الاتصال بنا مباشرة، سيسعد فريقنا بمساعدتك:\n\n{contact}\n\n💬 **يمكنك أيضًا إعادة صياغة سؤالك**، أنا هنا للمساعدة!",
+  },
+};
+function t(lang: string, key: string, name: string, contact?: string): string {
+  const text = LANG_FALLBACK[lang]?.[key] || LANG_FALLBACK.fr[key];
+  return text.replace(/\{name\}/g, name).replace(/\{contact\}/g, contact || "");
+}
+
 /* ── PROMPT BUILDERS ──────────────────────────────────── */
-function buildQAPrompt(client: any, match: any, score: number, question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string) {
+function buildQAPrompt(client: any, match: any, score: number, question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string, lang: string = "fr") {
   const linkRule = isVisitor
     ? `- Si un document source PDF est disponible pour téléchargement, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`
     : `- Si un document source est disponible pour téléchargement, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`;
@@ -104,7 +178,7 @@ RÈGLES ABSOLUES :
 - Ne modifie PAS le fond, les chiffres, les délais ou les références
 - Reformule légèrement l'introduction et la transition, mais conserve le contenu structuré (listes, tableaux, puces)
 - Conserve les emojis, le gras, les listes numérotées et les tableaux markdown
-- Réponds toujours en français, professionnel et concis
+- ${langInstruction(lang)}, professionnel et concis
 ${linkRule}${sourceLine}
 - Si la RÉPONSE OFFICIELLE ne répond PAS à la QUESTION DU CLIENT, réponds UNIQUEMENT par le mot exact : NO_MATCH`;
 
@@ -123,7 +197,7 @@ ${question}`;
   return { system, user };
 }
 
-function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string) {
+function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string, lang: string = "fr") {
   const docMap = new Map<string, { chunks: ChunkMeta[]; maxScore: number }>();
   for (const c of chunks) {
     const key = c.source;
@@ -168,7 +242,7 @@ RÈGLES ABSOLUES :
 - Les extraits sont classés par pertinence : l'extrait #1 est le plus important
 ${noMatchRule}
 - N'invente JAMAIS d'information
-- Réponds toujours en français, professionnel et concis
+- ${langInstruction(lang)}, professionnel et concis
 ${linkRule}${adminFooter}`;
 
   const user = `NIVEAU : RAG DOCUMENTAIRE
@@ -195,7 +269,7 @@ function findContactEntry(KB: any[]): string {
   return entry?.answer?.trim() || "";
 }
 
-function buildEscaladePrompt(client: any, question: string, sessionType: string, KB: any[], pageUrl?: string, pageTitle?: string) {
+function buildEscaladePrompt(client: any, question: string, sessionType: string, KB: any[], pageUrl?: string, pageTitle?: string, lang: string = "fr") {
   const contactInfo = findContactEntry(KB);
 
   const system = `Tu es un assistant professionnel de ${client.name}.
@@ -220,7 +294,7 @@ RÈGLES ABSOLUES :
 - Utilise les INFORMATIONS DE CONTACT réelles ci-dessous
 - Suggère 2-3 questions pertinentes en lien avec la QUESTION DU CLIENT
 - N'invente JAMAIS d'information technique
-- Réponds toujours en français, ton professionnel et accessible
+- ${langInstruction(lang)}, ton professionnel et accessible
 - Ne te présente PAS comme "conseiller commercial"`;
 
   const user = `NIVEAU : ESCALADE — AUCUN CONTEXTE PERTINENT
@@ -238,7 +312,7 @@ Consigne : Inspire-toi de l'exemple ci-dessus. Utilise les INFORMATIONS DE CONTA
   return { system, user, contactInfo };
 }
 
-function buildIntentPrompt(client: any, intent: string, message: string, pageUrl?: string, pageTitle?: string) {
+function buildIntentPrompt(client: any, intent: string, message: string, pageUrl?: string, pageTitle?: string, lang: string = "fr") {
   const ctx = buildContext(client, pageUrl, pageTitle);
   const rules = intent === "SMALL_TALK"
     ? `- L'utilisateur te salue ou fait du small talk
@@ -257,7 +331,7 @@ function buildIntentPrompt(client: any, intent: string, message: string, pageUrl
 
 RÈGLES :
 ${rules}
-- Réponds toujours en français, chaleureux et professionnel
+- ${langInstruction(lang)}, chaleureux et professionnel
 - Termine par une question ouverte sur les besoins du client`;
 
   return { system, user: message };
@@ -478,9 +552,9 @@ export async function OPTIONS() {
 async function handleStreamingRequest(
   req: NextRequest,
   client: any,
-  body: { message: string; history: any[]; aiMode: boolean; ragOnly: boolean; sessionType: string; pageUrl?: string; pageTitle?: string; isVisitor: boolean },
+  body: { message: string; history: any[]; aiMode: boolean; ragOnly: boolean; sessionType: string; pageUrl?: string; pageTitle?: string; isVisitor: boolean; lang?: string },
 ): Promise<Response> {
-  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor } = body;
+  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor, lang = "fr" } = body;
   const messageId = randomUUID();
   const trimmed = message.trim();
   const words = trimmed.split(/\s+/).filter(Boolean);
@@ -571,11 +645,8 @@ async function handleStreamingRequest(
         const hasGoodKbMatch = match && score >= kbThreshold;
         if (!hasGoodKbMatch && intent.intent !== "REQUETE_METIER") {
           if (!aiMode) {
-            const fallback = intent.intent === "AVIS"
-              ? `Je suis l'assistant de ${client.name}. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?`
-              : intent.intent === "HORS_SUJET"
-                ? `Je suis l'assistant technique de ${client.name}. Je suis spécialisé dans les services techniques. Puis-je vous aider avec un de ces sujets ?`
-                : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider ?`;
+            const intentKey = intent.intent === "AVIS" ? "avis" : intent.intent === "HORS_SUJET" ? "hors_sujet" : "default";
+            const fallback = t(lang, intentKey, client.name);
             send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
             send("token", { content: fallback });
             saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
@@ -589,7 +660,7 @@ async function handleStreamingRequest(
             const provider = PROVIDERS[providerId];
             if (provider) {
               const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-              const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle);
+              const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle, lang);
               try {
                 const aiStream = await callAIStream(keyEntry.key, providerId, model, system, user, 0.30, history || [], 300);
                 const text = await consumeAIStream(aiStream);
@@ -602,11 +673,8 @@ async function handleStreamingRequest(
               } catch { /* fallback below */ }
             }
           }
-          const fallbackText = intent.intent === "AVIS"
-            ? `Merci pour votre retour ! Chez ${client.name}, nous proposons des services techniques de qualité. Que puis-je vous aider ?`
-            : intent.intent === "HORS_SUJET"
-              ? `Je suis l'assistant technique de ${client.name}. Je peux vous renseigner sur nos services techniques. En quoi puis-je vous être utile ?`
-              : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider avec nos services techniques ?`;
+          const intentKey = intent.intent === "AVIS" ? "avis_ai" : intent.intent === "HORS_SUJET" ? "hors_sujet_ai" : "default_ai";
+          const fallbackText = t(lang, intentKey, client.name);
           send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
           send("token", { content: fallbackText });
           saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
@@ -654,9 +722,9 @@ async function handleStreamingRequest(
             finish();
             return;
           }
-          if (!aiMode) { sendDirect("Le mode RAG nécessite une clé API IA.", "fallback"); finish(); return; }
+          if (!aiMode) { sendDirect(t(lang, "rag_no_ai", client.name), "fallback"); finish(); return; }
           const keyEntry = await resolveApiKey(client);
-          if (!keyEntry?.key) { sendDirect("Aucune clé API disponible pour le mode RAG.", "fallback"); finish(); return; }
+          if (!keyEntry?.key) { sendDirect(t(lang, "rag_no_key", client.name), "fallback"); finish(); return; }
 
           const apiKey = keyEntry.key;
           const providerInfo = detectProvider(apiKey);
@@ -678,19 +746,19 @@ async function handleStreamingRequest(
             topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 3, ragThreshold);
           }
           if (topChunks.length > 0) {
-            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
+            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
             const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
             if (result) { finish(); return; }
           }
           if (match && score >= kbThreshold) { sendDirect(match.answer, "kb"); finish(); return; }
           if (isKeyword && match?.answer && score >= 60 && score < kbThreshold) { sendDirect(match.answer, "kb"); finish(); return; }
-          const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
+          const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle, lang);
           const escResult = await streamAIResponse(escSystem, escUser, client.tempEscalade ?? 0.20, "escalade", 800);
           if (escResult) {
             captureEscalade({ clientId: client.id, question: message, escalationMsg: escResult, context: pageUrl || "" }).catch(console.error);
             finish(); return;
           }
-          sendDirect("Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer.", "fallback");
+          sendDirect(t(lang, "escalade_fail_strict", client.name), "fallback");
           finish();
           return;
         }
@@ -707,7 +775,7 @@ async function handleStreamingRequest(
             finish();
             return;
           }
-          const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
+          const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
           const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
           if (qaResult) { finish(); return; }
           /* AI returned NO_MATCH or failed → fall through to RAG */
@@ -718,7 +786,7 @@ async function handleStreamingRequest(
 
         /* NIVEAU 1b : MATCH MOT-CLÉ SOUS SEUIL */
         if (aiMode && isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
-          const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
+          const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
           const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
           if (qaResult) { finish(); return; }
           sendDirect(match.answer, "kb");
@@ -731,8 +799,8 @@ async function handleStreamingRequest(
           const contactInfo = findContactEntry(KB);
           let resp: string;
           if (match?.answer && score >= kbThreshold) { resp = match.answer; }
-          else if (contactInfo) { resp = `Je n'ai pas trouvé de réponse précise à votre question. 🎯\n\nN'hésitez pas à nous contacter directement :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`; }
-          else { resp = "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations."; }
+          else if (contactInfo) { resp = t(lang, "no_match_contact", client.name, contactInfo); }
+          else { resp = t(lang, "no_match", client.name); }
           sendDirect(resp, match?.answer ? "kb" : "fallback");
           finish();
           return;
@@ -760,24 +828,24 @@ async function handleStreamingRequest(
             topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 3, ragThreshold);
           }
           if (topChunks.length > 0) {
-            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
+            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
             const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
             if (result) { finish(); return; }
           }
         }
 
         /* NIVEAU 3 : ESCALADE */
-        const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
+        const { system: escSystem, user: escUser } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle, lang);
         const escResult = await streamAIResponse(escSystem, escUser, client.tempEscalade ?? 0.20, "escalade", 800);
         if (escResult) {
           captureEscalade({ clientId: client.id, question: message, escalationMsg: escResult, context: pageUrl || "" }).catch(console.error);
           finish(); return;
         }
-        sendDirect("Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.", "fallback");
+        sendDirect(t(lang, "escalade_fail", client.name), "fallback");
         finish();
       } catch (err) {
         console.error("[Nova Chat] Streaming error:", err);
-        send("token", { content: "Une erreur interne s'est produite. Veuillez réessayer." });
+        send("token", { content: t(lang, "internal_error", client.name) });
         finish();
       }
     },
@@ -793,13 +861,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
   }
 
-  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor = false, stream: enableStream = false } = await req.json();
+  const { message, history, aiMode, ragOnly, sessionType = "client", pageUrl, pageTitle, isVisitor = false, stream: enableStream = false, lang = "fr" } = await req.json();
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "Message requis" }, { status: 400, headers: corsHeaders });
   }
 
   if (enableStream) {
-    return handleStreamingRequest(req, client, { message, history, aiMode, ragOnly, sessionType, pageUrl, pageTitle, isVisitor });
+    return handleStreamingRequest(req, client, { message, history, aiMode, ragOnly, sessionType, pageUrl, pageTitle, isVisitor, lang });
   }
 
   const messageId = randomUUID();
@@ -869,11 +937,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!hasGoodKbMatch && intent.intent !== "REQUETE_METIER") {
     console.log(`[Nova Chat] Intent="${intent.intent}" confidence=${intent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
     if (!aiMode) {
-      const fallback = intent.intent === "AVIS"
-        ? `Je suis l'assistant de ${client.name}. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?`
-        : intent.intent === "HORS_SUJET"
-          ? `Je suis l'assistant technique de ${client.name}. Je suis spécialisé dans les services techniques. Puis-je vous aider avec un de ces sujets ?`
-          : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider ?`;
+      const intentKey = intent.intent === "AVIS" ? "avis" : intent.intent === "HORS_SUJET" ? "hors_sujet" : "default";
+      const fallback = t(lang, intentKey, client.name);
       saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
       return NextResponse.json(filterResponse({
         messageId,
@@ -891,7 +956,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const provider = PROVIDERS[providerId];
       if (provider) {
         const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-        const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle);
+        const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle, lang);
         try {
           const { text, usage } = await callAI(keyEntry.key, providerId, model, system, user, 0.30, history || [], 300);
           console.log(`[Nova Chat] AI ${intent.intent} response sent: "${text.slice(0, 80)}..."`);
@@ -911,11 +976,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }
     }
     /* Fallback si l'appel AI échoue ou pas de clé */
-    const fallbackText = intent.intent === "AVIS"
-      ? `Merci pour votre retour ! Chez ${client.name}, nous proposons des services techniques de qualité. Que puis-je vous aider ?`
-      : intent.intent === "HORS_SUJET"
-        ? `Je suis l'assistant technique de ${client.name}. Je peux vous renseigner sur nos services techniques. En quoi puis-je vous être utile ?`
-        : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider avec nos services techniques ?`;
+    const intentKey = intent.intent === "AVIS" ? "avis_ai" : intent.intent === "HORS_SUJET" ? "hors_sujet_ai" : "default_ai";
+    const fallbackText = t(lang, intentKey, client.name);
     saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
     return NextResponse.json(filterResponse({
       messageId,
@@ -943,7 +1005,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (!aiMode) {
       return NextResponse.json(filterResponse({
         messageId,
-        response: "Le mode RAG nécessite une clé API IA. Veuillez activer le mode IA ou désactiver le mode RAG.",
+        response: t(lang, "rag_no_ai_long", client.name),
         source: "fallback",
         score: 0,
         suggestions: [],
@@ -953,7 +1015,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (!keyEntry?.key) {
       return NextResponse.json(filterResponse({
         messageId,
-        response: "Aucune clé API disponible pour le mode RAG. Veuillez configurer une clé API.",
+        response: t(lang, "rag_no_key_long", client.name),
         source: "fallback",
         score: 0,
         suggestions: [],
@@ -993,7 +1055,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 3, ragThreshold);
     }
     if (topChunks.length > 0) {
-      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
+      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, 0, geoPromise);
@@ -1036,7 +1098,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         suggestions: findRelated(match, KB, 3),
       }, isVisitor), { headers: corsHeaders });
     }
-    const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
+    const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle, lang);
     try {
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, escSystem, escUser, client.tempEscalade ?? 0.20, history || [], 800);
       saveConversation(client, history || [], message, text, "escalade", providerInfo.label, 0, geoPromise);
@@ -1045,8 +1107,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       return NextResponse.json({ messageId, response: text, source: "escalade", provider: providerInfo.label, score: 0 }, { headers: corsHeaders });
     } catch (err: any) {
       const fallbackResp = contactInfo
-        ? `Je n'ai pas pu traiter votre demande pour le moment. 📋\n\n${contactInfo}`
-        : "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer.";
+        ? t(lang, "escalade_fail_contact", client.name, contactInfo)
+        : t(lang, "escalade_fail", client.name);
       saveConversation(client, history || [], message, fallbackResp, "fallback", "", 0, geoPromise);
       return NextResponse.json({ messageId, response: fallbackResp, source: "fallback", score: 0 }, { headers: corsHeaders });
     }
@@ -1070,7 +1132,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }, isVisitor), { headers: corsHeaders });
     }
 
-    const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
+    const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
     try {
       const keyEntry = await resolveApiKey(client);
       const apiKey = keyEntry?.key || "";
@@ -1095,7 +1157,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 1b : MATCH MOT-CLÉ SOUS SEUIL → reformulation IA ── */
   if (aiMode && isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
-    const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle);
+    const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
     try {
       const keyEntry = await resolveApiKey(client);
       const apiKey = keyEntry?.key || "";
@@ -1125,9 +1187,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (match?.answer && score >= kbThreshold) {
       resp = match.answer;
     } else if (contactInfo) {
-      resp = `Je n'ai pas trouvé de réponse précise à votre question. 🎯\n\nN'hésitez pas à nous contacter directement, notre équipe se fera un plaisir de vous renseigner :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`;
+      resp = t(lang, "no_match_fallback_contact", client.name, contactInfo);
     } else {
-      resp = "Je n'ai pas trouvé de réponse dans ma base de connaissances. Contactez-nous pour plus d'informations.";
+      resp = t(lang, "no_match", client.name);
     }
     saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score, geoPromise);
     return NextResponse.json(filterResponse({
@@ -1188,7 +1250,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
 
     if (topChunks.length > 0) {
-      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle);
+      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, score, geoPromise);
@@ -1245,7 +1307,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 3 : ESCALADE ── */
   const kbMatch = match ? findRelated(match, KB, 3) : [];
-  const { system, user, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle);
+  const { system, user, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle, lang);
   try {
     const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
@@ -1258,8 +1320,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   } catch (err: any) {
     console.error("[Nova Chat] Escalade error:", err);
     const fallbackResp = contactInfo
-      ? `Je n'ai pas pu traiter votre demande pour le moment. 📋\n\nN'hésitez pas à nous contacter directement, notre équipe se fera un plaisir de vous renseigner :\n\n${contactInfo}\n\n💬 **Vous pouvez aussi reformuler votre question**, je suis là pour vous aider !`
-      : "Je n'ai pas pu traiter votre demande pour le moment. Veuillez réessayer ou contacter notre équipe.";
+      ? t(lang, "no_match_fallback_contact", client.name, contactInfo)
+      : t(lang, "escalade_fail", client.name);
     saveConversation(client, history || [], message, fallbackResp, "fallback", "", score, geoPromise);
     return NextResponse.json(filterResponse({
       messageId,

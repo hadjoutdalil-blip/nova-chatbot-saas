@@ -41,6 +41,137 @@ var KQ=${KQ_JSON};
 var WC=${WC_JSON};
 var KB=${KB_JSON};
 
+/* Multi-lang */
+var LANG={
+  fr:{
+    aiTitle:"Mode IA : activer/désactiver l'intelligence artificielle pour des réponses reformulées",
+    ragTitle:"Mode RAG : activer/désactiver la recherche documentaire",
+    langTitle:"Changer la langue / Change language / تغيير اللغة",
+    maxTitle:"Agrandir",
+    minTitle:"Réduire",
+    resetTitle:"Réinitialiser",
+    closeTitle:"Fermer",
+    modeRag:"🔍 Recherche documentaire active",
+    modeAi:"🧠 Mode IA actif",
+    modeDefault:"💬 Posez votre question",
+    placeholder:"Posez votre question...",
+    sourceKb:"Base de connaissances",
+    sourceRag:"Documentation technique",
+    sourceHuman:"📋 Contact humain",
+    sourceHumanSub:"Notre équipe reste à votre écoute",
+    copy:"Copier",
+    copied:"Copié !",
+    feedbackLabel:"Votre avis :",
+    feedbackLabels:"Très mauvais,Mauvais,Moyen,Bien,Excellent",
+    feedbackThanks:"Merci !",
+    offline:"Vous êtes hors ligne. Veuillez vérifier votre connexion.",
+    tooMany:"Trop de requêtes. Veuillez patienter quelques secondes.",
+    serverError:"Service temporairement indisponible. Veuillez réessayer.",
+    responseError:"Erreur de réponse.",
+    streamError:"Erreur de flux. Veuillez réessayer.",
+    timeout:"La requête a expiré. Veuillez réessayer.",
+    networkError:"Erreur réseau. Vérifiez votre connexion.",
+    typing:"Réflexion en cours…",
+    resetConfirm:"Réinitialiser la conversation ?",
+    suggestionsLabel:"📐 Suggestions — cliquez pour explorer :",
+    faqHeader:"Questions fréquentes",
+    faqEmpty:"Aucune question disponible pour le moment.",
+    ragTitleTooltip:"Recherche dans les documents techniques",
+    iaActive:"IA Active",
+    disconnected:"⚠️ Connexion perdue — vos messages seront envoyés dès la reconnexion",
+    poweredBy:"Propulsé par",
+    sourceEscSub:"Notre équipe reste à votre écoute",
+    download:"📄 Télécharger",
+    expired:"Expirée",
+    valid:"Valide",
+  },
+  en:{
+    aiTitle:"AI Mode: enable/disable artificial intelligence for reformulated answers",
+    ragTitle:"RAG Mode: enable/disable document search",
+    langTitle:"Change language / Changer la langue / تغيير اللغة",
+    maxTitle:"Maximize",
+    minTitle:"Minimize",
+    resetTitle:"Reset",
+    closeTitle:"Close",
+    modeRag:"🔍 Document search active",
+    modeAi:"🧠 AI mode active",
+    modeDefault:"💬 Ask your question",
+    placeholder:"Ask your question...",
+    sourceKb:"Knowledge base",
+    sourceRag:"Technical documentation",
+    sourceHuman:"📋 Human contact",
+    sourceHumanSub:"Our team is here for you",
+    copy:"Copy",
+    copied:"Copied!",
+    feedbackLabel:"Your feedback:",
+    feedbackLabels:"Very poor,Poor,Average,Good,Excellent",
+    feedbackThanks:"Thank you!",
+    offline:"You are offline. Please check your connection.",
+    tooMany:"Too many requests. Please wait a moment.",
+    serverError:"Service temporarily unavailable. Please try again.",
+    responseError:"Response error.",
+    streamError:"Stream error. Please try again.",
+    timeout:"Request timed out. Please try again.",
+    networkError:"Network error. Check your connection.",
+    typing:"Thinking…",
+    resetConfirm:"Reset conversation?",
+    suggestionsLabel:"📐 Suggestions — click to explore:",
+    faqHeader:"Frequently asked questions",
+    faqEmpty:"No questions available at the moment.",
+    ragTitleTooltip:"Search in technical documents",
+    iaActive:"AI Active",
+    disconnected:"⚠️ Connection lost — your messages will be sent upon reconnection",
+    poweredBy:"Powered by",
+    sourceEscSub:"Our team is here for you",
+    download:"📄 Download",
+    expired:"Expired",
+    valid:"Valid",
+  },
+  ar:{
+    aiTitle:"وضع الذكاء الاصطناعي: تمكين/تعطيل الذكاء الاصطناعي للإجابات المعاد صياغتها",
+    ragTitle:"وضع RAG: تمكين/تعطيل البحث في المستندات",
+    langTitle:"تغيير اللغة / Change language / Changer la langue",
+    maxTitle:"تكبير",
+    minTitle:"تصغير",
+    resetTitle:"إعادة تعيين",
+    closeTitle:"إغلاق",
+    modeRag:"🔍 البحث في المستندات نشط",
+    modeAi:"🧠 وضع الذكاء الاصطناعي نشط",
+    modeDefault:"💬 اطرح سؤالك",
+    placeholder:"اطرح سؤالك...",
+    sourceKb:"قاعدة المعرفة",
+    sourceRag:"الوثائق الفنية",
+    sourceHuman:"📋 اتصال بشري",
+    sourceHumanSub:"فريقنا في خدمتك",
+    copy:"نسخ",
+    copied:"تم النسخ!",
+    feedbackLabel:"تقييمك:",
+    feedbackLabels:"سيء جدًا,سيء,متوسط,جيد,ممتاز",
+    feedbackThanks:"شكرًا!",
+    offline:"أنت غير متصل. يرجى التحقق من اتصالك.",
+    tooMany:"طلبات كثيرة جدًا. يرجى الانتظار قليلاً.",
+    serverError:"الخدمة غير متوفرة مؤقتًا. يرجى المحاولة مرة أخرى.",
+    responseError:"خطأ في الاستجابة.",
+    streamError:"خطأ في التدفق. يرجى المحاولة مرة أخرى.",
+    timeout:"انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.",
+    networkError:"خطأ في الشبكة. تحقق من اتصالك.",
+    typing:"جارٍ التفكير…",
+    resetConfirm:"إعادة تعيين المحادثة؟",
+    suggestionsLabel:"📐 اقتراحات — انقر للاستكشاف:",
+    faqHeader:"الأسئلة المتكررة",
+    faqEmpty:"لا توجد أسئلة متاحة حاليًا.",
+    ragTitleTooltip:"البحث في الوثائق الفنية",
+    iaActive:"الذكاء الاصطناعي نشط",
+    disconnected:"⚠️ فقدان الاتصال — سيتم إرسال رسائلك عند إعادة الاتصال",
+    poweredBy:"مدعوم بواسطة",
+    sourceEscSub:"فريقنا في خدمتك",
+    download:"📄 تحميل",
+    expired:"منتهية الصلاحية",
+    valid:"سارية",
+  }
+};
+function tr(key){return (LANG[lang]&&LANG[lang][key])||LANG.fr[key]||key;}
+
 /* Mode IA */
 var aiKey="nova_ai_"+e.name.replace(/[^a-z0-9]/gi,"_");
 var store=localStorage.getItem(aiKey);
@@ -51,12 +182,27 @@ var ragKey="nova_rag_"+e.name.replace(/[^a-z0-9]/gi,"_");
 var ragStore=localStorage.getItem(ragKey);
 var ragMode=ragStore==="true";
 
+/* Langue */
+var langKey="nova_lang_"+e.name.replace(/[^a-z0-9]/gi,"_");
+var lang=lcl()||"fr";
+var langOrder=["fr","en","ar"];
+var langLabel={fr:"FR",en:"EN",ar:"AR"};
+function lcl(){var v=localStorage.getItem(langKey);return v==="en"||v==="ar"?v:null}
+function toggleLang(){
+  var idx=langOrder.indexOf(lang);
+  lang=langOrder[(idx+1)%langOrder.length];
+  localStorage.setItem(langKey,lang);
+  var btn=document.getElementById("na-lang");
+  if(btn)btn.textContent=langLabel[lang];
+  updateModeText();
+}
+
 function updateModeText(){
   var sk=document.getElementById("na-sk");
   if(!sk) return;
-  if(ragMode) sk.textContent="\ud83d\udd0d Recherche documentaire active \u2014 je consulte la base technique CETIM";
-  else if(aiMode) sk.textContent="\ud83e\udd16 Mode IA actif \u2014 r\u00e9ponses reformul\u00e9es par l\u2019intelligence artificielle";
-  else sk.textContent="\ud83d\udcac Posez votre question \u00e0 l\u2019expert CETIM \u2014 r\u00e9ponses issues de la base de connaissances";
+  if(ragMode) sk.textContent=tr("modeRag");
+  else if(aiMode) sk.textContent=tr("modeAi");
+  else sk.textContent=tr("modeDefault");
 }
 function updateAIUI(){
   var btn=document.getElementById("na-ai");
@@ -446,7 +592,7 @@ card.className="nova-widget nc";card.id="nc";
 card.setAttribute("role","dialog");
 card.setAttribute("aria-label","Chatbot");
 card.setAttribute("aria-modal","true");
-card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Mode IA : activer/d\u00e9sactiver l\u2019intelligence artificielle pour des r\u00e9ponses reformul\u00e9es">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="Mode RAG : activer/d\u00e9sactiver la recherche dans les documents techniques CETIM (facture, rapports, r\u00e9f\u00e9rentiels\u2026)">'+ICONS.file+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669" title="Recherche dans les documents techniques CETIM">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">\ud83d\udcac Posez votre question \u00e0 l\u2019expert CETIM</span></div><div class="n-views" id="n-views"><div class="n-page active" id="n-page-home"><div class="nv-home" id="nv-home">'+welcomeHtml+'</div></div><div class="n-page" id="n-page-msg"><div class="nm" id="nm" role="log" aria-live="polite"></div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div></div><div class="n-page" id="n-page-help"><div class="nv-help" id="nv-help"></div></div></div><div class="nnav" id="nnav"><button class="nnav-btn active" data-page="home" title="Accueil">'+ICONS.home+'<span>Accueil</span></button><button class="nnav-btn" data-page="msg" title="Messages">'+ICONS.messageCircle+'<span>Messages</span></button><button class="nnav-btn" data-page="help" title="Aide">'+ICONS.book+'<span>Aide</span></button></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
+card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="'+tr("aiTitle")+'">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="'+tr("ragTitle")+'">'+ICONS.file+'</button><button id="na-lang" class="nh-btn" title="'+tr("langTitle")+'" style="font-size:11px;font-weight:700">'+(langLabel[lang]||"FR")+'</button><button id="na-max" class="nh-btn" title="'+tr("maxTitle")+'">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="'+tr("resetTitle")+'">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="'+tr("closeTitle")+'">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">'+tr("disconnected")+'</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' '+tr("iaActive")+'</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669" title="'+tr("ragTitleTooltip")+'">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">'+tr("modeDefault")+'</span></div><div class="n-views" id="n-views"><div class="n-page active" id="n-page-home"><div class="nv-home" id="nv-home">'+welcomeHtml+'</div></div><div class="n-page" id="n-page-msg"><div class="nm" id="nm" role="log" aria-live="polite"></div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="'+tr("placeholder")+'" rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div></div><div class="n-page" id="n-page-help"><div class="nv-help" id="nv-help"></div></div></div><div class="nnav" id="nnav"><button class="nnav-btn active" data-page="home" title="Accueil">'+ICONS.home+'<span>Accueil</span></button><button class="nnav-btn" data-page="msg" title="Messages">'+ICONS.messageCircle+'<span>Messages</span></button><button class="nnav-btn" data-page="help" title="Aide">'+ICONS.book+'<span>Aide</span></button></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
 document.body.appendChild(card);
 
 /* Navigation entre vues */
@@ -480,7 +626,7 @@ function renderHelpFAQ(){
   if(!el||el.dataset.rendered) return;
   el.dataset.rendered="true";
   if(!KB||KB.length===0){
-    el.innerHTML='<div class="nv-empty">Aucune question disponible pour le moment.</div>';
+    el.innerHTML='<div class="nv-empty">'+tr("faqEmpty")+'</div>';
     return;
   }
   var cats={};
@@ -489,7 +635,7 @@ function renderHelpFAQ(){
     if(!cats[c])cats[c]=[];
     cats[c].push(KB[ki].q);
   }
-  var html='<div class="nv-hdr">'+ICONS.book+' Questions fr\u00e9quentes</div>';
+  var html='<div class="nv-hdr">'+ICONS.book+' '+tr("faqHeader")+'</div>';
   var catKeys=Object.keys(cats).sort();
   for(var ci=0;ci<catKeys.length;ci++){
     var cat=catKeys[ci];
@@ -597,8 +743,8 @@ var chatHistory=[];
 
 function buildFeedback(msgId,respText,src,scr,prov){
   if(!msgId) return "";
-  var labels=["Très mauvais","Mauvais","Moyen","Bien","Excellent"];
-  var html='<div class="nfb" id="nfb-'+msgId+'"><span class="nfb-label">Votre avis :</span><span class="nfb-stars">';
+  var labels=tr("feedbackLabels").split(",");
+  var html='<div class="nfb" id="nfb-'+msgId+'"><span class="nfb-label">'+tr("feedbackLabel")+'</span><span class="nfb-stars">';
   for(var fi=1;fi<=5;fi++){
     html+='<span class="nfb-star" data-r="'+fi+'" data-mid="'+msgId+'" data-q="'+escAttr(lastQuestion)+'" data-resp="'+escAttr(respText)+'" data-src="'+escAttr(src||"")+'" data-scr="'+(scr||0)+'" data-prov="'+escAttr(prov||"")+'" title="'+labels[fi-1]+'">★</span>';
   }
@@ -617,7 +763,7 @@ function submitFeedback(msgId,rating,question,response,source,score,provider){
       if(el){
         var stars="";
         for(var si=0;si<rating;si++) stars+="⭐";
-        el.innerHTML='<span class="nfb-done">Merci ! '+stars+'</span>';
+        el.innerHTML='<span class="nfb-done">'+tr("feedbackThanks")+' '+stars+'</span>';
       }
     }
   };
@@ -638,15 +784,15 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
     var copyId="cp-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
     var extraLinks="";
     if(source_url){
-      extraLinks=' <a href="'+escAttr(source_url)+'" target="_blank" class="nsrc" style="text-decoration:underline;font-weight:600">\\ud83d\\udcc4 T\u00e9l\u00e9charger</a>';
+      extraLinks=' <a href="'+escAttr(source_url)+'" target="_blank" class="nsrc" style="text-decoration:underline;font-weight:600">'+tr("download")+'</a>';
     }
     if(valid_until){
       var isExpired=new Date(valid_until)<new Date();
-      extraLinks+=' <span class="nsrc" style="color:'+(isExpired?"#dc2626":"#16a34a")+'">'+(isExpired?"Expir\u00e9e":"Valide")+'</span>';
+      extraLinks+=' <span class="nsrc" style="color:'+(isExpired?"#dc2626":"#16a34a")+'">'+(isExpired?tr("expired"):tr("valid"))+'</span>';
     }
     if(source==="kb"&&score!=null){
       var cls=score>70?"green":score>40?"orange":"red";
-      sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">Base de connaissances</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">'+tr("sourceKb")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
     }else if(source==="rag"){
       var docLinks="";
       if(documents&&documents.length>0){
@@ -657,15 +803,15 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
         }
         docLinks+='</div>';
       }
-      sourceHtml='<div class="nft"><span class="nsrc">Documentation technique</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>'+docLinks;
+      sourceHtml='<div class="nft"><span class="nsrc">'+tr("sourceRag")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>'+docLinks;
     }else if(source==="ai"&&provider){
-      sourceHtml='<div class="nft"><span class="nsrc ai">Propuls\u00e9 par '+escHtml(provider)+(clientName?" + contexte "+escHtml(clientName):"")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft"><span class="nsrc ai">'+tr("poweredBy")+' '+escHtml(provider)+(clientName?" + contexte "+escHtml(clientName):"")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
     }else if(source==="escalade"){
-      sourceHtml='<div class="nft"><span class="nsc orange">📋 Contact humain</span><span class="nsrc" style="color:#92400e">Notre équipe reste à votre écoute</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft"><span class="nsc orange">'+tr("sourceHuman")+'</span><span class="nsrc" style="color:#92400e">'+tr("sourceHumanSub")+'</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
     }else if(source==="fallback"){
-      sourceHtml='<div class="nft"><span class="nsrc">Fallback</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft"><span class="nsrc">Fallback</span>'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
     }else{
-      sourceHtml='<div class="nft">'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+      sourceHtml='<div class="nft">'+extraLinks+'<button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
     }
     var feedbackHtml=messageId?buildFeedback(messageId,text,source,score,provider):"";
     row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+feedbackHtml+'<div class="nts">'+time+'</div></div>';
@@ -673,9 +819,9 @@ function addMsg(text,role,source,provider,clientName,score,source_url,valid_unti
       var cb=document.getElementById(copyId);
       if(cb)cb.onclick=function(){
         navigator.clipboard.writeText(text).then(function(){
-          cb.innerHTML=ICONS.copy+" Copi\u00e9 !";
+          cb.innerHTML=ICONS.copy+" "+tr("copied");
           cb.classList.add("done");
-          setTimeout(function(){cb.innerHTML=ICONS.copy+" Copier";cb.classList.remove("done")},1500);
+          setTimeout(function(){cb.innerHTML=ICONS.copy+" "+tr("copy");cb.classList.remove("done")},1500);
         });
       };
     },0);
@@ -722,7 +868,7 @@ function addSuggestions(questions){
   var box=document.getElementById("nm");
   var label=document.createElement("div");
   label.className="nchips-label";
-  label.textContent="\ud83d\udcd0 Suggestions d\u2019experts CETIM \u2014 cliquez pour explorer :";
+  label.textContent=tr("suggestionsLabel");
   box.appendChild(label);
   var cp=document.createElement("div");cp.className="nchips";
   for(var ri=0;ri<questions.length;ri++){
@@ -765,15 +911,15 @@ function finalizeStreaming(row,text,source,provider,score,messageId){
   var sourceHtml="";
   if(source==="kb"&&score!=null){
     var cls=score>70?"green":score>40?"orange":"red";
-    sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">Base de connaissances</span><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+    sourceHtml='<div class="nft"><span class="nsc '+cls+'">\\u2713 '+score+'%</span><span class="nsrc">'+tr("sourceKb")+'</span><button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
   }else if(source==="rag"){
-    sourceHtml='<div class="nft"><span class="nsrc">Documentation technique</span><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+    sourceHtml='<div class="nft"><span class="nsrc">'+tr("sourceRag")+'</span><button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
   }else if(source==="qa"){
-    sourceHtml='<div class="nft"><span class="nsrc">Base de connaissances</span><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+    sourceHtml='<div class="nft"><span class="nsrc">'+tr("sourceKb")+'</span><button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
   }else if(source==="escalade"){
-    sourceHtml='<div class="nft"><span class="nsc orange">\\ud83d\\udccb Contact humain</span><span class="nsrc" style="color:#92400e">Notre \u00e9quipe reste \u00e0 votre \u00e9coute</span><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+    sourceHtml='<div class="nft"><span class="nsc orange">'+tr("sourceHuman")+'</span><span class="nsrc" style="color:#92400e">'+tr("sourceHumanSub")+'</span><button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
   }else{
-    sourceHtml='<div class="nft"><button class="ncopy" id="'+copyId+'" aria-label="Copier">'+ICONS.copy+' Copier</button></div>';
+    sourceHtml='<div class="nft"><button class="ncopy" id="'+copyId+'" aria-label="'+tr("copy")+'">'+ICONS.copy+' '+tr("copy")+'</button></div>';
   }
   var feedbackHtml=messageId?buildFeedback(messageId,text,source,score,provider):"";
   row.innerHTML='<div class="nba'+aiCls+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="'+bubbleCls+'">'+renderMarkdown(text)+'</div>'+sourceHtml+feedbackHtml+'<div class="nts">'+time+'</div></div>';
@@ -781,8 +927,8 @@ function finalizeStreaming(row,text,source,provider,score,messageId){
     var cb=document.getElementById(copyId);
     if(cb)cb.onclick=function(){
       navigator.clipboard.writeText(text).then(function(){
-        cb.innerHTML=ICONS.copy+" Copi\u00e9 !";cb.classList.add("done");
-        setTimeout(function(){cb.innerHTML=ICONS.copy+" Copier";cb.classList.remove("done")},1500);
+        cb.innerHTML=ICONS.copy+" "+tr("copied");cb.classList.add("done");
+        setTimeout(function(){cb.innerHTML=ICONS.copy+" "+tr("copy");cb.classList.remove("done")},1500);
       });
     };
   },0);
@@ -808,7 +954,7 @@ function showTyping(){
   var box=document.getElementById("nm");
   if(document.getElementById("nty")) return;
   var d=document.createElement("div");d.className="nty";d.id="nty";d.setAttribute("aria-label","En train de r\u00e9pondre...");
-  d.innerHTML='<div class="nba'+(aiMode?" ai":"")+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="nty-bbl"><div class="nty-label">R\u00e9flexion en cours\u2026</div><div class="nty-dots" aria-hidden="true"><span></span><span></span><span></span></div></div></div>';
+  d.innerHTML='<div class="nba'+(aiMode?" ai":"")+'" aria-hidden="true">'+getAvatar()+'</div><div class="nmsg-bot"><div class="nty-bbl"><div class="nty-label">'+tr("typing")+'</div><div class="nty-dots" aria-hidden="true"><span></span><span></span><span></span></div></div></div>';
   box.appendChild(d);box.scrollTop=box.scrollHeight;
 }
 function hideTyping(){var d=document.getElementById("nty");if(d)d.remove();}
@@ -857,7 +1003,7 @@ function sendMessage(text){
   if(!text||isLoading) return;
   hasInteracted=true;
   if(!navigator.onLine){
-    addMsg("Vous \u00eates hors ligne. Veuillez v\u00e9rifier votre connexion.","bot","fallback");
+    addMsg(tr("offline"),"bot","fallback");
     return;
   }
   if(text.length>e.maxMessageLength) text=text.slice(0,e.maxMessageLength);
@@ -870,10 +1016,10 @@ function sendMessage(text){
   document.getElementById("ni").style.height="auto";
   updateCharCounter();
 
-  var bodyPayload=JSON.stringify({message:text,history:chatHistory.slice(0,-1),aiMode:aiMode,ragOnly:ragMode,pageUrl:window.location.href,pageTitle:document.title,isVisitor:true,stream:true});
+  var bodyPayload=JSON.stringify({message:text,history:chatHistory.slice(0,-1),aiMode:aiMode,ragOnly:ragMode,pageUrl:window.location.href,pageTitle:document.title,isVisitor:true,stream:true,lang:lang});
   fetch(e.chatUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:bodyPayload,signal:AbortSignal.timeout(60000)}).then(function(res){
-    if(res.status===429){setLoading(false);addMsg("Trop de requ\u00eates. Veuillez patienter quelques secondes.","bot","fallback");return}
-    if(res.status>=500){setLoading(false);addMsg("Service temporairement indisponible. Veuillez r\u00e9essayer.","bot","fallback");return}
+    if(res.status===429){setLoading(false);addMsg(tr("tooMany"),"bot","fallback");return}
+    if(res.status>=500){setLoading(false);addMsg(tr("serverError"),"bot","fallback");return}
     var ct=res.headers.get("content-type")||"";
     if(ct.indexOf("text/event-stream")===-1){
       return res.json().then(function(resp){
@@ -883,7 +1029,7 @@ function sendMessage(text){
         chatHistory.push({role:"assistant",content:resp.response});
         if(chatHistory.length>e.maxHistoryLength) chatHistory=chatHistory.slice(-e.maxHistoryLength);
         addSuggestions(resp.suggestions);
-      }).catch(function(){addMsg("Erreur de response.","bot","fallback")});
+      }).catch(function(){addMsg(tr("responseError"),"bot","fallback")});
     }
     var reader=res.body.getReader();
     var decoder=new TextDecoder();
@@ -939,13 +1085,13 @@ function sendMessage(text){
         buffer+=decoder.decode(result.value,{stream:true});
         processBuffer();
         readStream();
-      }).catch(function(){setLoading(false);addMsg("Erreur de flux. Veuillez r\u00e9essayer.","bot","fallback")});
+      }).catch(function(){setLoading(false);addMsg(tr("streamError"),"bot","fallback")});
     }
     readStream();
   }).catch(function(err){
     setLoading(false);
-    if(err.name==="TimeoutError") addMsg("La requ\u00eate a expir\u00e9. Veuillez r\u00e9essayer.","bot","fallback");
-    else addMsg("Erreur r\u00e9seau. V\u00e9rifiez votre connexion.","bot","fallback");
+    if(err.name==="TimeoutError") addMsg(tr("timeout"),"bot","fallback");
+    else addMsg(tr("networkError"),"bot","fallback");
   });
 }
 /* Escape to close */
@@ -965,13 +1111,13 @@ document.getElementById("na-max").onclick=function(){
   maximized=!maximized;
   c.classList.toggle("max",maximized);
   b.innerHTML=maximized?ICONS.minimize:ICONS.maximize;
-  b.title=maximized?"R\u00e9duire":"Agrandir";
+  b.title=maximized?tr("minTitle"):tr("maxTitle");
 };
 
 /* Reset conversation */
 document.getElementById("na-reset").onclick=function(){
   if(chatHistory.length===0) return;
-  if(!confirm("R\u00e9initialiser la conversation ?")) return;
+  if(!confirm(tr("resetConfirm"))) return;
   chatHistory=[];
   document.getElementById("nm").innerHTML="";
   greetingSent=false;
@@ -981,6 +1127,7 @@ document.getElementById("na-reset").onclick=function(){
 /* AI toggle events */
 document.getElementById("na-ai").onclick=toggleAI;
 document.getElementById("na-rag").onclick=toggleRAG;
+document.getElementById("na-lang").onclick=toggleLang;
 
 /* Close button */
 document.getElementById("na-close").onclick=function(){
