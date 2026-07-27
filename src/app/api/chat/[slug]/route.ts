@@ -548,7 +548,28 @@ async function handleStreamingRequest(
           }
         }
 
-        if (intent.intent !== "REQUETE_METIER") {
+        /* Chercher dans la KB d'abord, quelque soit l'intention */
+        const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
+        const KB = kbEntries.map((k: any) => ({
+          tag: k.tag, question: k.question, alt_questions: k.alt_questions || "", answer: k.answer,
+          category: k.category, keywords: k.keywords || "", priority: k.priority ?? 5,
+          source: k.source || "", source_url: k.source_url || "", valid_until: k.valid_until || "",
+        }));
+
+        const { match, score, isKeyword } = findBestMatch(message, KB);
+        const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
+
+        const ragThreshold = client.ragThreshold ?? 40;
+        /* Short query guard */
+        if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
+          send("metadata", { messageId, source: "skip", score: 0 });
+          finish();
+          return;
+        }
+
+        /* Si pas de bon match KB et l'intention n'est pas métier → fallback intention */
+        const hasGoodKbMatch = match && score >= kbThreshold;
+        if (!hasGoodKbMatch && intent.intent !== "REQUETE_METIER") {
           if (!aiMode) {
             const fallback = intent.intent === "AVIS"
               ? `Je suis l'assistant de ${client.name}. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?`
@@ -561,7 +582,7 @@ async function handleStreamingRequest(
             finish();
             return;
           }
-          /* aiMode : stream l'intention IA */
+          /* aiMode : laisser l'IA répondre avec le prompt adapté à l'intention */
           const keyEntry = await resolveApiKey(client);
           if (keyEntry?.key) {
             const providerId = client.aiProvider || detectProvider(keyEntry.key).id;
@@ -589,24 +610,6 @@ async function handleStreamingRequest(
           send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
           send("token", { content: fallbackText });
           saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
-          finish();
-          return;
-        }
-
-        const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
-        const KB = kbEntries.map((k: any) => ({
-          tag: k.tag, question: k.question, alt_questions: k.alt_questions || "", answer: k.answer,
-          category: k.category, keywords: k.keywords || "", priority: k.priority ?? 5,
-          source: k.source || "", source_url: k.source_url || "", valid_until: k.valid_until || "",
-        }));
-
-        const { match, score, isKeyword } = findBestMatch(message, KB);
-        const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
-
-        const ragThreshold = client.ragThreshold ?? 40;
-        /* Short query guard */
-        if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
-          send("metadata", { messageId, source: "skip", score: 0 });
           finish();
           return;
         }
@@ -830,7 +833,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
   }
 
-  if (intent.intent !== "REQUETE_METIER") {
+  /* Chercher dans la KB d'abord, quelque soit l'intention */
+  const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
+
+  const KB = kbEntries.map((k: any) => ({
+    tag: k.tag,
+    question: k.question,
+    alt_questions: k.alt_questions || "",
+    answer: k.answer,
+    category: k.category,
+    keywords: k.keywords || "",
+    priority: k.priority ?? 5,
+    source: k.source || "",
+    source_url: k.source_url || "",
+    valid_until: k.valid_until || "",
+  }));
+
+  const { match, score, isKeyword } = findBestMatch(message, KB);
+  const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
+  const ragThreshold = client.ragThreshold ?? 40;
+
+  /* ── Short query guard (only if no good KB match) ── */
+  if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
+    return NextResponse.json(filterResponse({
+      messageId,
+      response: "",
+      source: "skip",
+      score: 0,
+      suggestions: [],
+    }, isVisitor), { headers: corsHeaders });
+  }
+
+  /* Si pas de bon match KB et l'intention n'est pas métier → fallback intention */
+  const hasGoodKbMatch = match && score >= kbThreshold;
+  if (!hasGoodKbMatch && intent.intent !== "REQUETE_METIER") {
     console.log(`[Nova Chat] Intent="${intent.intent}" confidence=${intent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
     if (!aiMode) {
       const fallback = intent.intent === "AVIS"
@@ -888,38 +924,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       score: 0,
     }, isVisitor), { headers: corsHeaders });
   }
-
-  const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
-
-  const KB = kbEntries.map((k: any) => ({
-    tag: k.tag,
-    question: k.question,
-    alt_questions: k.alt_questions || "",
-    answer: k.answer,
-    category: k.category,
-    keywords: k.keywords || "",
-    priority: k.priority ?? 5,
-    source: k.source || "",
-    source_url: k.source_url || "",
-    valid_until: k.valid_until || "",
-  }));
-
-  const { match, score, isKeyword } = findBestMatch(message, KB);
-  const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
-  const ragThreshold = client.ragThreshold ?? 40;
-
-  /* ── Short query guard (only if no good KB match) ── */
-  if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
-    return NextResponse.json(filterResponse({
-      messageId,
-      response: "",
-      source: "skip",
-      score: 0,
-      suggestions: [],
-    }, isVisitor), { headers: corsHeaders });
-  }
-
-
 
   /* ── RAG ONLY MODE : skip KB, go directly to RAG ── */
   if (ragOnly) {
