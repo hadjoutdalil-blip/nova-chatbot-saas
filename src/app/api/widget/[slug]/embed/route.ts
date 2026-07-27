@@ -534,8 +534,8 @@ document.getElementById("ni").oninput=function(){
 
 /* welcome chip clicks */
 document.querySelectorAll(".nw-chip").forEach(function(el){
-  el.addEventListener("click",function(){sendMessage((this.dataset.q||this.textContent).trim())});
-  el.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();sendMessage((this.dataset.q||this.textContent).trim())}});
+  el.addEventListener("click",function(){switchPage("msg");sendMessage((this.dataset.q||this.textContent).trim())});
+  el.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();switchPage("msg");sendMessage((this.dataset.q||this.textContent).trim())}});
 });
 
 /* Proactive engagement */
