@@ -35,6 +35,10 @@ export async function POST(req: NextRequest) {
         buttonLabelDuration: body.buttonLabelDuration ?? undefined,
         buttonIcon: body.buttonIcon ?? undefined,
         aiColor: body.aiColor ?? undefined,
+        widgetWidth: body.widgetWidth ?? undefined,
+        widgetHeight: body.widgetHeight ?? undefined,
+        widgetMaxWidth: body.widgetMaxWidth ?? undefined,
+        widgetMaxHeight: body.widgetMaxHeight ?? undefined,
       },
     });
     return NextResponse.json(updated);
@@ -64,6 +68,10 @@ export async function POST(req: NextRequest) {
       buttonLabelDuration: body.buttonLabelDuration ?? 8,
       buttonIcon: body.buttonIcon ?? "",
       aiColor: body.aiColor || "#7c3aed",
+      widgetWidth: body.widgetWidth ?? 420,
+      widgetHeight: body.widgetHeight ?? 700,
+      widgetMaxWidth: body.widgetMaxWidth ?? 820,
+      widgetMaxHeight: body.widgetMaxHeight ?? 820,
     },
   });
   return NextResponse.json(config, { status: 201 });
@@ -103,6 +111,10 @@ export async function PUT(req: NextRequest) {
         buttonLabelDuration: body.buttonLabelDuration ?? 8,
         buttonIcon: body.buttonIcon ?? "",
         aiColor: body.aiColor || "#7c3aed",
+        widgetWidth: body.widgetWidth ?? 420,
+        widgetHeight: body.widgetHeight ?? 700,
+        widgetMaxWidth: body.widgetMaxWidth ?? 820,
+        widgetMaxHeight: body.widgetMaxHeight ?? 820,
       },
     });
     return NextResponse.json(config);
@@ -122,14 +134,19 @@ export async function PUT(req: NextRequest) {
       autoOpenDelay: body.autoOpenDelay ?? undefined,
       showNotification: body.showNotification ?? undefined,
       notificationText: body.notificationText ?? undefined,
-      sendGreeting: body.sendGreeting ?? undefined,
-      scrollTrigger: body.scrollTrigger ?? undefined,
+       sendGreeting: body.sendGreeting ?? undefined,
+       greetingMsg: body.greetingMsg ?? undefined,
+       scrollTrigger: body.scrollTrigger ?? undefined,
       exitIntent: body.exitIntent ?? undefined,
         buttonAnimation: body.buttonAnimation ?? undefined,
         buttonLabel: body.buttonLabel ?? undefined,
         buttonLabelDuration: body.buttonLabelDuration ?? undefined,
         buttonIcon: body.buttonIcon ?? undefined,
         aiColor: body.aiColor ?? undefined,
+        widgetWidth: body.widgetWidth ?? undefined,
+        widgetHeight: body.widgetHeight ?? undefined,
+        widgetMaxWidth: body.widgetMaxWidth ?? undefined,
+        widgetMaxHeight: body.widgetMaxHeight ?? undefined,
       },
     });
     return NextResponse.json(updated);

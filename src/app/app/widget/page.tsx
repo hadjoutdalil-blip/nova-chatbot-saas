@@ -41,6 +41,10 @@ export default function AppWidgetPage() {
     position: "right",
     marginBottom: 20,
     marginRight: 20,
+    widgetWidth: 420,
+    widgetHeight: 700,
+    widgetMaxWidth: 820,
+    widgetMaxHeight: 820,
     proactiveEnabled: false,
     autoOpenDelay: 5,
     showNotification: true,
@@ -87,6 +91,10 @@ export default function AppWidgetPage() {
             position: wc.position,
             marginBottom: wc.marginBottom,
             marginRight: wc.marginRight,
+            widgetWidth: wc.widgetWidth ?? 420,
+            widgetHeight: wc.widgetHeight ?? 700,
+            widgetMaxWidth: wc.widgetMaxWidth ?? 820,
+            widgetMaxHeight: wc.widgetMaxHeight ?? 820,
             proactiveEnabled: wc.proactiveEnabled === true,
             autoOpenDelay: wc.autoOpenDelay ?? 5,
             showNotification: wc.showNotification !== false,
@@ -315,6 +323,30 @@ export default function AppWidgetPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Marge {form.position === "right" ? "droite" : "gauche"} (px)</label>
                 <input type="number" value={form.marginRight} onChange={(e) => setForm({ ...form, marginRight: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-5 mt-4">
+              <h3 className="font-semibold text-sm text-gray-800 mb-3">Taille du widget</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Largeur (px)</label>
+                  <input type="number" value={form.widgetWidth} onChange={(e) => setForm({ ...form, widgetWidth: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Hauteur (px)</label>
+                  <input type="number" value={form.widgetHeight} onChange={(e) => setForm({ ...form, widgetHeight: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Largeur max (px)</label>
+                  <input type="number" value={form.widgetMaxWidth} onChange={(e) => setForm({ ...form, widgetMaxWidth: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Hauteur max (px)</label>
+                  <input type="number" value={form.widgetMaxHeight} onChange={(e) => setForm({ ...form, widgetMaxHeight: +e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
+                </div>
               </div>
             </div>
 

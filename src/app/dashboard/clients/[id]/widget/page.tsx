@@ -17,6 +17,10 @@ export default function ClientWidgetPage() {
     position: "right",
     marginBottom: 20,
     marginRight: 20,
+    widgetWidth: 420,
+    widgetHeight: 700,
+    widgetMaxWidth: 820,
+    widgetMaxHeight: 820,
     proactiveEnabled: false,
     autoOpenDelay: 5,
     showNotification: true,
@@ -61,6 +65,10 @@ export default function ClientWidgetPage() {
             position: wc.position,
             marginBottom: wc.marginBottom,
             marginRight: wc.marginRight,
+            widgetWidth: wc.widgetWidth ?? 420,
+            widgetHeight: wc.widgetHeight ?? 700,
+            widgetMaxWidth: wc.widgetMaxWidth ?? 820,
+            widgetMaxHeight: wc.widgetMaxHeight ?? 820,
             proactiveEnabled: wc.proactiveEnabled === true,
             autoOpenDelay: wc.autoOpenDelay ?? 5,
             showNotification: wc.showNotification !== false,
@@ -298,6 +306,30 @@ export default function ClientWidgetPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Marge {form.position === "right" ? "droite" : "gauche"} (px)</label>
                 <input type="number" value={form.marginRight} onChange={(e) => setForm({ ...form, marginRight: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-2">
+              <h3 className="font-semibold text-sm mb-3">Taille du widget</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Largeur (px)</label>
+                  <input type="number" value={form.widgetWidth} onChange={(e) => setForm({ ...form, widgetWidth: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Hauteur (px)</label>
+                  <input type="number" value={form.widgetHeight} onChange={(e) => setForm({ ...form, widgetHeight: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Largeur max (px)</label>
+                  <input type="number" value={form.widgetMaxWidth} onChange={(e) => setForm({ ...form, widgetMaxWidth: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Hauteur max (px)</label>
+                  <input type="number" value={form.widgetMaxHeight} onChange={(e) => setForm({ ...form, widgetMaxHeight: +e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                </div>
               </div>
             </div>
             <label className="flex items-center gap-2">
