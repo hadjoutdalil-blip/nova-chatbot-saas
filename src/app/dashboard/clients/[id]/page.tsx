@@ -59,6 +59,7 @@ const TABS = [
   { id: "rag-stats", label: "Stats RAG", icon: <TrendingUp size={16} /> },
   { id: "test", label: "Test", icon: <FlaskConical size={16} /> },
   { id: "evaluation", label: "Évaluation", icon: <CheckSquare size={16} /> },
+  { id: "proposals", label: "Propositions", icon: <MessageSquare size={16} /> },
 ];
 
 export default function EditClientPage() {
@@ -1141,6 +1142,28 @@ export default function EditClientPage() {
                   className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 px-6 py-2.5 text-sm rounded-xl"
                 >
                   Ouvrir la page d&apos;évaluation
+                </a>
+              </div>
+            </Card>
+          </div>
+        )}
+        {/* ── Propositions ── */}
+        {tab === "proposals" && (
+          <div className="max-w-2xl">
+            <Card>
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                <MessageSquare size={18} className="text-emerald-600" />
+                <h2 className="font-semibold text-gray-900">Propositions</h2>
+              </div>
+              <p className="text-gray-500 text-sm mb-5 leading-relaxed">
+                Gestion des propositions de questions soumises par les visiteurs. Approuvez, rejetez ou convertissez en entrée KB.
+              </p>
+              <div className="flex gap-3">
+                <a
+                  href={`/dashboard/clients/${id}/proposals`}
+                  className="inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 px-6 py-2.5 text-sm rounded-xl"
+                >
+                  Ouvrir la page des propositions
                 </a>
               </div>
             </Card>
