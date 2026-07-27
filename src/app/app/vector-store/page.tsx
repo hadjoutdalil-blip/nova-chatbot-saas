@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2, Loader2, Upload } from "lucide-react";
+import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2, Loader2, Upload, FileText } from "lucide-react";
 
 interface ChunkRow {
   id: string;
@@ -27,9 +27,17 @@ interface TestResult {
   docId: string;
 }
 
+const TABS = [
+  { id: "test", label: "Tester la recherche vectorielle", icon: TestTube2 },
+  { id: "import", label: "Importer un fichier", icon: Upload },
+  { id: "docs", label: "Documents indexés", icon: FileText },
+  { id: "chunks", label: "Chunks", icon: Database },
+];
+
 function token() { return localStorage.getItem("token") || ""; }
 
 export default function ClientVectorStorePage() {
+  const [tab, setTab] = useState("test");
   const [total, setTotal] = useState(0);
   const [perDoc, setPerDoc] = useState<any[]>([]);
   const [chunks, setChunks] = useState<ChunkRow[]>([]);
@@ -149,169 +157,205 @@ export default function ClientVectorStorePage() {
       <h1 className="text-2xl font-bold mb-1">Base vectorielle</h1>
       <p className="text-gray-500 mb-6">Consultez les documents indexés et testez la recherche sémantique.</p>
 
-      {/* Documents indexés */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
-        <h2 className="font-semibold text-sm mb-3 flex items-center gap-2">
-          <Database size={16} className="text-emerald-600" />
-          Documents indexés
-        </h2>
-        {perDoc.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-gray-400 text-sm mb-3">Aucun document vectorisé</p>
-            <button
-              onClick={handleMigrate}
-              disabled={migrating}
-              className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+      {/* Onglets */}
+      <div className="flex gap-1 mb-6 bg-gray-100/80 rounded-xl p-1 w-fit">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                tab === t.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
-              {migrating ? <Loader2 size={14} className="animate-spin" /> : <Database size={14} />}
-              {migrating ? "Indexation en cours..." : "Indexer mes documents et KB"}
+              <Icon size={16} /> {t.label}
             </button>
-            {migrateResult && <p className="text-xs text-gray-500 mt-2">{migrateResult}</p>}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {perDoc.map((d: any) => (
-              <div key={d.docId} className="flex items-center justify-between text-sm">
-                <span className="text-gray-700 truncate">{d.source}</span>
-                <div className="flex items-center gap-2 shrink-0 ml-3">
-                  <span className="text-emerald-600 font-medium">{d.chunks} chunks</span>
-                  <button onClick={handleMigrate} disabled={migrating} className="text-gray-400 hover:text-emerald-600 p-1" title="Re-indexer">
-                    <Database size={13} />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {migrateResult && <p className="text-xs text-gray-500 mt-1">{migrateResult}</p>}
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* Importer un fichier */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Upload size={16} className="text-emerald-600" />
-          <h2 className="font-semibold text-sm">Importer un fichier</h2>
-        </div>
-        <p className="text-xs text-gray-500 mb-3">Importez un fichier .txt ou .json directement dans la base vectorielle.</p>
-        <div className="flex items-center gap-3">
-          <label className="cursor-pointer">
-            <span className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
-              {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-              {importing ? "Import..." : "Choisir un fichier"}
-            </span>
-            <input id="vector-import-file" type="file" accept=".txt,.json" className="hidden" onChange={handleImport} disabled={importing} />
-          </label>
-          {importResult && <span className="text-xs text-gray-600">{importResult}</span>}
-        </div>
-      </div>
-
-      {/* Test vectoriel */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <TestTube2 size={16} className="text-emerald-600" />
-          <h2 className="font-semibold text-sm">Tester la recherche vectorielle</h2>
-        </div>
-        <div className="flex gap-2 mb-4">
-          <input
-            value={testQuery}
-            onChange={e => setTestQuery(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleTest()}
-            placeholder="Posez une question pour tester la similarité..."
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-          />
-          <button
-            onClick={handleTest}
-            disabled={testing || !testQuery.trim()}
-            className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
-          >
-            <Search size={14} /> {testing ? "Recherche..." : "Tester"}
-          </button>
-        </div>
-        {testResults.length > 0 && (
-          <div className="space-y-2">
-            {testResults.map((r, i) => (
-              <div key={i} className="border border-gray-200 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">{r.source}</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    r.scorePercent >= 80 ? "bg-green-100 text-green-700" :
-                    r.scorePercent >= 60 ? "bg-yellow-100 text-yellow-700" :
-                    "bg-orange-100 text-orange-700"
-                  }`}>
-                    {r.scorePercent}%
-                  </span>
-                </div>
-                {r.section && <p className="text-xs text-gray-400 mb-1">Section: {r.section}</p>}
-                <p className="text-xs text-gray-600 line-clamp-3">{r.content}</p>
-              </div>
-            ))}
+      {/* Onglet: Tester la recherche vectorielle */}
+      {tab === "test" && (
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <TestTube2 size={16} className="text-emerald-600" />
+            <h2 className="font-semibold text-sm">Tester la recherche vectorielle</h2>
           </div>
-        )}
-      </div>
-
-      {/* Chunks */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-sm">Chunks ({total} total)</h2>
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-4">
             <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSearch()}
-              placeholder="Filtrer..."
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-48 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+              value={testQuery}
+              onChange={e => setTestQuery(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleTest()}
+              placeholder="Posez une question pour tester la similarité..."
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
             />
-            <button onClick={handleSearch} className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50">
-              <Search size={14} />
+            <button
+              onClick={handleTest}
+              disabled={testing || !testQuery.trim()}
+              className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Search size={14} /> {testing ? "Recherche..." : "Tester"}
             </button>
+          </div>
+          {testResults.length > 0 && (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {testResults.map((r, i) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">{r.source}</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      r.scorePercent >= 80 ? "bg-green-100 text-green-700" :
+                      r.scorePercent >= 60 ? "bg-yellow-100 text-yellow-700" :
+                      "bg-orange-100 text-orange-700"
+                    }`}>
+                      {r.scorePercent}%
+                    </span>
+                  </div>
+                  {r.section && <p className="text-xs text-gray-400 mb-1">Section: {r.section}</p>}
+                  <p className="text-xs text-gray-600 line-clamp-3">{r.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Onglet: Importer un fichier */}
+      {tab === "import" && (
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <Upload size={16} className="text-emerald-600" />
+            <h2 className="font-semibold text-sm">Importer un fichier</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">Importez un fichier .txt ou .json directement dans la base vectorielle.</p>
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer">
+              <span className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
+                {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {importing ? "Import..." : "Choisir un fichier"}
+              </span>
+              <input id="vector-import-file" type="file" accept=".txt,.json" className="hidden" onChange={handleImport} disabled={importing} />
+            </label>
+            {importResult && <span className="text-xs text-gray-600">{importResult}</span>}
           </div>
         </div>
+      )}
 
-        {loading ? (
-          <p className="text-gray-400 text-sm py-4 text-center">Chargement...</p>
-        ) : chunks.length === 0 ? (
-          <p className="text-gray-400 text-sm py-4 text-center">Aucun chunk trouvé</p>
-        ) : (
-          <div className="space-y-2">
-            {chunks.map(c => (
-              <div key={c.id} className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Database size={12} className="text-emerald-500 shrink-0" />
-                    <span className="text-sm font-medium text-gray-700 truncate">{c.source}</span>
-                    {c.section && <span className="text-xs text-gray-400">/ {c.section}</span>}
+      {/* Onglet: Documents indexés */}
+      {tab === "docs" && (
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <FileText size={16} className="text-emerald-600" />
+            <h2 className="font-semibold text-sm">Documents indexés</h2>
+          </div>
+          {perDoc.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm mb-3">Aucun document vectorisé</p>
+              <button
+                onClick={handleMigrate}
+                disabled={migrating}
+                className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {migrating ? <Loader2 size={14} className="animate-spin" /> : <Database size={14} />}
+                {migrating ? "Indexation en cours..." : "Indexer mes documents et KB"}
+              </button>
+              {migrateResult && <p className="text-xs text-gray-500 mt-2">{migrateResult}</p>}
+            </div>
+          ) : (
+            <div>
+              <div className="space-y-2">
+                {perDoc.map((d: any) => (
+                  <div key={d.docId} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-700 truncate">{d.source}</span>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <span className="text-emerald-600 font-medium">{d.chunks} chunks</span>
+                      <button onClick={handleMigrate} disabled={migrating} className="text-gray-400 hover:text-emerald-600 p-1" title="Re-indexer">
+                        <Database size={13} />
+                      </button>
+                    </div>
                   </div>
-                  <button onClick={() => setViewChunk(c)} className="text-gray-400 hover:text-emerald-600 p-1 shrink-0" title="Voir">
-                    <Eye size={13} />
+                ))}
+              </div>
+              {migrateResult && <p className="text-xs text-gray-500 mt-1">{migrateResult}</p>}
+              {!migrating && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={handleMigrate}
+                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700"
+                  >
+                    <Database size={14} /> Ré-indexer tout
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 line-clamp-2">{c.content}</p>
-                {c.keywords && <p className="text-xs text-emerald-500 mt-1">{c.keywords}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={() => { setPage(p => Math.max(1, p - 1)); loadData(Math.max(1, page - 1), search); }}
-              disabled={page === 1}
-              className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="text-sm text-gray-500">Page {page} / {totalPages}</span>
-            <button
-              onClick={() => { setPage(p => Math.min(totalPages, p + 1)); loadData(Math.min(totalPages, page + 1), search); }}
-              disabled={page === totalPages}
-              className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30"
-            >
-              <ChevronRight size={16} />
-            </button>
+      {/* Onglet: Chunks */}
+      {tab === "chunks" && (
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-sm">Chunks ({total} total)</h2>
+            <div className="flex gap-2">
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
+                placeholder="Filtrer..."
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-48 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+              />
+              <button onClick={handleSearch} className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50">
+                <Search size={14} />
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {loading ? (
+            <p className="text-gray-400 text-sm py-4 text-center">Chargement...</p>
+          ) : chunks.length === 0 ? (
+            <p className="text-gray-400 text-sm py-4 text-center">Aucun chunk trouvé</p>
+          ) : (
+            <div className="space-y-2">
+              {chunks.map(c => (
+                <div key={c.id} className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Database size={12} className="text-emerald-500 shrink-0" />
+                      <span className="text-sm font-medium text-gray-700 truncate">{c.source}</span>
+                      {c.section && <span className="text-xs text-gray-400">/ {c.section}</span>}
+                    </div>
+                    <button onClick={() => setViewChunk(c)} className="text-gray-400 hover:text-emerald-600 p-1 shrink-0" title="Voir">
+                      <Eye size={13} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 line-clamp-2">{c.content}</p>
+                  {c.keywords && <p className="text-xs text-emerald-500 mt-1">{c.keywords}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-4 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => { setPage(p => Math.max(1, p - 1)); loadData(Math.max(1, page - 1), search); }}
+                disabled={page === 1}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm text-gray-500">Page {page} / {totalPages}</span>
+              <button
+                onClick={() => { setPage(p => Math.min(totalPages, p + 1)); loadData(Math.min(totalPages, page + 1), search); }}
+                disabled={page === totalPages}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal détail chunk */}
       {viewChunk && (
