@@ -337,6 +337,22 @@ ${rules}
   return { system, user: message };
 }
 
+/* ── KB TRANSLATION ────────────────────────────────── */
+async function translateKbAnswer(text: string, lang: string, client: any): Promise<string> {
+  if (lang === "fr" || !text) return text;
+  try {
+    const keyEntry = await resolveApiKey(client);
+    if (!keyEntry?.key) return text;
+    const target = lang === "en" ? "English" : "Arabic";
+    const providerInfo = detectProvider(keyEntry.key);
+    const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
+    const { text: translated } = await callAI(keyEntry.key, providerInfo.id, model,
+      `Translate the following text to ${target}. Keep all formatting (markdown, emojis, lists, line breaks, bold, tables) exactly as-is. Respond ONLY with the translation, no preamble.`,
+      text, 0.05, [], 1500);
+    return translated || text;
+  } catch { return text; }
+}
+
 /* ── AI CALL ────────────────────────────────────────── */
 async function callAI(apiKey: string, providerId: string, model: string, system: string, user: string, temperature: number, history: any[], max_tokens: number = 600) {
   const provider = PROVIDERS[providerId];
@@ -767,11 +783,12 @@ async function handleStreamingRequest(
 
         /* NIVEAU 1 : QA VALIDÉE */
         if (match && score >= kbThreshold) {
-          if (score === 100 || !aiMode) {
+          if ((score === 100 && lang === "fr") || !aiMode) {
             const extra: any = {};
             if (!isVisitor) { extra.source_url = match.source_url || ""; extra.valid_until = match.valid_until || ""; }
+            const answer = !aiMode && lang !== "fr" ? await translateKbAnswer(match.answer, lang, client) : match.answer;
             extra.suggestions = findRelated(match, KB, 3);
-            sendDirect(match.answer, "kb", extra);
+            sendDirect(answer, "kb", extra);
             finish();
             return;
           }
@@ -1119,11 +1136,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 1 : QA VALIDÉE ── */
   if (match && score >= kbThreshold) {
-    if (score === 100 || !aiMode) {
-      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+    if ((score === 100 && lang === "fr") || !aiMode) {
+      const answer = !aiMode && lang !== "fr" ? await translateKbAnswer(match.answer, lang, client) : match.answer;
+      saveConversation(client, history || [], message, answer, "kb", "", score, geoPromise);
       return NextResponse.json(filterResponse({
         messageId,
-        response: match.answer,
+        response: answer,
         source: "kb",
         score,
         source_url: match.source_url || "",
