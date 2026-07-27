@@ -32,12 +32,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     })
   );
   const WC_JSON = JSON.stringify(kbEntries.slice(0, 4).map((k: any) => k.question));
+  const KB_JSON = JSON.stringify(kbEntries.map((k: any) => ({ c: k.category || "G\u00e9n\u00e9ral", q: k.question })));
 
   const script = `(function(){
 var e={aiColor:"${escapeJs(widgetConfig?.aiColor||"#7c3aed")}",chatUrl:"${escapeJs(chatUrl)}",name:"${escapeJs(name)}",logo:"${escapeJs(logo)}",primaryColor:"${escapeJs(primaryColor)}",position:"${escapeJs(pos)}",marginBottom:${mb},marginRight:${mr},welcomeTitle:"${escapeJs(welcomeTitle)}",welcomeSub:"${escapeJs(welcomeSub)}",greetingMsg:"${escapeJs(widgetConfig?.greetingMsg||"")}",showBrand:${showBrand},avatarIcon:"${avatarIcon}",buttonAnimation:"${escapeJs(widgetConfig?.buttonAnimation||"pulse")}",buttonLabel:"${escapeJs(widgetConfig?.buttonLabel??"")}",buttonLabelDuration:${widgetConfig?.buttonLabelDuration??8},maxMessageLength:500,maxHistoryLength:20,proactiveEnabled:${widgetConfig?.proactiveEnabled===true},autoOpenDelay:${widgetConfig?.autoOpenDelay??5},showNotification:${widgetConfig?.showNotification!==false},notificationText:"${escapeJs(widgetConfig?.notificationText??"")}",sendGreeting:${widgetConfig?.sendGreeting===true},scrollTrigger:${widgetConfig?.scrollTrigger??0},exitIntent:${widgetConfig?.exitIntent===true}};
 
 var KQ=${KQ_JSON};
 var WC=${WC_JSON};
+var KB=${KB_JSON};
 
 /* Mode IA */
 var aiKey="nova_ai_"+e.name.replace(/[^a-z0-9]/gi,"_");
@@ -143,11 +145,11 @@ C+=".nb-label::after{content:'';position:absolute;top:50%;"+(e.position==="right
 C+=".nb-label.o{opacity:0;transform:translateY(8px);pointer-events:none;transition:all .35s ease}";
 C+="@keyframes nb-label-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}";
 /* card */
-C+=".nc{position:fixed;bottom:"+(e.marginBottom+76)+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:420px;max-width:calc(100vw - 32px);height:600px;max-height:calc(100vh - 120px);background:#fff;border-radius:24px;box-shadow:0 16px 48px rgba(0,0,0,.18);z-index:999998;display:none;flex-direction:column;overflow:hidden;animation:nf .32s cubic-bezier(.4,0,.2,1);transform-origin:bottom "+e.position+"}";
+C+=".nc{position:fixed;bottom:"+(e.marginBottom+76)+"px;"+op+":auto;"+e.position+":"+e.marginRight+"px;width:420px;max-width:calc(100vw - 32px);height:700px;max-height:calc(100vh - 120px);background:#fff;border-radius:24px;box-shadow:0 16px 48px rgba(0,0,0,.18);z-index:999998;display:none;flex-direction:column;overflow:hidden;animation:nf .32s cubic-bezier(.4,0,.2,1);transform-origin:bottom "+e.position+"}";
 C+=".nc.o{display:flex}";
 C+="@media(max-width:500px){.nc{bottom:0;"+op+":auto;"+e.position+":0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}}";
 /* maximized */
-C+=".nc.max{bottom:16px;"+op+":auto;"+e.position+":16px;width:820px;max-width:calc(100vw - 32px);height:740px;max-height:calc(100vh - 40px);border-radius:24px}";
+C+=".nc.max{bottom:16px;"+op+":auto;"+e.position+":16px;width:820px;max-width:calc(100vw - 32px);height:820px;max-height:calc(100vh - 40px);border-radius:24px}";
 C+="@media(max-width:860px){.nc.max{bottom:0;"+op+":auto;"+e.position+":0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}}";
 /* offline banner */
 C+=".n-off{display:none;background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;text-align:center;padding:5px 12px;border-bottom:1px solid #fde68a;flex-shrink:0}";
@@ -275,6 +277,39 @@ C+=".nac-item:hover,.nac-item.sel{background:"+e.primaryColor+"0d;color:"+e.prim
 C+=".nac::-webkit-scrollbar{width:4px}.nac::-webkit-scrollbar-thumb{background:#dde6ef;border-radius:4px}";
 /* footer */
 C+=".nf{text-align:center;padding:6px;font-size:10px;color:#9ca3af;flex-shrink:0;border-top:1px solid #f3f4f6}";
+/* views container */
+C+=".n-views{flex:1;display:flex;overflow:hidden;position:relative}";
+C+=".n-page{display:none;flex-direction:column;width:100%;height:100%;overflow:hidden}";
+C+=".n-page.active{display:flex}";
+/* nav bar */
+C+=".nnav{display:flex;flex-shrink:0;border-top:1px solid #eef2f6;background:#fff;padding:4px 0 6px;justify-content:space-around}";
+C+=".nnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:4px 12px;font-size:9.5px;color:#9ca3af;transition:all .18s;border-radius:8px;line-height:1.2}";
+C+=".nnav-btn svg{width:20px;height:20px;color:#9ca3af;transition:all .18s}";
+C+=".nnav-btn.active{color:"+e.primaryColor+";font-weight:600}";
+C+=".nnav-btn.active svg{color:"+e.primaryColor+"}";
+C+=".nnav-btn:hover{background:#f8fafc}";
+/* home view */
+C+=".nv-home{padding:24px 20px;overflow-y:auto;flex:1;text-align:center}";
+C+=".nv-home .nv-logo{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#fff;box-shadow:0 4px 16px "+e.primaryColor+"44}";
+C+=".nv-home .nv-logo svg{width:32px;height:32px}";
+C+=".nv-home h2{margin:0 0 4px;font-size:18px;font-weight:700;color:#0d1b2a}";
+C+=".nv-home .nv-desc{margin:0 0 20px;font-size:13px;color:#6b7280;line-height:1.6}";
+C+=".nv-home .nv-actions{display:flex;flex-direction:column;gap:10px;max-width:260px;margin:0 auto}";
+C+=".nv-home .nv-action{background:#f8fafc;border:1px solid #eef2f6;border-radius:16px;padding:14px 18px;cursor:pointer;transition:all .2s;font-size:13px;color:#374151;font-weight:500;text-align:left;display:flex;align-items:center;gap:10px;line-height:1.4}";
+C+=".nv-home .nv-action:hover{border-color:"+e.primaryColor+";background:"+e.primaryColor+"08;transform:translateY(-1px)}";
+C+=".nv-home .nv-action .nv-act-icon{width:36px;height:36px;border-radius:10px;background:"+e.primaryColor+"12;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;color:"+e.primaryColor+"}";
+C+=".nv-home .nv-action .nv-act-icon svg{width:18px;height:18px}";
+/* help view */
+C+=".nv-help{padding:16px 20px;overflow-y:auto;flex:1}";
+C+=".nv-help .nv-hdr{font-size:15px;font-weight:700;color:#0d1b2a;margin-bottom:16px;display:flex;align-items:center;gap:8px}";
+C+=".nv-help .nv-hdr svg{width:20px;height:20px;color:"+e.primaryColor+"}";
+C+=".nv-help .nv-cat{margin-bottom:16px}";
+C+=".nv-help .nv-cat-title{font-size:12px;font-weight:700;color:"+e.primaryColor+";text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid "+e.primaryColor+"22}";
+C+=".nv-help .nv-faq-item{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 12px;font-size:13px;color:#374151;cursor:pointer;border-radius:10px;transition:all .15s;line-height:1.4;margin-bottom:2px}";
+C+=".nv-help .nv-faq-item:hover{background:"+e.primaryColor+"0a;color:"+e.primaryColor+";font-weight:500}";
+C+=".nv-help .nv-faq-item .nv-faq-q{display:flex;align-items:center;gap:8px}";
+C+=".nv-help .nv-faq-item .nv-faq-q::before{content:'\\2713';font-size:10px;color:"+e.primaryColor+";font-weight:700;opacity:.6}";
+C+=".nv-help .nv-empty{padding:40px 20px;text-align:center;font-size:13px;color:#9ca3af}";
 t.textContent=C;
 document.head.appendChild(t);
 
@@ -289,7 +324,10 @@ var ICONS={
   reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
   close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   robot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/></svg>',
-  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
+  messageCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
 };
 
 /* Avatar icons */
@@ -408,8 +446,67 @@ card.className="nova-widget nc";card.id="nc";
 card.setAttribute("role","dialog");
 card.setAttribute("aria-label","Chatbot");
 card.setAttribute("aria-modal","true");
-card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Mode IA : activer/d\u00e9sactiver l\u2019intelligence artificielle pour des r\u00e9ponses reformul\u00e9es">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="Mode RAG : activer/d\u00e9sactiver la recherche dans les documents techniques CETIM (facture, rapports, r\u00e9f\u00e9rentiels\u2026)">'+ICONS.file+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669" title="Recherche dans les documents techniques CETIM">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">\ud83d\udcac Posez votre question \u00e0 l\u2019expert CETIM</span></div><div class="nm" id="nm" role="log" aria-live="polite">'+welcomeHtml+'</div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
+card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="Mode IA : activer/d\u00e9sactiver l\u2019intelligence artificielle pour des r\u00e9ponses reformul\u00e9es">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="Mode RAG : activer/d\u00e9sactiver la recherche dans les documents techniques CETIM (facture, rapports, r\u00e9f\u00e9rentiels\u2026)">'+ICONS.file+'</button><button id="na-max" class="nh-btn" title="Agrandir">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="R\u00e9initialiser">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="Fermer">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">&#x26a0;&#xfe0f; Connexion perdue \u2014 vos messages seront envoy\u00e9s d\u00e8s la reconnexion</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' IA Active</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669" title="Recherche dans les documents techniques CETIM">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">\ud83d\udcac Posez votre question \u00e0 l\u2019expert CETIM</span></div><div class="n-views" id="n-views"><div class="n-page active" id="n-page-home"><div class="nv-home" id="nv-home">'+welcomeHtml+'</div></div><div class="n-page" id="n-page-msg"><div class="nm" id="nm" role="log" aria-live="polite"></div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="Posez votre question..." rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div></div><div class="n-page" id="n-page-help"><div class="nv-help" id="nv-help"></div></div></div><div class="nnav" id="nnav"><button class="nnav-btn active" data-page="home" title="Accueil">'+ICONS.home+'<span>Accueil</span></button><button class="nnav-btn" data-page="msg" title="Messages">'+ICONS.messageCircle+'<span>Messages</span></button><button class="nnav-btn" data-page="help" title="Aide">'+ICONS.book+'<span>Aide</span></button></div>'+(e.showBrand?'<div class="nf">Propuls\u00e9 par Nova Chatbot</div>':"");
 document.body.appendChild(card);
+
+/* Navigation entre vues */
+var currentPage="home";
+var greetingSent=false;
+function switchPage(page){
+  if(page===currentPage) return;
+  document.querySelectorAll("#n-views .n-page").forEach(function(p){p.classList.remove("active")});
+  document.querySelectorAll("#nnav .nnav-btn").forEach(function(b){b.classList.remove("active")});
+  var pg=document.getElementById("n-page-"+page);
+  if(pg)pg.classList.add("active");
+  var btn=document.querySelector("#nnav .nnav-btn[data-page='"+page+"']");
+  if(btn)btn.classList.add("active");
+  currentPage=page;
+  if(page==="msg"){
+    document.getElementById("ni").focus();
+    if(e.sendGreeting&&!greetingSent){
+      greetingSent=true;
+      setTimeout(function(){addMsg(welcomeTitle,"bot","ai")},400);
+    }
+  }
+  if(page==="help") renderHelpFAQ();
+}
+document.querySelectorAll("#nnav .nnav-btn").forEach(function(b){
+  b.onclick=function(){switchPage(this.dataset.page)};
+});
+
+/* Render Help FAQ */
+function renderHelpFAQ(){
+  var el=document.getElementById("nv-help");
+  if(!el||el.dataset.rendered) return;
+  el.dataset.rendered="true";
+  if(!KB||KB.length===0){
+    el.innerHTML='<div class="nv-empty">Aucune question disponible pour le moment.</div>';
+    return;
+  }
+  var cats={};
+  for(var ki=0;ki<KB.length;ki++){
+    var c=KB[ki].c||"G\u00e9n\u00e9ral";
+    if(!cats[c])cats[c]=[];
+    cats[c].push(KB[ki].q);
+  }
+  var html='<div class="nv-hdr">'+ICONS.book+' Questions fr\u00e9quentes</div>';
+  var catKeys=Object.keys(cats).sort();
+  for(var ci=0;ci<catKeys.length;ci++){
+    var cat=catKeys[ci];
+    html+='<div class="nv-cat"><div class="nv-cat-title">'+escHtml(cat)+'</div>';
+    for(var qi=0;qi<cats[cat].length;qi++){
+      html+='<button class="nv-faq-item" data-q="'+escAttr(cats[cat][qi])+'"><span class="nv-faq-q">'+escHtml(cats[cat][qi])+'</span></button>';
+    }
+    html+="</div>";
+  }
+  el.innerHTML=html;
+  el.querySelectorAll(".nv-faq-item").forEach(function(item){
+    item.onclick=function(){
+      switchPage("msg");
+      sendMessage(this.dataset.q);
+    };
+  });
+}
 
 /* Logo onerror fallback */
 (function(){
@@ -453,12 +550,8 @@ function openChat(){
   b.setAttribute("aria-expanded","true");
   var badge=document.getElementById("nb-notif");
   if(badge)badge.style.display="none";
-  document.getElementById("ni").focus();
   hasInteracted=true;
   localStorage.setItem(proactiveKey,"1");
-  if(e.sendGreeting){
-    setTimeout(function(){addMsg(welcomeTitle,"bot","ai")},600);
-  }
 }
 
 /* Notification badge */
@@ -880,24 +973,9 @@ document.getElementById("na-reset").onclick=function(){
   if(chatHistory.length===0) return;
   if(!confirm("R\u00e9initialiser la conversation ?")) return;
   chatHistory=[];
-  var box=document.getElementById("nm");
-  var welcomeIcon2=buildAvatarImg();
-  var welcomeHtml='<div class="nw"><div class="nw-icon">'+welcomeIcon2+'</div><div class="nw-title">'+escHtml(welcomeTitle)+'</div><div class="nw-sub">'+escHtml(e.welcomeSub)+'</div>';
-  if(WC.length>0){
-    welcomeHtml+='<div class="nw-grid">';
-    for(var wi=0;wi<Math.min(WC.length,4);wi++){
-      welcomeHtml+='<div class="nw-chip" data-q="'+escAttr(WC[wi])+'" tabindex="0" role="button"><span class="nw-chip-icon">'+welcomeIcoArr[wi%4]+'</span>'+escHtml(WC[wi])+'</div>';
-    }
-    welcomeHtml+="</div>";
-  }
-  welcomeHtml+="</div>";
-  box.innerHTML=welcomeHtml;
-  var wimgs=box.querySelectorAll(".nw-icon img");
-  for(var wi2=0;wi2<wimgs.length;wi2++)wimgs[wi2].onerror=function(){this.outerHTML=getAvatar()};
-  document.querySelectorAll("#nm .nw-chip").forEach(function(el){
-    el.addEventListener("click",function(){sendMessage((this.dataset.q||this.textContent).trim())});
-    el.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();sendMessage((this.dataset.q||this.textContent).trim())}});
-  });
+  document.getElementById("nm").innerHTML="";
+  greetingSent=false;
+  switchPage("home");
 };
 
 /* AI toggle events */
@@ -964,3 +1042,4 @@ updateRAGUI();
 function escapeJs(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/'/g, "\\'").replace(/\n/g, "\\n");
 }
+
