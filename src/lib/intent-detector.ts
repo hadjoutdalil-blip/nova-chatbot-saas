@@ -1,4 +1,4 @@
-import { SMALL_TALK_PATTERNS, HORS_SUJET_PATTERNS, AVIS_PATTERNS, HORS_SUJET_RESPONSE } from "./intent-messages";
+import { SMALL_TALK_PATTERNS, HORS_SUJET_PATTERNS, AVIS_PATTERNS } from "./intent-messages";
 
 export type Intent = "SMALL_TALK" | "HORS_SUJET" | "AVIS" | "REQUETE_METIER";
 
@@ -33,18 +33,22 @@ export function detectIntent(userMessage: string): IntentResult {
   return { intent: "REQUETE_METIER", confidence: 1.0 };
 }
 
-const CLASSIFICATION_SYSTEM =
-  "Tu es un classifieur d'intention. Réponds UNIQUEMENT par un seul mot : SALUTATION, HORS_SUJET, AVIS, ou METIER.\n\n" +
-  "SALUTATION = salutations, remerciements, au revoir, small talk, comment ça va, qui es-tu\n" +
-  "HORS_SUJET = questions sans rapport avec les activités techniques, normes, essais, laboratoires\n" +
-  "AVIS = expression d'opinion sur CETIM, ses services, le chatbot (j'aime, je n'aime pas, c'est bien/nul)\n" +
-  "METIER = tout ce qui concerne le CETIM, ses services techniques, essais, normes, certifications, formations, laboratoires, inspection, métrologie, géotechnique, organisation, direction, contact, informations générales";
+function buildClassificationSystem(clientName: string): string {
+  return (
+    "Tu es un classifieur d'intention. Réponds UNIQUEMENT par un seul mot : SALUTATION, HORS_SUJET, AVIS, ou METIER.\n\n" +
+    "SALUTATION = salutations, remerciements, au revoir, small talk, comment ça va, qui es-tu\n" +
+    "HORS_SUJET = questions sans rapport avec les activités techniques, normes, essais, laboratoires\n" +
+    `AVIS = expression d'opinion sur ${clientName}, ses services, le chatbot (j'aime, je n'aime pas, c'est bien/nul)\n` +
+    `METIER = tout ce qui concerne ${clientName}, ses services techniques, essais, normes, certifications, formations, laboratoires, inspection, métrologie, géotechnique, organisation, direction, contact, informations générales`
+  );
+}
 
 export async function classifyIntentWithAI(
   message: string,
   apiKey: string,
   endpoint: string,
-  model: string
+  model: string,
+  clientName?: string
 ): Promise<IntentResult> {
   const resp = await fetch(endpoint, {
     method: "POST",
@@ -52,7 +56,7 @@ export async function classifyIntentWithAI(
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: CLASSIFICATION_SYSTEM },
+        { role: "system", content: buildClassificationSystem(clientName || "l'organisation") },
         { role: "user", content: `Message: "${message}"\n\nClassification :` },
       ],
       temperature: 0,

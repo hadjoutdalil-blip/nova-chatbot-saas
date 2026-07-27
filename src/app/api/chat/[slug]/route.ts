@@ -243,22 +243,22 @@ function buildIntentPrompt(client: any, intent: string, message: string, pageUrl
   const rules = intent === "SMALL_TALK"
     ? `- L'utilisateur te salue ou fait du small talk
 - Réponds avec le même ton (salut → salut, salam → salam aleykoum, bonjour → bonjour)
-- Oriente-le ensuite vers les services CETIM (essais, normes, étalonnage, formations)`
+- Oriente-le ensuite vers les services de ${client.name}`
     : intent === "AVIS"
-      ? `- L'utilisateur exprime son avis sur CETIM ou le chatbot
+      ? `- L'utilisateur exprime son avis sur ${client.name} ou le chatbot
 - Accueille son retour avec bienveillance
-- Présente les points forts du CETIM : laboratoires accrédités, équipes expertes, services diversifiés
+- Présente les points forts de ${client.name}
 - Invite-le à découvrir les services qui pourraient l'intéresser`
       : `- L'utilisateur pose une question hors sujet
-- Réponds poliment que ce domaine n'est pas celui du CETIM
-- Redirige vers les sujets CETIM : essais, normes, certifications, formations`;
+- Réponds poliment que ce domaine n'est pas celui de ${client.name}
+- Redirige vers les sujets de ${client.name}`;
 
   const system = `Tu es l'assistant officiel de ${client.name}.${ctx}
 
 RÈGLES :
 ${rules}
 - Réponds toujours en français, chaleureux et professionnel
-- Termine par une question ouverte sur ses besoins CETIM`;
+- Termine par une question ouverte sur les besoins du client`;
 
   return { system, user: message };
 }
@@ -541,7 +541,7 @@ async function handleStreamingRequest(
             if (provider) {
               try {
                 const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-                const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel);
+                const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel, client.name);
                 if (aiIntent.intent !== intent.intent) intent = aiIntent;
               } catch { /* keep regex intent */ }
             }
@@ -551,10 +551,10 @@ async function handleStreamingRequest(
         if (intent.intent !== "REQUETE_METIER") {
           if (!aiMode) {
             const fallback = intent.intent === "AVIS"
-              ? "Je suis l'assistant CETIM. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?"
+              ? `Je suis l'assistant de ${client.name}. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?`
               : intent.intent === "HORS_SUJET"
-                ? "Je suis l'assistant technique du CETIM Algérie. Je suis spécialisé dans les essais, normes et services techniques. Puis-je vous aider avec un de ces sujets ?"
-                : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider ?";
+                ? `Je suis l'assistant technique de ${client.name}. Je suis spécialisé dans les services techniques. Puis-je vous aider avec un de ces sujets ?`
+                : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider ?`;
             send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
             send("token", { content: fallback });
             saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
@@ -582,10 +582,10 @@ async function handleStreamingRequest(
             }
           }
           const fallbackText = intent.intent === "AVIS"
-            ? "Merci pour votre retour ! Chez CETIM, nous proposons des services techniques de qualité. Que puis-je vous aider ?"
+            ? `Merci pour votre retour ! Chez ${client.name}, nous proposons des services techniques de qualité. Que puis-je vous aider ?`
             : intent.intent === "HORS_SUJET"
-              ? "Je suis l'assistant technique du CETIM Algérie. Je peux vous renseigner sur nos essais, normes et formations. En quoi puis-je vous être utile ?"
-              : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider avec nos services techniques ?";
+              ? `Je suis l'assistant technique de ${client.name}. Je peux vous renseigner sur nos services techniques. En quoi puis-je vous être utile ?`
+              : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider avec nos services techniques ?`;
           send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
           send("token", { content: fallbackText });
           saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
@@ -818,7 +818,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       if (provider) {
         try {
           const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-          const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel);
+          const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel, client.name);
           if (aiIntent.intent !== intent.intent) {
             console.log(`[Nova Chat] Intent override: regex=${intent.intent} → ai=${aiIntent.intent} message="${trimmed.slice(0, 80)}" (${client.name})`);
             intent = aiIntent;
@@ -834,10 +834,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     console.log(`[Nova Chat] Intent="${intent.intent}" confidence=${intent.confidence} message="${trimmed.slice(0, 80)}" (${client.name})`);
     if (!aiMode) {
       const fallback = intent.intent === "AVIS"
-        ? "Je suis l'assistant CETIM. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?"
+        ? `Je suis l'assistant de ${client.name}. Je suis là pour vous informer sur nos services techniques. Comment puis-je vous aider ?`
         : intent.intent === "HORS_SUJET"
-          ? "Je suis l'assistant technique du CETIM Algérie. Je suis spécialisé dans les essais, normes et services techniques. Puis-je vous aider avec un de ces sujets ?"
-          : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider ?";
+          ? `Je suis l'assistant technique de ${client.name}. Je suis spécialisé dans les services techniques. Puis-je vous aider avec un de ces sujets ?`
+          : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider ?`;
       saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
       return NextResponse.json(filterResponse({
         messageId,
@@ -876,10 +876,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
     /* Fallback si l'appel AI échoue ou pas de clé */
     const fallbackText = intent.intent === "AVIS"
-      ? "Merci pour votre retour ! Chez CETIM, nous proposons des services techniques de qualité. Que puis-je vous aider ?"
+      ? `Merci pour votre retour ! Chez ${client.name}, nous proposons des services techniques de qualité. Que puis-je vous aider ?`
       : intent.intent === "HORS_SUJET"
-        ? "Je suis l'assistant technique du CETIM Algérie. Je peux vous renseigner sur nos essais, normes et formations. En quoi puis-je vous être utile ?"
-        : "Bonjour ! Je suis l'assistant CETIM. Comment puis-je vous aider avec nos services techniques ?";
+        ? `Je suis l'assistant technique de ${client.name}. Je peux vous renseigner sur nos services techniques. En quoi puis-je vous être utile ?`
+        : `Bonjour ! Je suis l'assistant de ${client.name}. Comment puis-je vous aider avec nos services techniques ?`;
     saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
     return NextResponse.json(filterResponse({
       messageId,
