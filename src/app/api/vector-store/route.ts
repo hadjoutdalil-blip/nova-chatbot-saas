@@ -17,21 +17,26 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(url.searchParams.get("limit") || "20");
   const offset = (page - 1) * limit;
 
+  const whereClause = clientId ? `WHERE dc."clientId" = $1` : "";
+  const whereParams = clientId ? [clientId] : [];
+
   const stats = await pool.query(`
     SELECT
       COUNT(*)::int AS total_chunks,
       COUNT(DISTINCT "clientId")::int AS total_clients,
       COUNT(DISTINCT "docId")::int AS total_docs
-    FROM document_chunks
-  `);
+    FROM document_chunks dc
+    ${whereClause.replace("dc.", "")}
+  `, whereParams.length ? whereParams : undefined);
 
   const perClient = await pool.query(`
     SELECT c.name AS client_name, dc."clientId", COUNT(*)::int AS chunks, COUNT(DISTINCT dc."docId")::int AS docs
     FROM document_chunks dc
     JOIN "Client" c ON c.id = dc."clientId"
+    ${whereClause}
     GROUP BY dc."clientId", c.name
     ORDER BY chunks DESC
-  `);
+  `, whereParams.length ? whereParams : undefined);
 
   let perDocWhere = "";
   const perDocParams: any[] = [];

@@ -97,13 +97,19 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get("slug");
 
-    let feedbacks = await db.prisma.messageFeedback.findMany();
+    let feedbacks;
     if (slug) {
       const client = await findClientBySlug(slug);
-      if (client) feedbacks = feedbacks.filter((f) => f.clientId === client.id);
+      if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404, headers: corsHeaders });
+      feedbacks = await db.prisma.messageFeedback.findMany({
+        where: { clientId: client.id },
+        orderBy: { createdAt: "desc" },
+      });
+    } else {
+      feedbacks = await db.prisma.messageFeedback.findMany({
+        orderBy: { createdAt: "desc" },
+      });
     }
-
-    feedbacks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const total = feedbacks.length;
     const ratings = [0, 0, 0, 0, 0];

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   const connectionsByLocation = [...locMap.values()].sort((a, b) => b.count - a.count);
 
-  const allFeedback = await db.prisma.messageFeedback.findMany();
+  const allFeedback = await db.prisma.messageFeedback.findMany({ where: { clientId: id } });
   const ratedFeedback = allFeedback.filter((f) => f.rating > 0);
   const totalRatings = ratedFeedback.length;
   const avgRating = totalRatings > 0
