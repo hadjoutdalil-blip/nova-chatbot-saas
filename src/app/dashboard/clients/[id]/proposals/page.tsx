@@ -59,6 +59,16 @@ export default function AdminProposalsPage() {
     fetchData();
   };
 
+  const deleteProposal = async (proposalId: string) => {
+    if (!confirm("Supprimer définitivement cette proposition ?")) return;
+    await fetch(`/api/clients/${id}/proposals`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+      body: JSON.stringify({ action: "delete", proposalId }),
+    });
+    fetchData();
+  };
+
   const convertToKb = async (proposalId: string) => {
     const res = await fetch(`/api/clients/${id}/proposals`, {
       method: "POST",
@@ -245,6 +255,10 @@ export default function AdminProposalsPage() {
                       <XCircle size={12} /> Rejeter
                     </button>
                   )}
+                  <button onClick={() => deleteProposal(p.id)}
+                    className="flex items-center gap-1 px-3 py-1 text-xs bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition">
+                    <Trash2 size={12} /> Supprimer
+                  </button>
                 </div>
               </div>
             </div>

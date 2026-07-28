@@ -79,5 +79,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ kbEntry });
   }
 
+  if (action === "delete" && proposalId) {
+    await db.prisma.publicProposal.delete({ where: { id: proposalId } });
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Action invalide" }, { status: 400 });
 }
