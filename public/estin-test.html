@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESTIN Béjaïa — Test Chatbot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    body { background: #f8fafc; color: #0f172a; min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, #1e3a5f, #2d5a8a); color: #fff; padding: 32px 24px; text-align: center; }
+    header h1 { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+    header p { margin-top: 8px; font-size: 14px; opacity: .8; }
+    .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; flex: 1; }
+    .card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #e2e8f0; }
+    .card h2 { font-size: 18px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card p { font-size: 14px; line-height: 1.7; color: #475569; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; background: #1e3a5f; color: #fff; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all .2s; border: none; cursor: pointer; }
+    .btn:hover { background: #2d5a8a; transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: #1e3a5f; border: 2px solid #1e3a5f; }
+    .btn-outline:hover { background: #1e3a5f; color: #fff; }
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .feature { background: #f8fafc; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0; }
+    .feature h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .feature p { font-size: 13px; color: #64748b; }
+    .info { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; font-size: 13px; color: #1e40af; margin-top: 16px; }
+    footer { text-align: center; padding: 24px; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+    @media (max-width: 640px) { .features { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏫 ESTIN Béjaïa</h1>
+    <p>École Supérieure en Informatique — Test du Chatbot Intelligent</p>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>💬 Assistant Virtuel ESTIN</h2>
+      <p>Posez vos questions sur l'école, les démarches administratives, les études, les clubs, et bien plus encore. Le chatbot vous répond instantanément à partir de la base de connaissances.</p>
+      <div class="features">
+        <div class="feature">
+          <h3>📚 Base de connaissances</h3>
+          <p>FAQ, procédures, contacts — tout ce qu'il faut savoir sur ESTIN.</p>
+        </div>
+        <div class="feature">
+          <h3>🔍 Mode RAG</h3>
+          <p>Recherche documentaire avancée dans les ressources techniques.</p>
+        </div>
+        <div class="feature">
+          <h3>🧠 Mode IA</h3>
+          <p>Réponses reformulées par intelligence artificielle.</p>
+        </div>
+        <div class="feature">
+          <h3>🌍 Multilingue</h3>
+          <p>Disponible en Français, Anglais et Arabe.</p>
+        </div>
+      </div>
+      <div class="info">
+        💡 Cliquez sur le bouton en bas à droite pour ouvrir le chatbot et poser votre première question.
+      </div>
+    </div>
+
+    <div class="card" style="text-align:center">
+      <h2 style="justify-content:center">📝 Proposer une question</h2>
+      <p>Vous ne trouvez pas la réponse à votre question ? Proposez-la à l'équipe ESTIN via le formulaire dédié.</p>
+      <div style="margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="/proposals/ESTIN" class="btn" target="_blank">📝 Proposer une question</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>ESTIN Béjaïa — Test du chatbot · Propulsé par Nova Chatbot</p>
+  </footer>
+
+  <script src="https://chatbot.estin.dz/api/widget/ESTIN/embed"></script>
+</body>
+</html>
