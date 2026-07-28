@@ -1,4 +1,4 @@
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 import { chunkDocument, ChunkMeta } from "./rag-utils";
 import { generateEmbeddings, getEmbeddingDimension } from "./embeddings";
 import { trackEmbeddingUsage } from "./embedding-keys";

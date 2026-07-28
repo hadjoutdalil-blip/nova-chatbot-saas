@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 import { getAuthUser } from "@/lib/api-auth";
 import { generateEmbedding } from "@/lib/embeddings";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";

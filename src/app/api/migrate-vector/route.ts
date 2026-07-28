@@ -5,7 +5,7 @@ import { syncDocumentChunks, recreateTable } from "@/lib/vector-store";
 import { chunkDocument } from "@/lib/rag-utils";
 import { generateEmbeddings } from "@/lib/embeddings";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 

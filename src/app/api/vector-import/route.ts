@@ -4,7 +4,7 @@ import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 import { syncDocumentChunks } from "@/lib/vector-store";
 import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 

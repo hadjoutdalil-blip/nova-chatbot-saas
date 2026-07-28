@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 import { getAuthUser } from "@/lib/api-auth";
 import { getEmbeddingDimension } from "@/lib/embeddings";
 const TABLE_DIM = getEmbeddingDimension("nomic"); // 768

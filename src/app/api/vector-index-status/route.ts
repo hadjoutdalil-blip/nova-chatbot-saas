@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 

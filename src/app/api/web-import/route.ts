@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
           where: { clientId, source_url: targetUrl },
         });
         if (existing) {
-          const { Pool } = await import("@neondatabase/serverless");
+          const { Pool } = await import("pg");
           const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
           await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [existing.id]);
           await pool.end();

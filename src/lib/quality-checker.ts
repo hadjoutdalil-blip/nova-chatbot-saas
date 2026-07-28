@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 import { calcSimilarity } from "./rag-utils";
 import { extractKeywords } from "./chunk-utils";
 import { deleteDocChunks } from "./vector-store";
