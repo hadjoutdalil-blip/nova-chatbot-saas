@@ -36,15 +36,11 @@ const entries = [
   { question: "Ce qui concerne la sécurité", answer: "Contacter Monsieur AOUGHLIS Nabil: surete @ estin.dz" },
 ];
 
-async function getClientId() {
-  const client = await prisma.client.findFirst({ where: { slug: "estin" } });
-  if (!client) throw new Error("Client ESTIN introuvable. Vérifie le slug dans la table Client.");
-  return client.id;
-}
+const TARGET_CLIENT_ID = "4e58898f-148a-4b64-9367-1e74cd74f9f0";
 
 (async () => {
   try {
-    const clientId = await getClientId();
+    const clientId = TARGET_CLIENT_ID;
     console.log(`Client ESTIN ID: ${clientId}`);
 
     let count = 0;
