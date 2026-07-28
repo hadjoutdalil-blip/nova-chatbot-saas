@@ -31,10 +31,14 @@ export default function AdminProposalsPage() {
   const [editAnswer, setEditAnswer] = useState("");
   const [editConf, setEditConf] = useState(0);
 
+  const token = () => localStorage.getItem("token");
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/clients/${id}/proposals`);
+      const res = await fetch(`/api/clients/${id}/proposals`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
       const data = await res.json();
       setProposals(data.proposals);
       setStats(data.stats);
@@ -49,7 +53,7 @@ export default function AdminProposalsPage() {
   const updateProposal = async (proposalId: string, data: any) => {
     await fetch(`/api/clients/${id}/proposals`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
       body: JSON.stringify({ action: "update", proposalId, ...data }),
     });
     fetchData();
@@ -58,7 +62,7 @@ export default function AdminProposalsPage() {
   const convertToKb = async (proposalId: string) => {
     const res = await fetch(`/api/clients/${id}/proposals`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
       body: JSON.stringify({ action: "convert-to-kb", proposalId }),
     });
     if (res.ok) fetchData();
