@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Building2, Brain, BarChart3, BookOpen, FlaskConical, CheckSquare, Database, TrendingUp,
   Download, Plus, Search, FileText, Inbox, Edit3, Trash2, Thermometer, Layers, PanelRightClose,
-  Globe, MessageSquare, ThumbsUp, Shield, RefreshCw, Upload, Loader2, CheckCircle2, XCircle, Lightbulb,
+  Globe, MessageSquare, ThumbsUp, Shield, RefreshCw, Upload, Loader2, CheckCircle2, XCircle, Lightbulb, Key,
 } from "lucide-react";
 import { Tabs, Button, Card, Input, Badge, StatCard } from "@/components/ui";
 import KBModal from "@/components/admin/KBModal";
@@ -56,6 +56,7 @@ const TABS = [
   { id: "analytics", label: "Analytiques", icon: <BarChart3 size={16} /> },
   { id: "kb", label: "Base de connaissances", icon: <BookOpen size={16} /> },
   { id: "vector", label: "Base vectorielle", icon: <Database size={16} /> },
+  { id: "embed-keys", label: "Clés embedding", icon: <Key size={16} /> },
   { id: "rag-stats", label: "Stats RAG", icon: <TrendingUp size={16} /> },
   { id: "test", label: "Test", icon: <FlaskConical size={16} /> },
   { id: "evaluation", label: "Évaluation", icon: <CheckSquare size={16} /> },
@@ -558,6 +559,12 @@ export default function EditClientPage() {
             <Card>
               <ApiKeysManager clientId={id} token={token} />
             </Card>
+          </div>
+        )}
+
+        {/* ── Embedding Keys ── */}
+        {tab === "embed-keys" && (
+          <div className="max-w-2xl">
             <Card>
               <EmbeddingKeysManager clientId={id} token={token} />
             </Card>
