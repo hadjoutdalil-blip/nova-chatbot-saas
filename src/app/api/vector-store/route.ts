@@ -106,12 +106,12 @@ export async function POST(req: NextRequest) {
 
   // Use active embedding key or fallback
   let apiKey = reqApiKey;
-  let provider = "cohere";
+  let provider = "nomic";
   let embedKeyId: string | undefined;
   if (!apiKey) {
     const activeKey = clientId ? await getActiveEmbeddingKey(clientId) : null;
     apiKey = activeKey?.key;
-    provider = activeKey?.provider || "cohere";
+    provider = activeKey?.provider || "nomic";
     embedKeyId = activeKey?.id;
   }
   if (!apiKey) return NextResponse.json({ error: "Clé API embedding non configurée" }, { status: 400 });

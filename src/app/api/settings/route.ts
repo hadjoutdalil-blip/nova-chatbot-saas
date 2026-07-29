@@ -9,7 +9,7 @@ const DEFAULTS: Record<string, string> = {
   defaultKbThreshold: "60",
   defaultRelanceActive: "true",
   hfApiKey: "",
-  embeddingProvider: "cohere",
+  embeddingProvider: "nomic",
 };
 
 export async function GET() {

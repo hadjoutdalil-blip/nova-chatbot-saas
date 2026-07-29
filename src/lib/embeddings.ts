@@ -7,8 +7,8 @@ export const VECTOR_DIMS: Record<string, number> = {
   nomic: 768,
 };
 
-export function getEmbeddingDimension(provider = "cohere"): number {
-  return VECTOR_DIMS[provider] || 384;
+export function getEmbeddingDimension(provider = "nomic"): number {
+  return VECTOR_DIMS[provider] || 768;
 }
 
 async function cohereEmbed(texts: string[], apiKey: string): Promise<number[][]> {
@@ -45,13 +45,13 @@ async function nomicEmbed(texts: string[], apiKey: string): Promise<number[][]> 
   return data.embeddings;
 }
 
-export async function generateEmbedding(text: string, apiKey: string, provider = "cohere"): Promise<number[]> {
+export async function generateEmbedding(text: string, apiKey: string, provider = "nomic"): Promise<number[]> {
   const fn = provider === "nomic" ? nomicEmbed : cohereEmbed;
   const results = await fn([text], apiKey);
   return results[0];
 }
 
-export async function generateEmbeddings(texts: string[], apiKey: string, provider = "cohere"): Promise<number[][]> {
+export async function generateEmbeddings(texts: string[], apiKey: string, provider = "nomic"): Promise<number[][]> {
   const fn = provider === "nomic" ? nomicEmbed : cohereEmbed;
   if (texts.length <= BATCH_SIZE) {
     return fn(texts, apiKey);

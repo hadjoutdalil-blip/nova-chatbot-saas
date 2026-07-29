@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const chunkSize = client.chunkSize ?? 600;
   const ragThreshold = client.ragThreshold ?? 72;
-  const topNChunks = client.topNChunks ?? 3;
+  const topNChunks = client.topNChunks ?? 7;
 
   const siteChunks = parseChunks(client.siteContext || "");
 

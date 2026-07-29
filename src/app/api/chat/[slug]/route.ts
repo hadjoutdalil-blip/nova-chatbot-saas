@@ -649,7 +649,7 @@ async function handleStreamingRequest(
         const { match, score, isKeyword } = findBestMatch(message, KB);
         const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
 
-        const ragThreshold = client.ragThreshold ?? 40;
+  const ragThreshold = client.ragThreshold ?? 72;
         /* Short query guard */
         if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
           send("metadata", { messageId, source: "skip", score: 0 });
@@ -754,12 +754,12 @@ async function handleStreamingRequest(
           const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
           if (client.useVectorRag && embedApiKey) {
-            try { const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
+            try { const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
             if (embedKeyEntry?.id) trackEmbeddingUsage(embedKeyEntry.id).catch(() => {});
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 3, ragThreshold);
+            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
           }
           if (topChunks.length > 0) {
             const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
@@ -837,12 +837,12 @@ async function handleStreamingRequest(
           const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const apiKey = activeKey?.key || client.hfApiKey;
           if (client.useVectorRag && apiKey) {
-            try { const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] vector search results:", topChunks.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
+            try { const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] vector search results:", topChunks.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
             if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 3, ragThreshold);
+            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
           }
           if (topChunks.length > 0) {
             const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
@@ -1059,7 +1059,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (client.useVectorRag && embedApiKey) {
       try {
         const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider);
-        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
@@ -1069,7 +1069,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (topChunks.length === 0) {
       const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
       const allChunks = [...siteChunks, ...docChunks];
-      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 3, ragThreshold);
+      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 7, ragThreshold);
     }
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
@@ -1254,7 +1254,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (client.useVectorRag && apiKey) {
       try {
         const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider);
-        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 3, client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
@@ -1262,9 +1262,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
     }
     if (topChunks.length === 0) {
+      if (client.useVectorRag) console.warn(`[Vector RAG] 0 chunks above threshold → fallback keyword for "${message.slice(0, 80)}" (${client.name})`);
       const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
       const allChunks = [...siteChunks, ...docChunks];
-      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 3, ragThreshold);
+      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 7, ragThreshold);
     }
 
     if (topChunks.length > 0) {

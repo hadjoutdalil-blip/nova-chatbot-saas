@@ -92,7 +92,7 @@ export async function syncDocumentChunks(
   validUntil: string | null,
   chunkSize: number,
   hfApiKey: string,
-  embeddingProvider = "cohere",
+  embeddingProvider = "nomic",
   embeddingKeyId?: string,
 ) {
   await ensureTable();
@@ -137,18 +137,19 @@ export async function searchChunks(
   clientId: string,
   questionEmbedding: number[],
   topN: number,
-  provider = "cohere",
+  provider = "nomic",
 ): Promise<{ chunk: ChunkMeta; score: number }[]> {
   await ensureTable();
   const queryVec = padToDim(questionEmbedding, TABLE_DIM);
   const embeddingStr = `[${queryVec.join(",")}]`;
   const { rows } = await pool.query(
     `SELECT *,
-      1 - (embedding <=> $1::vector) AS score
-    FROM document_chunks
-    WHERE "clientId" = $2
-    ORDER BY embedding <=> $1::vector
-    LIMIT $3`,
+       1 - (embedding <=> $1::vector) AS score
+     FROM document_chunks
+     WHERE "clientId" = $2
+       AND 1 - (embedding <=> $1::vector) > 0.3
+     ORDER BY embedding <=> $1::vector
+     LIMIT $3`,
     [embeddingStr, clientId, topN]
   );
 
