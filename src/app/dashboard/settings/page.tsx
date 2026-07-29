@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2, XCircle, Brain, Database } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Brain, Database, Key } from "lucide-react";
 import EmbeddingKeysManager from "@/components/admin/EmbeddingKeysManager";
 
 const PROVIDER_MODELS: Record<string, string[]> = {
@@ -14,6 +14,7 @@ const PROVIDER_MODELS: Record<string, string[]> = {
 const TABS = [
   { id: "ia", label: "IA par défaut", icon: Brain },
   { id: "vector", label: "RAG Vectoriel", icon: Database },
+  { id: "keys", label: "Clés d'embedding", icon: Key },
 ];
 
 export default function SettingsPage() {
@@ -143,8 +144,6 @@ export default function SettingsPage() {
         <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl space-y-5">
           <h2 className="font-semibold text-lg border-b pb-2">RAG Vectoriel (pgvector)</h2>
 
-          <EmbeddingKeysManager clientId={clientId} token={token} />
-
           <div className="flex items-center gap-3">
             <button onClick={handleSave} disabled={saving} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50">
               {saving ? "Enregistrement..." : "Enregistrer"}
@@ -153,6 +152,13 @@ export default function SettingsPage() {
           </div>
 
           <MigrateButton token={token} />
+        </div>
+      )}
+
+      {tab === "keys" && (
+        <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl">
+          <h2 className="font-semibold text-lg border-b pb-2 mb-5">Clés d'embedding</h2>
+          <EmbeddingKeysManager clientId={clientId} token={token} />
         </div>
       )}
     </div>
