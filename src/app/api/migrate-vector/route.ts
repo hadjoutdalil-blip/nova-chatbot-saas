@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
     const user = getAuthUser(req);
     if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-    const { clientId } = await req.json().catch(() => ({}));
+    const { clientId, type: reqType } = await req.json().catch(() => ({}));
+    const type = reqType || "all";
     const targetClientId = clientId || user.clientId;
 
     // Only admin can run for all clients; others only for their own
@@ -50,46 +51,50 @@ export async function POST(req: NextRequest) {
         const chunkSize = client.chunkSize ?? 600;
 
         /* ── Documents ── */
-        const docs = await db.prisma.clientDocument.findMany({
-          where: { clientId: client.id, status: { not: "archived" } },
-        });
-        for (const doc of docs) {
-          try {
-            await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, apiKey, provider, embedKeyId);
-            log.documents++;
-          } catch (err: any) {
-            log.errors.push(`doc ${doc.id}: ${err.message}`);
+        if (type === "all" || type === "documents") {
+          const docs = await db.prisma.clientDocument.findMany({
+            where: { clientId: client.id, status: { not: "archived" } },
+          });
+          for (const doc of docs) {
+            try {
+              await syncDocumentChunks(doc.id, client.id, doc.content, doc.originalName, doc.source_url, doc.valid_until?.toISOString() || null, chunkSize, apiKey, provider, embedKeyId);
+              log.documents++;
+            } catch (err: any) {
+              log.errors.push(`doc ${doc.id}: ${err.message}`);
+            }
           }
         }
 
         /* ── KB entries ── */
-        const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
-        for (const kb of kbEntries) {
-          try {
-            const content = `Question: ${kb.question}\n${kb.alt_questions ? "Variantes: " + kb.alt_questions + "\n" : ""}Réponse: ${kb.answer}`;
-            const chunks = chunkDocument({ id: kb.id, content, source_url: kb.source_url, valid_until: kb.valid_until || null, originalName: `KB: ${kb.tag || kb.question.slice(0, 50)}` }, chunkSize);
-            if (chunks.length === 0) continue;
+        if (type === "all" || type === "kb") {
+          const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
+          for (const kb of kbEntries) {
+            try {
+              const content = `Question: ${kb.question}\n${kb.alt_questions ? "Variantes: " + kb.alt_questions + "\n" : ""}Réponse: ${kb.answer}`;
+              const chunks = chunkDocument({ id: kb.id, content, source_url: kb.source_url, valid_until: kb.valid_until || null, originalName: `KB: ${kb.tag || kb.question.slice(0, 50)}` }, chunkSize);
+              if (chunks.length === 0) continue;
 
-            const texts = chunks.map((c) => c.content);
-            const embeddings = await generateEmbeddings(texts, apiKey, provider);
-            if (embedKeyId) trackEmbeddingUsage(embedKeyId).catch(() => {});
+              const texts = chunks.map((c) => c.content);
+              const embeddings = await generateEmbeddings(texts, apiKey, provider);
+              if (embedKeyId) trackEmbeddingUsage(embedKeyId).catch(() => {});
 
-            /* Delete existing KB chunks */
-            await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [kb.id]);
+              /* Delete existing KB chunks */
+              await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [kb.id]);
 
-            for (let i = 0; i < chunks.length; i++) {
-              const c = chunks[i];
-              const rowId = `${kb.id}__kb__${i}`;
-              const embeddingStr = `[${embeddings[i].join(",")}]`;
-              await pool.query(
-                `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
-                [rowId, client.id, kb.id, c.id, c.content, c.source, c.section, c.keywords.join(", "), kb.source_url || "", kb.valid_until || "", embeddingStr]
-              );
+              for (let i = 0; i < chunks.length; i++) {
+                const c = chunks[i];
+                const rowId = `${kb.id}__kb__${i}`;
+                const embeddingStr = `[${embeddings[i].join(",")}]`;
+                await pool.query(
+                  `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
+                  [rowId, client.id, kb.id, c.id, c.content, c.source, c.section, c.keywords.join(", "), kb.source_url || "", kb.valid_until || "", embeddingStr]
+                );
+              }
+              log.kbEntries++;
+            } catch (err: any) {
+              log.errors.push(`kb ${kb.id}: ${err.message}`);
             }
-            log.kbEntries++;
-          } catch (err: any) {
-            log.errors.push(`kb ${kb.id}: ${err.message}`);
           }
         }
 

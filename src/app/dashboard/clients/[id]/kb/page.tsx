@@ -292,7 +292,7 @@ export default function ClientKBPage() {
     } catch {} finally { setLoadingIndexStatus(false); }
   }
 
-  useEffect(() => { if (tab === "vectoriel") loadIndexStatus(); }, [tab]);
+  useEffect(() => { if (tab === "vectoriel" || tab === "kb" || tab === "documents") loadIndexStatus(); }, [tab]);
 
   return (
     <div>
@@ -376,6 +376,52 @@ export default function ClientKBPage() {
               ))}
             </div>
           )}
+
+          {/* Indexation KB */}
+          <div className="mt-6 bg-white rounded-xl border border-gray-100 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Database size={16} className="text-emerald-600" />
+              <h2 className="font-semibold text-sm text-gray-900">Base vectorielle</h2>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Indexez les entrées KB dans la base vectorielle pour activer la recherche RAG.</p>
+            {loadingIndexStatus ? (
+              <p className="text-xs text-gray-400">Chargement du statut...</p>
+            ) : indexStatus ? (
+              <div className="flex items-center gap-4">
+                <div className="text-sm">
+                  <span className="font-semibold text-blue-700">{indexStatus.indexedKB}</span>
+                  <span className="text-gray-500">/{indexStatus.totalKB} entrées indexées</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    setIndexingKB(true); setIndexResult(null);
+                    try {
+                      const res = await fetch("/api/migrate-vector", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                        body: JSON.stringify({ clientId: id, type: "kb" }),
+                      });
+                      const data = await res.json();
+                      const sum = data.results?.[0] || {};
+                      setIndexResult(`✓ ${sum.kbEntries ?? 0} entrée(s) KB indexée(s)`);
+                      loadIndexStatus();
+                    } catch (err: any) { setIndexResult(`✗ ${err.message}`); }
+                    setIndexingKB(false);
+                  }}
+                  disabled={indexingKB}
+                  className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {indexingKB ? <Loader2 size={12} className="animate-spin" /> : <Database size={12} />}
+                  {indexingKB ? "Indexation..." : "Indexer la KB"}
+                </button>
+                {indexResult && (
+                  <span className={`text-xs ${indexResult.startsWith("✓") ? "text-green-600" : "text-red-600"}`}>{indexResult}</span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Connectez-vous pour voir le statut.</p>
+            )}
+          </div>
 
           <KBModal
             open={modalOpen}
@@ -489,35 +535,55 @@ export default function ClientKBPage() {
               <button onClick={() => { setTestQuestion(""); setTestResults(null); setShowTestModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all">
                 <Search size={15} /> Tester le RAG
               </button>
-              <button
-                onClick={async () => {
-                  setMigrating(true); setMigrateResult(null);
-                  try {
-                    const res = await fetch("/api/migrate-vector", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                      body: JSON.stringify({ clientId: id }),
-                    });
-                    const text = await res.text();
-                    const data = JSON.parse(text);
-                    setMigrateResult(JSON.stringify(data.results || data, null, 2));
-                  } catch (err: any) {
-                    setMigrateResult(`Erreur: ${err.message}`);
-                  }
-                  setMigrating(false);
-                }}
-                disabled={migrating}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-all disabled:opacity-50"
-              >
-                {migrating ? <Loader2 size={15} className="animate-spin" /> : <Database size={15} />}
-                {migrating ? "Migration..." : "Migrer vers pgvector"}
-              </button>
               <button onClick={handleTransferToKb} disabled={transferring} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all disabled:opacity-50">
                 <BookOpen size={15} /> {transferring ? "Transfert..." : "Transférer vers la KB"}
               </button>
             </div>
-            {migrateResult && (
-              <pre className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono overflow-auto max-h-60 text-gray-700">{migrateResult}</pre>
+          </div>
+
+          {/* Indexation documents */}
+          <div className="bg-white backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Database size={16} className="text-emerald-600" />
+              <h2 className="font-semibold text-sm text-gray-900">Base vectorielle</h2>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Indexez les documents contextuels dans la base vectorielle pour la recherche RAG.</p>
+            {loadingIndexStatus ? (
+              <p className="text-xs text-gray-400">Chargement du statut...</p>
+            ) : indexStatus ? (
+              <div className="flex items-center gap-4">
+                <div className="text-sm">
+                  <span className="font-semibold text-emerald-700">{indexStatus.indexedDocs}</span>
+                  <span className="text-gray-500">/{indexStatus.totalDocs} documents indexés</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    setMigrating(true); setMigrateResult(null);
+                    try {
+                      const res = await fetch("/api/migrate-vector", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                        body: JSON.stringify({ clientId: id, type: "documents" }),
+                      });
+                      const data = await res.json();
+                      const sum = data.results?.[0] || {};
+                      setMigrateResult(`✓ ${sum.documents ?? 0} document(s) indexé(s)`);
+                      loadIndexStatus();
+                    } catch (err: any) { setMigrateResult(`✗ ${err.message}`); }
+                    setMigrating(false);
+                  }}
+                  disabled={migrating}
+                  className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {migrating ? <Loader2 size={12} className="animate-spin" /> : <Database size={12} />}
+                  {migrating ? "Indexation..." : "Indexer les documents"}
+                </button>
+                {migrateResult && (
+                  <span className={`text-xs ${migrateResult.startsWith("✓") ? "text-green-600" : "text-red-600"}`}>{migrateResult}</span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Connectez-vous pour voir le statut.</p>
             )}
           </div>
           </div>
