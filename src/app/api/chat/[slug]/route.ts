@@ -353,6 +353,32 @@ async function translateKbAnswer(text: string, lang: string, client: any): Promi
   } catch { return text; }
 }
 
+/* ── QUERY EXPANSION / REFORMULATION ──────────────── */
+async function reformulateQuery(question: string, apiKey: string, providerId: string, model: string): Promise<string> {
+  try {
+    const resp = await fetch(PROVIDERS[providerId]?.endpoint || "https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: "Extrais les mots-clés et reformule cette question en une requête de recherche concise (max 15 mots). Garde les termes techniques, sigles et noms propres. Réponds UNIQUEMENT par la requête reformulée, sans introduction ni ponctuation superflue." },
+          { role: "user", content: question },
+        ],
+        temperature: 0,
+        max_tokens: 60,
+      }),
+    });
+    if (!resp.ok) return question;
+    const data = await resp.json();
+    const text = (data.choices?.[0]?.message?.content || "").trim();
+    if (!text || text.length < 3 || text.length > 150) return question;
+    return text;
+  } catch {
+    return question;
+  }
+}
+
 /* ── AI CALL ────────────────────────────────────────── */
 async function callAI(apiKey: string, providerId: string, model: string, system: string, user: string, temperature: number, history: any[], max_tokens: number = 600) {
   const provider = PROVIDERS[providerId];
@@ -1249,14 +1275,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
     let topChunks: ChunkMeta[] = [];
+
+    /* Reformulation de la requête pour meilleur matching */
+    const searchQuery = await reformulateQuery(message, apiKey, providerInfo.id, model);
+    if (searchQuery !== message) {
+      console.log(`[Query Reformulation] "${message.slice(0, 60)}" → "${searchQuery.slice(0, 60)}" (${client.name})`);
+    }
+
     const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
-    const apiKey = activeKey?.key || client.hfApiKey;
+    const embedApiKey = activeKey?.key || client.hfApiKey;
 
     /* Recherche vectorielle (si activée) */
     const vectorResults: ChunkMeta[] = [];
-    if (client.useVectorRag && apiKey) {
+    if (client.useVectorRag && embedApiKey) {
       try {
-        const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider);
+        const embedding = await generateEmbedding(searchQuery, embedApiKey, activeKey?.provider || client.embeddingProvider);
         const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
         vectorResults.push(...results.map((r) => r.chunk));
       } catch (err) {
@@ -1265,10 +1298,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
     }
 
-    /* Recherche keyword (toujours, sur site + documents) */
+    /* Recherche keyword (toujours, sur site + documents, avec requête reformulée) */
     const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
     const allChunks = [...siteChunks, ...docChunks];
-    const keywordResults = findBestChunks(message, allChunks, client.topNChunks ?? 7, ragThreshold);
+    const keywordResults = findBestChunks(searchQuery, allChunks, client.topNChunks ?? 7, ragThreshold);
 
     /* Fusion : priorité vectorielle, puis keyword pour combler */
     const seen = new Set<string>();
