@@ -962,7 +962,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   const { match, score, isKeyword } = findBestMatch(message, KB);
   const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
-  const ragThreshold = client.ragThreshold ?? 40;
+  const ragThreshold = client.ragThreshold ?? 72;
 
   /* ── Short query guard (only if no good KB match) ── */
   if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
@@ -1185,6 +1185,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
       if (text.trim().toUpperCase() === "NO_MATCH") {
         console.warn(`[Nova Chat] KB mismatch N1: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
+        qaResponse = match.answer;
+        qaProvider = "";
+        saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
       } else {
         saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
         saveUsage(client.id, providerInfo.id, model, usage);
@@ -1210,6 +1213,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
       if (text.trim().toUpperCase() === "NO_MATCH") {
         console.warn(`[Nova Chat] KB mismatch N1b: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
+        qaResponse = match.answer;
+        qaProvider = "";
+        saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
       } else {
         saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
         saveUsage(client.id, providerInfo.id, model, usage);

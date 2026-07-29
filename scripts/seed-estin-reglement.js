@@ -136,6 +136,7 @@ const entries = [
   {
     question: "Comment sont représentés les étudiants à l'ESTIN ?",
     answer: "Les étudiants sont représentés par des délégués élus : un délégué et un suppléant par groupe, un à deux délégués de section, et un comité élu (2 délégués par année). Un étudiant sanctionné disciplinairement ne peut être délégué.",
+    keywordsExtra: "représentant, délégué, suppléant, comité, élection, groupe, section",
   },
 
   // ─── VI. DISCIPLINE ───
@@ -199,7 +200,7 @@ const TARGET_CLIENT_ID = "4e58898f-148a-4b64-9367-1e74cd74f9f0";
           question: e.question,
           answer: e.answer,
           category: "Règlement Intérieur ESTIN",
-          keywords: "règlement intérieur, discipline, examen, assiduité, absence, sanction, conseil discipline, réinscription, congé académique, évaluation, progression, redoublement",
+          keywords: e.keywordsExtra || "règlement intérieur, discipline, examen, assiduité, absence, sanction, conseil discipline, réinscription, congé académique, évaluation, progression, redoublement",
           priority: 8,
           clientId,
         },
