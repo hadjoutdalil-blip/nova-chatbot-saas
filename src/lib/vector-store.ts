@@ -147,7 +147,6 @@ export async function searchChunks(
        1 - (embedding <=> $1::vector) AS score
      FROM document_chunks
      WHERE "clientId" = $2
-       AND 1 - (embedding <=> $1::vector) > 0.3
      ORDER BY embedding <=> $1::vector
      LIMIT $3`,
     [embeddingStr, clientId, topN]

@@ -1251,21 +1251,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     let topChunks: ChunkMeta[] = [];
     const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
     const apiKey = activeKey?.key || client.hfApiKey;
+
+    /* Recherche vectorielle (si activée) */
+    const vectorResults: ChunkMeta[] = [];
     if (client.useVectorRag && apiKey) {
       try {
         const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider);
         const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
-        topChunks = results.map((r) => r.chunk);
+        vectorResults.push(...results.map((r) => r.chunk));
       } catch (err) {
-        console.error("[Vector RAG] error, falling back to keyword:", err);
+        console.error("[Vector RAG] error:", err);
       }
       if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
     }
-    if (topChunks.length === 0) {
-      if (client.useVectorRag) console.warn(`[Vector RAG] 0 chunks above threshold → fallback keyword for "${message.slice(0, 80)}" (${client.name})`);
-      const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-      const allChunks = [...siteChunks, ...docChunks];
-      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 7, ragThreshold);
+
+    /* Recherche keyword (toujours, sur site + documents) */
+    const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
+    const allChunks = [...siteChunks, ...docChunks];
+    const keywordResults = findBestChunks(message, allChunks, client.topNChunks ?? 7, ragThreshold);
+
+    /* Fusion : priorité vectorielle, puis keyword pour combler */
+    const seen = new Set<string>();
+    const merged: ChunkMeta[] = [];
+    for (const c of vectorResults) {
+      const key = c.content.slice(0, 120);
+      if (!seen.has(key)) { seen.add(key); merged.push(c); }
+    }
+    for (const c of keywordResults) {
+      if (merged.length >= (client.topNChunks ?? 7)) break;
+      const key = c.content.slice(0, 120);
+      if (!seen.has(key)) { seen.add(key); merged.push(c); }
+    }
+    topChunks = merged;
+    if (client.useVectorRag && vectorResults.length === 0) {
+      console.warn(`[Vector RAG] 0 chunks → hybrid keyword only for "${message.slice(0, 80)}" (${client.name})`);
     }
 
     if (topChunks.length > 0) {
