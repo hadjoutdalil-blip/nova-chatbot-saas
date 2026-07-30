@@ -79,6 +79,7 @@ var LANG={
     suggestionsLabel:"📐 Suggestions — cliquez pour explorer :",
     faqHeader:"Questions fréquentes",
     faqEmpty:"Aucune question disponible pour le moment.",
+    welcomeHelp:"Pour une question, cliquez sur Aide et parcourez les questions dont les r\u00e9ponses sont pr\u00e9par\u00e9es par les experts. Si vous ne trouvez pas de r\u00e9ponse, posez votre propre question.",
     ragTitleTooltip:"Recherche dans les documents techniques",
     iaActive:"IA Active",
     disconnected:"⚠️ Connexion perdue — vos messages seront envoyés dès la reconnexion",
@@ -121,6 +122,7 @@ var LANG={
     suggestionsLabel:"📐 Suggestions — click to explore:",
     faqHeader:"Frequently asked questions",
     faqEmpty:"No questions available at the moment.",
+    welcomeHelp:"For a question, click Help and browse questions with answers prepared by experts. If you don't find an answer, ask your own question.",
     ragTitleTooltip:"Search in technical documents",
     iaActive:"AI Active",
     disconnected:"⚠️ Connection lost — your messages will be sent upon reconnection",
@@ -163,6 +165,7 @@ var LANG={
     suggestionsLabel:"📐 اقتراحات — انقر للاستكشاف:",
     faqHeader:"الأسئلة المتكررة",
     faqEmpty:"لا توجد أسئلة متاحة حاليًا.",
+    welcomeHelp:"للسؤال، انقر على المساعدة وتصفح الأسئلة التي أعدّها الخبراء. إذا لم تجد إجابة، اطرح سؤالك الخاص.",
     ragTitleTooltip:"البحث في الوثائق الفنية",
     iaActive:"الذكاء الاصطناعي نشط",
     disconnected:"⚠️ فقدان الاتصال — سيتم إرسال رسائلك عند إعادة الاتصال",
@@ -385,6 +388,7 @@ C+=".nw-icon img{width:42px;height:42px;border-radius:50%;object-fit:cover}";
 C+=".nw-title{font-size:16px;font-weight:800;color:#0d1b2a;margin-bottom:7px;letter-spacing:-.3px}";
 C+=".nw-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:18px}";
 C+=".nw-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:0}";
+C+=".nw-help{margin-top:20px;padding:14px;background:#f8fafc;border-radius:12px;font-size:12px;color:#475569;line-height:1.6;text-align:center;border:1px solid #eef2f6}";
 C+=".nw-chip{background:#fff;border:1.5px solid #eef2f6;border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;font-size:12.5px;font-weight:600;color:#0d1b2a;transition:all .18s cubic-bezier(.4,0,.2,1);box-shadow:0 1px 4px rgba(0,0,0,.04)}";
 C+=".nw-chip:hover{border-color:"+e.primaryColor+";color:"+e.primaryColor+";background:"+e.primaryColor+"08;transform:translateY(-2px);box-shadow:0 4px 12px "+e.primaryColor+"18}";
 C+=".nw-chip .nw-chip-icon{font-size:18px;display:block;margin-bottom:4px}";
@@ -587,6 +591,7 @@ if(WC.length>0){
   }
   welcomeHtml+="</div>";
 }
+welcomeHtml+='<div class="nw-help">'+tr("welcomeHelp")+'</div>';
 welcomeHtml+="</div>";
 
 /* chat card */
