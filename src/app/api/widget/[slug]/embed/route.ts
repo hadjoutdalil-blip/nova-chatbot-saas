@@ -12,7 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const widgetConfig = await db.prisma.widgetConfig.findFirst({ where: { clientId: client.id } });
   const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
 
-  const chatUrl = `/api/chat/${slug}`;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+  const chatUrl = `${origin}/api/chat/${slug}`;
+  const feedbackUrl = `${origin}/api/feedback`;
   const name = client.name;
   const logo = client.logo || "";
   const primaryColor = client.primaryColor || "#059669";
@@ -35,6 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const KB_JSON = JSON.stringify(kbEntries.map((k: any) => ({ c: k.category || "G\u00e9n\u00e9ral", q: k.question })));
 
   const script = `(function(){
+var FU="${escapeJs(feedbackUrl)}";
 var e={aiColor:"${escapeJs(widgetConfig?.aiColor||"#7c3aed")}",chatUrl:"${escapeJs(chatUrl)}",name:"${escapeJs(name)}",logo:"${escapeJs(logo)}",primaryColor:"${escapeJs(primaryColor)}",position:"${escapeJs(pos)}",marginBottom:${mb},marginRight:${mr},welcomeTitle:"${escapeJs(welcomeTitle)}",welcomeSub:"${escapeJs(welcomeSub)}",greetingMsg:"${escapeJs(widgetConfig?.greetingMsg||"")}",showBrand:${showBrand},avatarIcon:"${avatarIcon}",buttonAnimation:"${escapeJs(widgetConfig?.buttonAnimation||"pulse")}",buttonLabel:"${escapeJs(widgetConfig?.buttonLabel??"")}",buttonLabelDuration:${widgetConfig?.buttonLabelDuration??8},maxMessageLength:500,maxHistoryLength:20,proactiveEnabled:${widgetConfig?.proactiveEnabled===true},autoOpenDelay:${widgetConfig?.autoOpenDelay??5},showNotification:${widgetConfig?.showNotification!==false},notificationText:"${escapeJs(widgetConfig?.notificationText??"")}",sendGreeting:${widgetConfig?.sendGreeting===true},scrollTrigger:${widgetConfig?.scrollTrigger??0},exitIntent:${widgetConfig?.exitIntent===true},widgetWidth:${widgetConfig?.widgetWidth??420},widgetHeight:${widgetConfig?.widgetHeight??700},widgetMaxWidth:${widgetConfig?.widgetMaxWidth??820},widgetMaxHeight:${widgetConfig?.widgetMaxHeight??820}};
 
 var KQ=${KQ_JSON};
@@ -754,7 +757,7 @@ function buildFeedback(msgId,respText,src,scr,prov){
 function submitFeedback(msgId,rating,question,response,source,score,provider){
   if(feedState[msgId]) return;
   var xhr=new XMLHttpRequest();
-  xhr.open("POST","/api/feedback",true);
+  xhr.open("POST",FU,true);
   xhr.setRequestHeader("Content-Type","application/json");
   xhr.onload=function(){
     if(xhr.status===200){
