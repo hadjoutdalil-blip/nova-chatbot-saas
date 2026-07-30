@@ -291,7 +291,7 @@ Puis-je vous aider avec autre chose ?"
 RÈGLES ABSOLUES :
 - Suis le format de l'exemple ci-dessus : 1) phrase d'ouverture, 2) coordonnées, 3) suggestions, 4) question ouverte
 - Reste courtois, neutre et professionnel
-- Utilise les INFORMATIONS DE CONTACT réelles ci-dessous
+- Utilise les INFORMATIONS DE CONTACT réelles ci-dessous — ne tronque JAMAIS les adresses email, téléphones ou coordonnées, recopie-les intégralement
 - Suggère 2-3 questions pertinentes en lien avec la QUESTION DU CLIENT
 - N'invente JAMAIS d'information technique
 - ${langInstruction(lang)}, ton professionnel et accessible
