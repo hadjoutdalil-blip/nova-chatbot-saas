@@ -618,7 +618,7 @@ if(WC.length>0){
   welcomeHtml+="</div>";
 }
 welcomeHtml+='<div class="nw-help">'+tr("welcomeHelp")+'</div>';
-welcomeHtml+='<div class="nw-actions"><button class="nw-action-btn msg" onclick="switchPage(\'msg\');document.getElementById(\'ni\').focus()">'+ICONS.chat+' '+tr("modeDefault")+'</button><button class="nw-action-btn help" onclick="switchPage(\'help\')">'+ICONS.book+' Aide</button></div>';
+welcomeHtml+='<div class="nw-actions"><button class="nw-action-btn msg" onclick="switchPage(\\'msg\\');document.getElementById(\\'ni\\').focus()">'+ICONS.chat+' '+tr("modeDefault")+'</button><button class="nw-action-btn help" onclick="switchPage(\\'help\\')">'+ICONS.book+' Aide</button></div>';
 welcomeHtml+="</div>";
 
 /* chat card */
