@@ -195,13 +195,22 @@ export default function ProposalsPage() {
 
         {!user ? (
           <section className="bg-white border-2 border-gray-200 rounded-xl p-6 sm:p-8 shadow-md text-center">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Connexion requise</h2>
-            <p className="text-sm sm:text-base text-gray-700 mb-6">Connectez-vous avec votre compte Gmail pour soumettre une proposition.</p>
-            {gsiLoaded ? (
-              <GoogleLoginButton onSuccess={setUser} />
-            ) : (
-              <p className="text-sm text-gray-600 font-medium">Chargement de Google Sign-In...</p>
-            )}
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl" style={{ background: pc + "15" }}>
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke={pc} stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1"/><circle cx="12" cy="10" r="1"/><circle cx="15" cy="10" r="1"/></svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">{client.name}</h2>
+            <p className="text-sm text-gray-600 mb-5 leading-relaxed max-w-md mx-auto">
+              Bienvenue sur l'espace propositions. Partagez vos questions et suggestions avec notre équipe.
+              Ce service est propulsé par <strong>Nova Chat Platform</strong> — une solution chatbot développée par <strong>ESTIN NOVA TECH</strong> pour les entreprises, universités et institutions.
+            </p>
+            <div className="border-t border-gray-100 pt-5">
+              <p className="text-sm font-semibold text-gray-800 mb-3">Connectez-vous avec votre compte Gmail pour soumettre une proposition</p>
+              {gsiLoaded ? (
+                <GoogleLoginButton onSuccess={setUser} />
+              ) : (
+                <p className="text-sm text-gray-600 font-medium">Chargement de Google Sign-In...</p>
+              )}
+            </div>
           </section>
         ) : (
           <section className="bg-white border-2 border-gray-200 rounded-xl p-5 sm:p-6 shadow-md">
