@@ -342,6 +342,14 @@ export default function ProposalsPage() {
           </section>
         )}
       </div>
+
+      <footer className="text-center py-6 px-4 border-t border-gray-200 bg-white">
+        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+          Propulsé par <strong>Nova Chat Platform</strong> — Développé par <strong>ESTIN NOVA TECH</strong>.
+          Intégration chatbot pour sites web : entreprises nationales, universités, privé.
+          Clients : ESTIN &amp; CETIM.
+        </p>
+      </footer>
     </div>
   );
 }
