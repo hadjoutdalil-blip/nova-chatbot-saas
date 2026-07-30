@@ -85,9 +85,15 @@ const PRIORITY_MAP = {
 
     console.log(`Lues ${data.length} lignes dans le CSV.`);
 
-    let created = 0;
-    let skipped = 0;
+    const existingTags = new Set(
+      (await prisma.kBEntry.findMany({
+        where: { clientId },
+        select: { tag: true },
+      })).map(e => e.tag)
+    );
+    console.log(`Tags existants chargés : ${existingTags.size}`);
 
+    const toCreate = [];
     for (const row of data) {
       const tag = (row[header.indexOf("tag")] || "").trim();
       const questionPrincipale = (row[header.indexOf("question_principale")] || "").trim();
@@ -99,18 +105,8 @@ const PRIORITY_MAP = {
       const prioriteRaw = (row[header.indexOf("priorite")] || "").trim().toLowerCase();
       const tagsAssocies = (row[header.indexOf("tags_associes")] || "").trim();
 
-      if (!tag || !questionPrincipale) {
-        console.warn(`  ⚠ Ligne ignorée (tag ou question vide) : ${tag || "(vide)"}`);
-        continue;
-      }
-
-      const existing = await prisma.kBEntry.findFirst({
-        where: { tag, clientId },
-      });
-      if (existing) {
-        skipped++;
-        continue;
-      }
+      if (!tag || !questionPrincipale) continue;
+      if (existingTags.has(tag)) continue;
 
       const altQs = questionsAlternatives
         .split("|")
@@ -130,26 +126,24 @@ const PRIORITY_MAP = {
         ? `${reponseCourte}\n\n${reponseLongue}`
         : reponseCourte;
 
-      await prisma.kBEntry.create({
-        data: {
-          id: randomUUID(),
-          tag,
-          question: questionPrincipale,
-          alt_questions: altQs,
-          short_resp: reponseCourte,
-          answer,
-          category: categorie || "Laboratoire",
-          keywords,
-          priority,
-          related_tags: tagsAssocies,
-          source: "CETIM – Laboratoire",
-          clientId,
-        },
+      toCreate.push({
+        id: randomUUID(),
+        tag,
+        question: questionPrincipale,
+        alt_questions: altQs,
+        short_resp: reponseCourte,
+        answer,
+        category: categorie || "Laboratoire",
+        keywords,
+        priority,
+        related_tags: tagsAssocies,
+        source: "CETIM – Laboratoire",
+        clientId,
       });
-      created++;
     }
 
-    console.log(`\nTerminé : ${created} créée(s), ${skipped} déjà existante(s) ignorée(s).`);
+    await prisma.kBEntry.createMany({ data: toCreate });
+    console.log(`\nImporté : ${toCreate.length} entrée(s) (${data.length - toCreate.length} déjà existante(s) ignorée(s)).`);
   } catch (err) {
     console.error("Erreur :", err);
     process.exit(1);
