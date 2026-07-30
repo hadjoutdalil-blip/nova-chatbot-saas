@@ -71,29 +71,23 @@ const PRIORITY_MAP = {
       process.exit(1);
     }
     const clientId = client.id;
-    console.log(`Client CETIM trouvé : ${client.name} (${clientId})`);
+    console.log(`Client CETIM : ${client.name} (${clientId})`);
 
     const csvPath = path.join(__dirname, "data", "cetim-laboratoire.csv");
     if (!fs.existsSync(csvPath)) {
       console.error(`Fichier CSV introuvable : ${csvPath}`);
       process.exit(1);
     }
-    const raw = fs.readFileSync(csvPath, "utf-8");
+    const buf = fs.readFileSync(csvPath);
+    const raw = buf.toString("latin1");
     const rows = parseCSV(raw);
     const header = rows[0].map(h => h.trim().toLowerCase());
     const data = rows.slice(1).filter(r => r.length >= 4 && r[0] && r[0].trim());
 
     console.log(`Lues ${data.length} lignes dans le CSV.`);
 
-    const existingTags = new Set(
-      (await prisma.kBEntry.findMany({
-        where: { clientId },
-        select: { tag: true },
-      })).map(e => e.tag)
-    );
-    console.log(`Tags existants chargés : ${existingTags.size}`);
-
-    const toCreate = [];
+    const seenQs = new Set();
+    const parsed = [];
     for (const row of data) {
       const tag = (row[header.indexOf("tag")] || "").trim();
       const questionPrincipale = (row[header.indexOf("question_principale")] || "").trim();
@@ -106,7 +100,10 @@ const PRIORITY_MAP = {
       const tagsAssocies = (row[header.indexOf("tags_associes")] || "").trim();
 
       if (!tag || !questionPrincipale) continue;
-      if (existingTags.has(tag)) continue;
+
+      const qKey = questionPrincipale.toLowerCase().replace(/\s+/g, " ");
+      if (seenQs.has(qKey)) continue;
+      seenQs.add(qKey);
 
       const altQs = questionsAlternatives
         .split("|")
@@ -126,7 +123,7 @@ const PRIORITY_MAP = {
         ? `${reponseCourte}\n\n${reponseLongue}`
         : reponseCourte;
 
-      toCreate.push({
+      parsed.push({
         id: randomUUID(),
         tag,
         question: questionPrincipale,
@@ -142,8 +139,19 @@ const PRIORITY_MAP = {
       });
     }
 
-    await prisma.kBEntry.createMany({ data: toCreate });
-    console.log(`\nImporté : ${toCreate.length} entrée(s) (${data.length - toCreate.length} déjà existante(s) ignorée(s)).`);
+    console.log(`Dont ${parsed.length} uniques (${data.length - parsed.length} doublons ignorés).`);
+
+    const existing = await prisma.kBEntry.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+    if (existing.length > 0) {
+      console.log(`Suppression de ${existing.length} anciennes entrées CETIM...`);
+      await prisma.kBEntry.deleteMany({ where: { clientId } });
+    }
+
+    await prisma.kBEntry.createMany({ data: parsed });
+    console.log(`\nImporté : ${parsed.length} entrée(s).`);
   } catch (err) {
     console.error("Erreur :", err);
     process.exit(1);
