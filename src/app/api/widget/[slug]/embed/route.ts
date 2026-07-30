@@ -78,6 +78,7 @@ var LANG={
     resetConfirm:"Réinitialiser la conversation ?",
     suggestionsLabel:"📐 Suggestions — cliquez pour explorer :",
     faqHeader:"Questions fréquentes",
+    faqSearch:"Rechercher une question...",
     faqEmpty:"Aucune question disponible pour le moment.",
     welcomeHelp:"Pour une question, cliquez sur Aide et parcourez les questions dont les r\u00e9ponses sont pr\u00e9par\u00e9es par les experts. Si vous ne trouvez pas de r\u00e9ponse, posez votre propre question.",
     ragTitleTooltip:"Recherche dans les documents techniques",
@@ -121,6 +122,7 @@ var LANG={
     resetConfirm:"Reset conversation?",
     suggestionsLabel:"📐 Suggestions — click to explore:",
     faqHeader:"Frequently asked questions",
+    faqSearch:"Search a question...",
     faqEmpty:"No questions available at the moment.",
     welcomeHelp:"For a question, click Help and browse questions with answers prepared by experts. If you don't find an answer, ask your own question.",
     ragTitleTooltip:"Search in technical documents",
@@ -164,6 +166,7 @@ var LANG={
     resetConfirm:"إعادة تعيين المحادثة؟",
     suggestionsLabel:"📐 اقتراحات — انقر للاستكشاف:",
     faqHeader:"الأسئلة المتكررة",
+    faqSearch:"ابحث عن سؤال...",
     faqEmpty:"لا توجد أسئلة متاحة حاليًا.",
     welcomeHelp:"للسؤال، انقر على المساعدة وتصفح الأسئلة التي أعدّها الخبراء. إذا لم تجد إجابة، اطرح سؤالك الخاص.",
     ragTitleTooltip:"البحث في الوثائق الفنية",
@@ -454,15 +457,31 @@ C+=".nv-home .nv-action .nv-act-icon{width:36px;height:36px;border-radius:10px;b
 C+=".nv-home .nv-action .nv-act-icon svg{width:18px;height:18px}";
 /* help view */
 C+=".nv-help{padding:16px 20px;overflow-y:auto;flex:1}";
-C+=".nv-help .nv-hdr{font-size:15px;font-weight:700;color:#0d1b2a;margin-bottom:16px;display:flex;align-items:center;gap:8px}";
+C+=".nv-help .nv-hdr{font-size:15px;font-weight:700;color:#0d1b2a;margin-bottom:12px;display:flex;align-items:center;gap:8px}";
 C+=".nv-help .nv-hdr svg{width:20px;height:20px;color:"+e.primaryColor+"}";
-C+=".nv-help .nv-cat{margin-bottom:16px}";
-C+=".nv-help .nv-cat-title{font-size:12px;font-weight:700;color:"+e.primaryColor+";text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid "+e.primaryColor+"22}";
-C+=".nv-help .nv-faq-item{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 12px;font-size:13px;color:#374151;cursor:pointer;border-radius:10px;transition:all .15s;line-height:1.4;margin-bottom:2px}";
-C+=".nv-help .nv-faq-item:hover{background:"+e.primaryColor+"0a;color:"+e.primaryColor+";font-weight:500}";
-C+=".nv-help .nv-faq-item .nv-faq-q{display:flex;align-items:center;gap:8px}";
-C+=".nv-help .nv-faq-item .nv-faq-q::before{content:'\\2713';font-size:10px;color:"+e.primaryColor+";font-weight:700;opacity:.6}";
+C+=".nv-help .nv-search{position:relative;margin-bottom:12px}";
+C+=".nv-help .nv-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#9ca3af;pointer-events:none}";
+C+=".nv-help .nv-search input{width:100%;padding:10px 12px 10px 36px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:13px;outline:none;transition:border-color .2s;box-sizing:border-box;background:#fff;color:#374151}";
+C+=".nv-help .nv-search input:focus{border-color:"+e.primaryColor+";box-shadow:0 0 0 3px "+e.primaryColor+"22}";
+C+=".nv-help .nv-search input::placeholder{color:#9ca3af}";
+C+=".nv-help .nv-cat-card{border:1px solid #eef2f6;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff;transition:box-shadow .2s}";
+C+=".nv-help .nv-cat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}";
+C+=".nv-help .nv-cat-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;gap:8px;user-select:none;transition:background .15s}";
+C+=".nv-help .nv-cat-card-header:hover{background:"+e.primaryColor+"08}";
+C+=".nv-help .nv-cat-card-header .nv-cat-card-left{display:flex;align-items:center;gap:10px;min-width:0}";
+C+=".nv-help .nv-cat-card-header .nv-cat-card-icon{width:36px;height:36px;border-radius:10px;background:"+e.primaryColor+"12;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}";
+C+=".nv-help .nv-cat-card-header .nv-cat-card-name{font-size:14px;font-weight:600;color:#0d1b2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}";
+C+=".nv-help .nv-cat-card-header .nv-cat-card-count{font-size:11px;color:#9ca3af;font-weight:500;white-space:nowrap}";
+C+=".nv-help .nv-cat-card-header .nv-cat-card-arrow{width:20px;height:20px;color:#9ca3af;flex-shrink:0;transition:transform .2s ease}";
+C+=".nv-help .nv-cat-card-header .nv-cat-card-arrow.open{transform:rotate(180deg)}";
+C+=".nv-help .nv-cat-card-body{max-height:0;overflow:hidden;transition:max-height .3s ease}";
+C+=".nv-help .nv-cat-card-body.open{max-height:2000px}";
+C+=".nv-help .nv-cat-card-body .nv-faq-item{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 18px;font-size:13px;color:#374151;cursor:pointer;line-height:1.4;transition:all .15s}";
+C+=".nv-help .nv-cat-card-body .nv-faq-item:hover{background:"+e.primaryColor+"0a;color:"+e.primaryColor+"}";
+C+=".nv-help .nv-cat-card-body .nv-faq-item .nv-faq-q{display:flex;align-items:center;gap:8px}";
+C+=".nv-help .nv-cat-card-body .nv-faq-item .nv-faq-q::before{content:'\\2713';font-size:10px;color:"+e.primaryColor+";font-weight:700;opacity:.6;flex-shrink:0}";
 C+=".nv-help .nv-empty{padding:40px 20px;text-align:center;font-size:13px;color:#9ca3af}";
+C+=".nv-help .nv-no-results{padding:20px;text-align:center;font-size:13px;color:#9ca3af;display:none}";
 t.textContent=C;
 document.head.appendChild(t);
 
@@ -628,7 +647,7 @@ document.querySelectorAll("#nnav .nnav-btn").forEach(function(b){
   b.onclick=function(){switchPage(this.dataset.page)};
 });
 
-/* Render Help FAQ */
+/* Render Help FAQ with category cards + search */
 function renderHelpFAQ(){
   var el=document.getElementById("nv-help");
   if(!el||el.dataset.rendered) return;
@@ -643,16 +662,25 @@ function renderHelpFAQ(){
     if(!cats[c])cats[c]=[];
     cats[c].push(KB[ki].q);
   }
-  var html='<div class="nv-hdr">'+ICONS.book+' '+tr("faqHeader")+'</div>';
   var catKeys=Object.keys(cats).sort();
+  var html='<div class="nv-hdr">'+ICONS.book+' '+tr("faqHeader")+'</div>';
+  html+='<div class="nv-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="nv-search-input" placeholder="'+tr("faqSearch")+'" autocomplete="off"></div>';
+  html+='<div id="nv-cat-container">';
   for(var ci=0;ci<catKeys.length;ci++){
     var cat=catKeys[ci];
-    html+='<div class="nv-cat"><div class="nv-cat-title">'+escHtml(cat)+'</div>';
-    for(var qi=0;qi<cats[cat].length;qi++){
-      html+='<button class="nv-faq-item" data-q="'+escAttr(cats[cat][qi])+'"><span class="nv-faq-q">'+escHtml(cats[cat][qi])+'</span></button>';
+    var qs=cats[cat];
+    html+='<div class="nv-cat-card" data-cat="'+escAttr(cat)+'">';
+    html+='<div class="nv-cat-card-header" role="button" tabindex="0">';
+    html+='<div class="nv-cat-card-left"><div class="nv-cat-card-icon">\ud83d\udcc2</div><span class="nv-cat-card-name">'+escHtml(cat)+'</span><span class="nv-cat-card-count">'+qs.length+'</span></div>';
+    html+='<svg class="nv-cat-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    html+='</div><div class="nv-cat-card-body">';
+    for(var qi=0;qi<qs.length;qi++){
+      html+='<button class="nv-faq-item" data-q="'+escAttr(qs[qi])+'"><span class="nv-faq-q">'+escHtml(qs[qi])+'</span></button>';
     }
-    html+="</div>";
+    html+='</div></div>';
   }
+  html+='</div>';
+  html+='<div class="nv-no-results" id="nv-no-results">'+tr("faqEmpty")+'</div>';
   el.innerHTML=html;
   el.querySelectorAll(".nv-faq-item").forEach(function(item){
     item.onclick=function(){
@@ -660,6 +688,52 @@ function renderHelpFAQ(){
       sendMessage(this.dataset.q);
     };
   });
+  el.querySelectorAll(".nv-cat-card-header").forEach(function(header){
+    header.onclick=function(){
+      var body=this.nextElementSibling;
+      var arrow=this.querySelector(".nv-cat-card-arrow");
+      body.classList.toggle("open");
+      if(arrow)arrow.classList.toggle("open");
+    };
+  });
+  var searchInput=document.getElementById("nv-search-input");
+  if(searchInput){
+    searchInput.oninput=function(){
+      var q=this.value.toLowerCase().trim();
+      var cards=el.querySelectorAll(".nv-cat-card");
+      var hasResults=false;
+      cards.forEach(function(card){
+        if(!q){
+          card.style.display="";
+          card.querySelectorAll(".nv-faq-item").forEach(function(item){item.style.display=""});
+          var body=card.querySelector(".nv-cat-card-body");
+          var arrow=card.querySelector(".nv-cat-card-arrow");
+          if(body)body.classList.remove("open");
+          if(arrow)arrow.classList.remove("open");
+          hasResults=true;
+          return;
+        }
+        var catName=(card.dataset.cat||"").toLowerCase();
+        var items=card.querySelectorAll(".nv-faq-item");
+        var anyMatch=catName.includes(q);
+        items.forEach(function(item){
+          var match=(item.dataset.q||"").toLowerCase().includes(q);
+          item.style.display=match?"":"none";
+          if(match)anyMatch=true;
+        });
+        if(anyMatch){
+          card.style.display="";
+          var body=card.querySelector(".nv-cat-card-body");
+          var arrow=card.querySelector(".nv-cat-card-arrow");
+          if(body&&!body.classList.contains("open")){body.classList.add("open");if(arrow)arrow.classList.add("open")}
+          hasResults=true;
+        }else{
+          card.style.display="none";
+        }
+      });
+      document.getElementById("nv-no-results").style.display=hasResults?"none":"block";
+    };
+  }
 }
 
 /* Logo onerror fallback */
