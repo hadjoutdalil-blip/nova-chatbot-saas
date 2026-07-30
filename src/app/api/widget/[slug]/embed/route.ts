@@ -489,6 +489,16 @@ C+=".nv-help .nv-cat-card-body .nv-faq-item .nv-faq-q{display:flex;align-items:c
 C+=".nv-help .nv-cat-card-body .nv-faq-item .nv-faq-q::before{content:'\\2713';font-size:10px;color:"+e.primaryColor+";font-weight:700;opacity:.6;flex-shrink:0}";
 C+=".nv-help .nv-empty{padding:40px 20px;text-align:center;font-size:13px;color:#9ca3af}";
 C+=".nv-help .nv-no-results{padding:20px;text-align:center;font-size:13px;color:#9ca3af;display:none}";
+/* promo view */
+C+=".nv-promo{padding:24px 20px;overflow-y:auto;flex:1;text-align:center}";
+C+=".nv-promo .nv-promo-icon{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,"+e.primaryColor+","+e.primaryColor+"dd);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;color:#fff;box-shadow:0 4px 16px "+e.primaryColor+"44}";
+C+=".nv-promo h2{font-size:17px;font-weight:700;color:#0d1b2a;margin:0 0 6px}";
+C+=".nv-promo .nv-promo-sub{font-size:13px;color:#6b7280;margin-bottom:20px;line-height:1.6;padding:0 4px}";
+C+=".nv-promo .nv-promo-card{background:#f8fafc;border:1px solid #eef2f6;border-radius:16px;padding:16px;margin-bottom:12px;text-align:left}";
+C+=".nv-promo .nv-promo-card strong{color:"+e.primaryColor+"}";
+C+=".nv-promo .nv-promo-card p{margin:0 0 4px;font-size:13px;color:#374151;line-height:1.5}";
+C+=".nv-promo .nv-promo-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:"+e.primaryColor+";color:#fff;transition:opacity .2s;margin-top:4px}";
+C+=".nv-promo .nv-promo-btn:hover{opacity:.9}";
 t.textContent=C;
 document.head.appendChild(t);
 
@@ -650,6 +660,7 @@ function switchPage(page){
     }
   }
   if(page==="help") renderHelpFAQ();
+  if(page==="promo") renderPromoPage();
 }
 document.querySelectorAll("#nnav .nnav-btn").forEach(function(b){
   b.onclick=function(){switchPage(this.dataset.page)};
@@ -742,6 +753,14 @@ function renderHelpFAQ(){
       document.getElementById("nv-no-results").style.display=hasResults?"none":"block";
     };
   }
+}
+
+/* Render Promo Page */
+function renderPromoPage(){
+  var el=document.getElementById("nv-promo");
+  if(!el||el.dataset.rendered) return;
+  el.dataset.rendered="true";
+  el.innerHTML='<div class="nv-promo-icon">'+ICONS.zap+'</div><h2>Nova Chat Platform</h2><div class="nv-promo-sub">Solution chatbot intelligent pour entreprises, universités et institutions. Développée par ESTIN NOVA TECH.</div><div class="nv-promo-card"><p><strong>Propulsé par Nova Chat Platform</strong></p><p>Intégration chatbot pour sites web : entreprises nationales, universités, privé. Clients : ESTIN &amp; CETIM.</p></div><div class="nv-promo-card"><p><strong>Développé par ESTIN NOVA TECH</strong></p><p>Une solution innovante de chatbot enrichi par l\\'IA, avec recherche documentaire RAG et base de connaissances intelligente.</p></div><button class="nv-promo-btn" onclick="switchPage(\\'msg\\')">'+ICONS.chat+' Démarrer une conversation</button>';
 }
 
 /* Logo onerror fallback */
