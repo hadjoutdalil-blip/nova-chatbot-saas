@@ -46,6 +46,12 @@ var KQ=${KQ_JSON};
 var WC=${WC_JSON};
 var KB=${KB_JSON};
 
+/* Normalisation HTTPS : si la page est en HTTPS, forcer les URLs vers HTTPS */
+if(window.location.protocol==="https:"){
+  if(e.chatUrl.indexOf("http://")===0)e.chatUrl=e.chatUrl.replace("http://","https://");
+  if(FU.indexOf("http://")===0)FU=FU.replace("http://","https://");
+}
+
 /* Multi-lang */
 var LANG={
   fr:{
