@@ -12,7 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const widgetConfig = await db.prisma.widgetConfig.findFirst({ where: { clientId: client.id } });
   const kbEntries = await db.prisma.kBEntry.findMany({ where: { clientId: client.id } });
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+  const forwardedProto = req.headers.get("x-forwarded-proto") || "";
+  const forwardedHost = req.headers.get("x-forwarded-host") || "";
+  const origin = process.env.NEXT_PUBLIC_APP_URL || (forwardedProto && forwardedHost ? `${forwardedProto}://${forwardedHost}` : req.nextUrl.origin);
   const chatUrl = `${origin}/api/chat/${slug}`;
   const feedbackUrl = `${origin}/api/feedback`;
   const name = client.name;
@@ -662,6 +664,7 @@ function switchPage(page){
   if(page==="help") renderHelpFAQ();
   if(page==="promo") renderPromoPage();
 }
+window.switchPage=switchPage;
 document.querySelectorAll("#nnav .nnav-btn").forEach(function(b){
   b.onclick=function(){switchPage(this.dataset.page)};
 });
