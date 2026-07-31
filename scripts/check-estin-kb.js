@@ -10,7 +10,7 @@ const adapter = url.includes("neon.tech")
 const prisma = new PrismaClient({ adapter });
 
 (async () => {
-  const clientId = "b1993bb4-74df-404c-8b3c-93cc891336d3";
+  const clientId = "4e58898f-148a-4b64-9367-1e74cd74f9f0";
   const cats = await prisma.$queryRawUnsafe(
     `SELECT category, tag, count(*) AS n FROM "KBEntry" WHERE "clientId" = '${clientId}' GROUP BY category, tag ORDER BY category`
   );

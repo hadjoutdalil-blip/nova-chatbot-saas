@@ -102,7 +102,7 @@ Ainsi, l'immersion au LITAN est un **parcours complet de professionnalisation à
   },
 ];
 
-const TARGET_CLIENT_ID = "b1993bb4-74df-404c-8b3c-93cc891336d3";
+const TARGET_CLIENT_ID = "4e58898f-148a-4b64-9367-1e74cd74f9f0";
 
 (async () => {
   try {
