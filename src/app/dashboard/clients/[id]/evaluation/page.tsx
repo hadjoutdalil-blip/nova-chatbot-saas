@@ -1,8 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { BarChart3, TrendingUp, TrendingDown, MessageSquare, FileSearch } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, MessageSquare, FileSearch, Download, ChevronDown, ChevronUp } from "lucide-react";
+
+interface TraceStep {
+  step: string;
+  ms: number;
+  [key: string]: any;
+}
+
+interface RecentItem {
+  id: string;
+  question: string;
+  response: string;
+  score: number;
+  source: string;
+  provider: string;
+  createdAt: string;
+  trace?: TraceStep[];
+}
 
 interface EvalData {
   total: number;
@@ -14,13 +31,52 @@ interface EvalData {
   distribution: Record<string, number>;
   sourceDistribution: Record<string, number>;
   lowScoreQuestions: { question: string; response: string; score: number; source: string; createdAt: string }[];
-  recent: { id: string; question: string; response: string; score: number; source: string; provider: string; createdAt: string }[];
+  recent: RecentItem[];
+}
+
+const TRACE_LABELS: Record<string, string> = {
+  intent_regex: "Intention (regex)",
+  intent_ai_override: "Intention (IA)",
+  kb_match: "Recherche KB",
+  rag_search: "Recherche documentaire (RAG)",
+  rag_only_search: "Recherche documentaire (RAG only)",
+  ai_response: "Réponse IA",
+  direct_response: "Réponse directe",
+  escalade: "Escalade IA",
+};
+
+function TraceScenario({ trace }: { trace: TraceStep[] }) {
+  const totalMs = Math.max(...trace.map((s) => s.ms), 0);
+  return (
+    <div className="rounded-lg border border-gray-100 bg-gray-50/70 p-2">
+      <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+        Scénario suivi ({totalMs}ms)
+      </div>
+      <ol className="space-y-1">
+        {trace.map((s, ti) => (
+          <li key={ti} className="text-[11px] text-gray-600 flex items-start gap-1.5">
+            <span className="text-gray-300 font-mono shrink-0">{s.ms}ms</span>
+            <span className="font-medium shrink-0">{TRACE_LABELS[s.step] || s.step}</span>
+            <span className="text-gray-400 truncate">
+              {s.step === "kb_match" && `score=${s.score}, seuil=${s.kbThreshold}${s.matchedQuestion ? ` → "${s.matchedQuestion.slice(0, 40)}"` : ""}`}
+              {s.step === "intent_regex" && s.intent}
+              {s.step === "intent_ai_override" && s.intent}
+              {(s.step === "rag_search" || s.step === "rag_only_search") && `${s.chunks} chunk${s.chunks > 1 ? "s" : ""}${s.vector ? ` (vectoriel: ${s.vector})` : ""}${s.keyword ? ` (keyword: ${s.keyword})` : ""}`}
+              {s.step === "ai_response" && `model=${s.model || ""} (${s.chars || 0} car.)`}
+              {s.step === "direct_response" && (s.source || "")}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 export default function EvaluationPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<EvalData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch(`/api/evaluation/${id}`)
@@ -28,6 +84,10 @@ export default function EvaluationPage() {
       .then(setData)
       .finally(() => setLoading(false));
   }, [id]);
+
+  const exportCsv = () => {
+    window.open(`/api/evaluation/${id}?format=csv`, "_blank");
+  };
 
   if (loading) return <div className="p-8 text-gray-400">Chargement...</div>;
   if (!data) return <div className="p-8 text-red-500">Erreur de chargement</div>;
@@ -125,8 +185,14 @@ export default function EvaluationPage() {
 
       {/* Recent Q&A table */}
       <div className="bg-white rounded-xl border overflow-hidden">
-        <div className="p-3 border-b bg-gray-50 text-sm font-semibold text-gray-600">
-          Dernières questions
+        <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-600">Dernières questions</span>
+          <button
+            onClick={exportCsv}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" /> Exporter CSV
+          </button>
         </div>
         <div className="overflow-x-auto max-h-96 overflow-y-auto">
           <table className="w-full text-sm">
@@ -136,24 +202,47 @@ export default function EvaluationPage() {
                 <th className="text-left p-2">Réponse</th>
                 <th className="text-center p-2 w-16">Score</th>
                 <th className="text-center p-2 w-20">Source</th>
+                <th className="text-center p-2 w-24">Scénario</th>
               </tr>
             </thead>
             <tbody>
               {data.recent.map((r) => (
-                <tr key={r.id} className="border-t hover:bg-gray-50">
-                  <td className="p-2 max-w-[200px] truncate font-medium">{r.question}</td>
-                  <td className="p-2 max-w-[300px] truncate text-gray-600">
-                    {r.response.replace(/\*\*/g, "").replace(/\n/g, " ")}
-                  </td>
-                  <td className="p-2 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      r.score >= 80 ? "bg-green-100 text-green-700" :
-                      r.score >= 50 ? "bg-yellow-100 text-yellow-700" :
-                      "bg-red-100 text-red-700"
-                    }`}>{r.score}%</span>
-                  </td>
-                  <td className="p-2 text-center text-xs text-gray-500">{r.source}</td>
-                </tr>
+                <Fragment key={r.id}>
+                  <tr key={r.id} className="border-t hover:bg-gray-50">
+                    <td className="p-2 max-w-[200px] truncate font-medium">{r.question}</td>
+                    <td className="p-2 max-w-[300px] truncate text-gray-600">
+                      {r.response.replace(/\*\*/g, "").replace(/\n/g, " ")}
+                    </td>
+                    <td className="p-2 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                        r.score >= 80 ? "bg-green-100 text-green-700" :
+                        r.score >= 50 ? "bg-yellow-100 text-yellow-700" :
+                        "bg-red-100 text-red-700"
+                      }`}>{r.score}%</span>
+                    </td>
+                    <td className="p-2 text-center text-xs text-gray-500">{r.source}</td>
+                    <td className="p-2 text-center">
+                      {r.trace && r.trace.length > 0 ? (
+                        <button
+                          onClick={() => setExpanded((e) => ({ ...e, [r.id]: !e[r.id] }))}
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Voir
+                          {expanded[r.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                  </tr>
+                  {expanded[r.id] && r.trace && (
+                    <tr key={`${r.id}-trace`} className="border-t bg-gray-50/50">
+                      <td colSpan={5} className="p-2">
+                        <TraceScenario trace={r.trace} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
