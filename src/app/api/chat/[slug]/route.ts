@@ -513,11 +513,11 @@ async function saveUsage(clientId: string, provider: string, model: string, usag
 }
 
 /* ── SAVE CONVERSATION ──────────────────────────────── */
-async function saveConversation(client: any, history: any[], userMsg: string, aiMsg: string, source: string, provider: string, score: number, geoPromise?: Promise<{ ip: string; country: string; city: string }>) {
+async function saveConversation(client: any, history: any[], userMsg: string, aiMsg: string, source: string, provider: string, score: number, geoPromise?: Promise<{ ip: string; country: string; city: string }>, trace?: any[]) {
   try {
     const geo = geoPromise ? await geoPromise : { ip: "", country: "", city: "" };
     const msgId = randomUUID();
-    const allMsgs = [...(history || []), { role: "user", content: userMsg }, { role: "assistant", content: aiMsg, source, provider, score }];
+    const allMsgs = [...(history || []), { role: "user", content: userMsg }, { role: "assistant", content: aiMsg, source, provider, score, trace: trace || undefined }];
     const title = (history?.[0]?.content?.slice(0, 80)) || userMsg.slice(0, 80);
 
     await db.prisma.conversation.create({
@@ -602,6 +602,11 @@ async function handleStreamingRequest(
   const words = trimmed.split(/\s+/).filter(Boolean);
   const ip = extractIP(req);
   const geoPromise = lookupGeo(ip);
+  const t0 = Date.now();
+  const trace: any[] = [];
+  function addStep(step: string, data?: any) {
+    trace.push({ step, ms: Date.now() - t0, ...(data || {}) });
+  }
 
   const sseHeaders = {
     "Content-Type": "text/event-stream",
@@ -648,6 +653,7 @@ async function handleStreamingRequest(
       try {
         /* ── NIVEAU 0 : Détection d'intention ── */
         let intent = detectIntent(trimmed);
+        addStep("intent_regex", { intent: intent.intent, confidence: intent.confidence });
 
         if (aiMode) {
           const keyEntry = await resolveApiKey(client);
@@ -658,7 +664,7 @@ async function handleStreamingRequest(
               try {
                 const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
                 const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel, client.name);
-                if (aiIntent.intent !== intent.intent) intent = aiIntent;
+                if (aiIntent.intent !== intent.intent) { intent = aiIntent; addStep("intent_ai_override", { intent: intent.intent, confidence: intent.confidence }); }
               } catch { /* keep regex intent */ }
             }
           }
@@ -674,6 +680,7 @@ async function handleStreamingRequest(
 
         const { match, score, isKeyword } = findBestMatch(message, KB);
         const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
+        addStep("kb_match", { score, isKeyword, kbThreshold, matchedQuestion: match?.question || null, kbSize: KB.length });
 
   const ragThreshold = client.ragThreshold ?? 72;
         /* Short query guard */
@@ -691,7 +698,7 @@ async function handleStreamingRequest(
             const fallback = t(lang, intentKey, client.name);
             send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
             send("token", { content: fallback });
-            saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
+            saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise, trace);
             finish();
             return;
           }
@@ -708,7 +715,7 @@ async function handleStreamingRequest(
                 const text = await consumeAIStream(aiStream);
                 send("metadata", { messageId, source: intent.intent.toLowerCase(), provider: provider.label, score: 0 });
                 send("token", { content: text });
-                saveConversation(client, history || [], message, text, intent.intent.toLowerCase(), provider.label, 0, geoPromise);
+                saveConversation(client, history || [], message, text, intent.intent.toLowerCase(), provider.label, 0, geoPromise, trace);
                 saveUsage(client.id, providerId, model, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
                 finish();
                 return;
@@ -719,7 +726,7 @@ async function handleStreamingRequest(
           const fallbackText = t(lang, intentKey, client.name);
           send("metadata", { messageId, source: intent.intent.toLowerCase(), score: 0 });
           send("token", { content: fallbackText });
-          saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
+          saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise, trace);
           finish();
           return;
         }
@@ -740,7 +747,8 @@ async function handleStreamingRequest(
             const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, text);
             send("metadata", { messageId, source, provider: provObj.label, score, docLinks });
             send("token", { content: enrichedText });
-            saveConversation(client, history || [], message, enrichedText, source, provObj.label, score, geoPromise);
+            addStep("ai_response", { source, provider: provObj.label, model, chars: enrichedText.length });
+            saveConversation(client, history || [], message, enrichedText, source, provObj.label, score, geoPromise, trace);
             saveUsage(client.id, providerInfo.id, model, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
             return enrichedText;
           } catch { return null; }
@@ -750,7 +758,8 @@ async function handleStreamingRequest(
         function sendDirect(response: string, source: string, extra?: any) {
           send("metadata", { messageId, source, score, ...extra });
           send("token", { content: response });
-          saveConversation(client, history || [], message, response, source, "", score, geoPromise);
+          addStep("direct_response", { source, score, extra });
+          saveConversation(client, history || [], message, response, source, "", score, geoPromise, trace);
           enrichWithDocLinks(client.id, message, response).catch(() => {});
         }
 
@@ -787,6 +796,7 @@ async function handleStreamingRequest(
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
             topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
           }
+          addStep("rag_only_search", { chunks: topChunks.length, useVector: client.useVectorRag && !!embedApiKey });
           if (topChunks.length > 0) {
             const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
             const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
@@ -870,6 +880,7 @@ async function handleStreamingRequest(
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
             topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
           }
+          addStep("rag_search", { chunks: topChunks.length, useVector: client.useVectorRag && !!apiKey });
           if (topChunks.length > 0) {
             const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
             const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
@@ -919,9 +930,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   const ip = extractIP(req);
   const geoPromise = lookupGeo(ip);
+  const t0 = Date.now();
+  const trace: any[] = [];
+  function addStep(step: string, data?: any) {
+    trace.push({ step, ms: Date.now() - t0, ...(data || {}) });
+  }
 
   /* ── NIVEAU 0 : Détection d'intention ── */
   let intent = detectIntent(trimmed);
+  addStep("intent_regex", { intent: intent.intent, confidence: intent.confidence });
 
   /* Passe 2 : Classification IA (corrige faux positifs/faux négatifs des regex) */
   if (aiMode) {
@@ -963,6 +980,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { match, score, isKeyword } = findBestMatch(message, KB);
   const kbThreshold = isKeyword ? (client.keywordThreshold ?? 50) : (client.kbThreshold ?? 80);
   const ragThreshold = client.ragThreshold ?? 72;
+  addStep("kb_match", { score, isKeyword, kbThreshold, matchedQuestion: match?.question || null, kbSize: KB.length });
 
   /* ── Short query guard (only if no good KB match) ── */
   if ((words.length === 1 && words[0].length <= 4 || trimmed.length <= 3) && (!match || (score < Math.max(kbThreshold, 80) && !isKeyword))) {
@@ -982,7 +1000,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (!aiMode) {
       const intentKey = intent.intent === "AVIS" ? "avis" : intent.intent === "HORS_SUJET" ? "hors_sujet" : "default";
       const fallback = t(lang, intentKey, client.name);
-      saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise);
+      saveConversation(client, history || [], message, fallback, intent.intent.toLowerCase(), "", 0, geoPromise, trace);
       return NextResponse.json(filterResponse({
         messageId,
         response: fallback,
@@ -1003,7 +1021,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         try {
           const { text, usage } = await callAI(keyEntry.key, providerId, model, system, user, 0.30, history || [], 300);
           console.log(`[Nova Chat] AI ${intent.intent} response sent: "${text.slice(0, 80)}..."`);
-          saveConversation(client, history || [], message, text, intent.intent.toLowerCase(), provider.label, 0, geoPromise);
+          saveConversation(client, history || [], message, text, intent.intent.toLowerCase(), provider.label, 0, geoPromise, trace);
           saveUsage(client.id, providerId, model, usage);
           await trackKeyUsage(keyEntry.id, usage.total_tokens || 0);
           return NextResponse.json(filterResponse({
@@ -1021,7 +1039,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     /* Fallback si l'appel AI échoue ou pas de clé */
     const intentKey = intent.intent === "AVIS" ? "avis_ai" : intent.intent === "HORS_SUJET" ? "hors_sujet_ai" : "default_ai";
     const fallbackText = t(lang, intentKey, client.name);
-    saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise);
+    saveConversation(client, history || [], message, fallbackText, intent.intent.toLowerCase(), "", 0, geoPromise, trace);
     return NextResponse.json(filterResponse({
       messageId,
       response: fallbackText,
@@ -1034,7 +1052,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (ragOnly) {
     /* Toujours respecter les matchs exacts KB */
     if (match && score === 100) {
-      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise, trace);
       return NextResponse.json(filterResponse({
         messageId,
         response: match.answer,
@@ -1101,7 +1119,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
-        saveConversation(client, history || [], message, text, "rag", providerInfo.label, 0, geoPromise);
+        saveConversation(client, history || [], message, text, "rag", providerInfo.label, 0, geoPromise, trace);
         saveUsage(client.id, providerInfo.id, model, usage);
         await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
         const docMeta = topChunks.filter(c => c.docId).map(c => ({
@@ -1118,7 +1136,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
     /* Fallback KB si la RAG n'a rien trouvé */
     if (match && score >= kbThreshold) {
-      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise, trace);
       return NextResponse.json(filterResponse({
         messageId,
         response: match.answer,
@@ -1130,7 +1148,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }, isVisitor), { headers: corsHeaders });
     }
     if (isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
-      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise, trace);
       return NextResponse.json(filterResponse({
         messageId,
         response: match.answer,
@@ -1144,7 +1162,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const { system: escSystem, user: escUser, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle, lang);
     try {
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, escSystem, escUser, client.tempEscalade ?? 0.20, history || [], 800);
-      saveConversation(client, history || [], message, text, "escalade", providerInfo.label, 0, geoPromise);
+      saveConversation(client, history || [], message, text, "escalade", providerInfo.label, 0, geoPromise, trace);
       saveUsage(client.id, providerInfo.id, model, usage);
       await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
       return NextResponse.json({ messageId, response: text, source: "escalade", provider: providerInfo.label, score: 0 }, { headers: corsHeaders });
@@ -1152,7 +1170,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const fallbackResp = contactInfo
         ? t(lang, "escalade_fail_contact", client.name, contactInfo)
         : t(lang, "escalade_fail", client.name);
-      saveConversation(client, history || [], message, fallbackResp, "fallback", "", 0, geoPromise);
+      saveConversation(client, history || [], message, fallbackResp, "fallback", "", 0, geoPromise, trace);
       return NextResponse.json({ messageId, response: fallbackResp, source: "fallback", score: 0 }, { headers: corsHeaders });
     }
   }
@@ -1164,7 +1182,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (match && score >= kbThreshold) {
     if ((score === 100 && lang === "fr") || !aiMode) {
       const answer = !aiMode && lang !== "fr" ? await translateKbAnswer(match.answer, lang, client) : match.answer;
-      saveConversation(client, history || [], message, answer, "kb", "", score, geoPromise);
+      saveConversation(client, history || [], message, answer, "kb", "", score, geoPromise, trace);
       return NextResponse.json(filterResponse({
         messageId,
         response: answer,
@@ -1187,9 +1205,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         console.warn(`[Nova Chat] KB mismatch N1: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
         qaResponse = match.answer;
         qaProvider = "";
-        saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+        saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise, trace);
       } else {
-        saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
+        saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise, trace);
         saveUsage(client.id, providerInfo.id, model, usage);
         await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
         qaResponse = text;
@@ -1198,7 +1216,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     } catch {
       qaResponse = match.answer;
       qaProvider = "";
-      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise, trace);
     }
   }
 
@@ -1215,9 +1233,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         console.warn(`[Nova Chat] KB mismatch N1b: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
         qaResponse = match.answer;
         qaProvider = "";
-        saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+        saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise, trace);
       } else {
-        saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise);
+        saveConversation(client, history || [], message, text, "qa", providerInfo.label, score, geoPromise, trace);
         saveUsage(client.id, providerInfo.id, model, usage);
         await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
         qaResponse = text;
@@ -1226,7 +1244,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     } catch {
       qaResponse = match.answer;
       qaProvider = "";
-      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise);
+      saveConversation(client, history || [], message, match.answer, "kb", "", score, geoPromise, trace);
     }
   }
 
@@ -1241,7 +1259,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     } else {
       resp = t(lang, "no_match", client.name);
     }
-    saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score, geoPromise);
+    saveConversation(client, history || [], message, resp, match?.answer ? "kb" : "fallback", "", score, geoPromise, trace);
     return NextResponse.json(filterResponse({
       messageId,
       response: resp,
@@ -1325,12 +1343,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (client.useVectorRag && vectorResults.length === 0) {
       console.warn(`[Vector RAG] 0 chunks → hybrid keyword only for "${message.slice(0, 80)}" (${client.name})`);
     }
+    addStep("rag_search", { chunks: topChunks.length, vector: vectorResults.length, keyword: keywordResults.length, useVector: client.useVectorRag && !!embedApiKey });
 
     if (topChunks.length > 0) {
       const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
-        saveConversation(client, history || [], message, text, "rag", providerInfo.label, score, geoPromise);
+        saveConversation(client, history || [], message, text, "rag", providerInfo.label, score, geoPromise, trace);
         saveUsage(client.id, providerInfo.id, model, usage);
         await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
         const docMeta = topChunks.filter(c => c.docId).map(c => ({
@@ -1385,12 +1404,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   /* ── NIVEAU 3 : ESCALADE ── */
   const kbMatch = match ? findRelated(match, KB, 3) : [];
   const { system, user, contactInfo } = buildEscaladePrompt(client, message, sessionType, KB, pageUrl, pageTitle, lang);
+  addStep("escalade", { contactInfo: !!contactInfo });
   try {
     const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempEscalade ?? 0.20, history || [], 800);
     console.warn(`[Nova Chat] ESCALADE — question non couverte: "${message.slice(0, 80)}..." (${client.name})`);
     captureEscalade({ clientId: client.id, question: message, escalationMsg: text, context: pageUrl || "" }).catch(console.error);
     const { response: enrichedEsc, docLinks } = await enrichWithDocLinks(client.id, message, text);
-    saveConversation(client, history || [], message, enrichedEsc, "escalade", providerInfo.label, score, geoPromise);
+    saveConversation(client, history || [], message, enrichedEsc, "escalade", providerInfo.label, score, geoPromise, trace);
     saveUsage(client.id, providerInfo.id, model, usage);
     await trackKeyUsage(keyEntry?.id || "", usage.total_tokens || 0);
     return NextResponse.json(filterResponse({ messageId, response: enrichedEsc, source: "escalade", provider: providerInfo.label, score, suggestions: kbMatch, docLinks }, isVisitor), { headers: corsHeaders });
@@ -1399,7 +1419,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const fallbackResp = contactInfo
       ? t(lang, "no_match_fallback_contact", client.name, contactInfo)
       : t(lang, "escalade_fail", client.name);
-    saveConversation(client, history || [], message, fallbackResp, "fallback", "", score, geoPromise);
+    saveConversation(client, history || [], message, fallbackResp, "fallback", "", score, geoPromise, trace);
     return NextResponse.json(filterResponse({
       messageId,
       response: fallbackResp,

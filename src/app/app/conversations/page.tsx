@@ -21,6 +21,13 @@ interface ChatMsg {
   source?: string;
   provider?: string;
   score?: number;
+  trace?: TraceStep[];
+}
+
+interface TraceStep {
+  step: string;
+  ms: number;
+  [key: string]: any;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -29,6 +36,17 @@ const SOURCE_LABELS: Record<string, string> = {
   rag: "Documentation",
   escalade: "Escalade",
   fallback: "Fallback",
+};
+
+const TRACE_LABELS: Record<string, string> = {
+  intent_regex: "Intention (regex)",
+  intent_ai_override: "Intention (IA)",
+  kb_match: "Recherche KB",
+  rag_search: "Recherche documentaire (RAG)",
+  rag_only_search: "Recherche documentaire (RAG only)",
+  ai_response: "Réponse IA",
+  direct_response: "Réponse directe",
+  escalade: "Escalade IA",
 };
 
 export default function ConversationsPage() {
@@ -166,6 +184,29 @@ export default function ConversationsPage() {
                                   Score: {msg.score}%
                                 </span>
                               )}
+                            </div>
+                          )}
+                          {msg.role === "assistant" && msg.trace && msg.trace.length > 0 && (
+                            <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50/70 p-2">
+                              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                                Scénario suivi ({msg.trace.reduce((a: number, s: TraceStep) => Math.max(a, s.ms), 0)}ms)
+                              </div>
+                              <ol className="space-y-1">
+                                {msg.trace.map((s, ti) => (
+                                  <li key={ti} className="text-[11px] text-gray-600 flex items-start gap-1.5">
+                                    <span className="text-gray-300 font-mono shrink-0">{s.ms}ms</span>
+                                    <span className="font-medium shrink-0">{TRACE_LABELS[s.step] || s.step}</span>
+                                    <span className="text-gray-400 truncate">
+                                      {s.step === "kb_match" && `score=${s.score}, seuil=${s.kbThreshold}${s.matchedQuestion ? ` → "${s.matchedQuestion.slice(0, 40)}"` : ""}`}
+                                      {s.step === "intent_regex" && s.intent}
+                                      {s.step === "intent_ai_override" && s.intent}
+                                      {(s.step === "rag_search" || s.step === "rag_only_search") && `${s.chunks} chunk${s.chunks > 1 ? "s" : ""}${s.vector ? ` (vectoriel: ${s.vector})` : ""}${s.keyword ? ` (keyword: ${s.keyword})` : ""}`}
+                                      {s.step === "ai_response" && `model=${s.model || ""} (${s.chars || 0} car.)`}
+                                      {s.step === "direct_response" && (s.source || "")}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ol>
                             </div>
                           )}
                         </div>
