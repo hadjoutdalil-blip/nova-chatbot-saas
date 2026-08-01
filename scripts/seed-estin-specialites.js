@@ -61,9 +61,18 @@ const TARGET_CLIENT_ID = "4e58898f-148a-4b64-9367-1e74cd74f9f0";
 
 (async () => {
   try {
-    const client = await prisma.client.findUnique({ where: { id: TARGET_CLIENT_ID } });
+    let client = null;
+    if (TARGET_CLIENT_ID) {
+      client = await prisma.client.findUnique({ where: { id: TARGET_CLIENT_ID } });
+    }
     if (!client) {
-      console.error("Client ESTIN introuvable avec cet ID. Vérifiez l'ID.");
+      /* Cherche le client ESTIN par nom/slug si l'ID cible est obsolète */
+      client = await prisma.client.findFirst({
+        where: { OR: [{ name: { contains: "ESTIN", mode: "insensitive" } }, { slug: { contains: "ESTIN", mode: "insensitive" } }, { name: { contains: "LITAN", mode: "insensitive" } }, { slug: { contains: "LITAN", mode: "insensitive" } }] },
+      });
+    }
+    if (!client) {
+      console.error("Client ESTIN introuvable. Ajustez TARGET_CLIENT_ID ou le critère de recherche.");
       process.exit(1);
     }
     console.log(`Client: ${client.name} (${client.id})`);
@@ -71,7 +80,7 @@ const TARGET_CLIENT_ID = "4e58898f-148a-4b64-9367-1e74cd74f9f0";
     let count = 0;
     for (const e of entries) {
       const existing = await prisma.kBEntry.findFirst({
-        where: { clientId: TARGET_CLIENT_ID, question: e.question },
+        where: { clientId: client.id, question: e.question },
       });
       if (existing) {
         console.log(`  ⏭️  existe déjà: ${e.question.slice(0, 60)}`);
@@ -88,7 +97,7 @@ const TARGET_CLIENT_ID = "4e58898f-148a-4b64-9367-1e74cd74f9f0";
           priority: e.priority ?? 5,
           icon: "🎓",
           source: "Formations & Spécialités – ESTIN",
-          clientId: TARGET_CLIENT_ID,
+          clientId: client.id,
         },
       });
       count++;

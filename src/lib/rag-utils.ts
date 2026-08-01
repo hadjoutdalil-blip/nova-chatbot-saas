@@ -82,9 +82,9 @@ export function calcSimilarity(a: string, b: string): number {
   const wb = nb.split(" ").filter(w => w);
   const shorter = wa.length <= wb.length ? wa : wb;
   const longer = wa.length <= wb.length ? wb : wa;
-  const shorterF = shorter.filter(w => w.length > 2);
-  const longerF = longer.filter(w => w.length > 2);
-  if (shorterF.length > 0 && shorterF.every(w => longerF.some(lw => lw.includes(w) || w.includes(lw)))) return 0.95;
+  const shorterF = shorter.filter(w => w.length > 3);
+  const longerF = longer.filter(w => w.length > 3);
+  if (shorterF.length >= 2 && shorterF.every(w => longerF.some(lw => lw.includes(w) || w.includes(lw)))) return 0.95;
   const wo = wordOverlap(na, nb);
   const bo = bigramOverlap(na, nb);
   const fs = fuzzyScore(na, nb);

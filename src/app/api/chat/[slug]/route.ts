@@ -269,8 +269,39 @@ function findContactEntry(KB: any[]): string {
   return entry?.answer?.trim() || "";
 }
 
+function findKbContext(question: string, KB: any[], maxEntries = 4): { question: string; answer: string; score: number }[] {
+  const scored = KB.map((e) => {
+    const sQ = calcSimilarity(question, e.question);
+    let sA = 0;
+    if (e.alt_questions) {
+      for (const a of e.alt_questions.split(/[,|]+\s*/).map((s: string) => s.trim())) {
+        if (!a) continue;
+        sA = Math.max(sA, calcSimilarity(question, a));
+      }
+    }
+    const sK = (e.keywords || "").split(",").some((kw: string) => {
+      const nkw = norm(kw);
+      return nkw && new RegExp("\\b" + nkw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(norm(question));
+    }) ? 0.55 : 0;
+    return { e, score: Math.max(sQ, sA, sK) };
+  });
+  return scored
+    .filter((s) => s.score >= 0.3)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxEntries)
+    .map((s) => ({
+      question: s.e.question,
+      answer: (s.e.answer || "").slice(0, 600),
+      score: s.score,
+    }));
+}
+
 function buildEscaladePrompt(client: any, question: string, sessionType: string, KB: any[], pageUrl?: string, pageTitle?: string, lang: string = "fr") {
   const contactInfo = findContactEntry(KB);
+  const kbCtx = findKbContext(question, KB);
+  const kbSection = kbCtx.length > 0
+    ? `\n\nRESSOURCES DISPONIBLES DANS LA BASE DE CONNAISSANCES (questions proches de celle du client) :\n${kbCtx.map((k, i) => `[${i + 1}] ${k.question}\n${k.answer}`).join("\n\n")}\n\nIMPORTANT : Si l'une de ces ressources répond à la QUESTION DU CLIENT, réponds en t'appuyant sur elle (ne redirige pas vers le contact). Sinon, utilise le format d'escalade ci-dessus.`
+    : "";
 
   const system = `Tu es un assistant professionnel de ${client.name}.
 Tu n'as pas trouvé de réponse précise. Tu orientes le client vers les bonnes ressources.${buildContext(client, pageUrl, pageTitle)}
@@ -302,7 +333,7 @@ RÈGLES ABSOLUES :
 PROFIL : ${sessionType}
 
 INFORMATIONS DE CONTACT :
-${contactInfo || "Aucune coordonnée spécifique disponible."}
+${contactInfo || "Aucune coordonnée spécifique disponible."}${kbSection}
 
 QUESTION DU CLIENT :
 ${question}
