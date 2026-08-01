@@ -848,6 +848,9 @@ async function handleStreamingRequest(
 
         /* ── NORMAL MODE ── */
 
+        /* Réponse KB brute conservée comme fallback si la QA IA retourne NO_MATCH */
+        let kbFallback: string | null = null;
+
         /* NIVEAU 1 : QA VALIDÉE */
         if (match && score >= kbThreshold) {
           if ((score === 100 && lang === "fr") || !aiMode) {
@@ -862,10 +865,8 @@ async function handleStreamingRequest(
           const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
           const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
           if (qaResult) { finish(); return; }
-          /* AI returned NO_MATCH or failed → fall through to RAG */
-          sendDirect(match.answer, "kb");
-          finish();
-          return;
+          /* AI returned NO_MATCH or failed → conserver la réponse brute et tenter RAG */
+          kbFallback = match.answer;
         }
 
         /* NIVEAU 1b : MATCH MOT-CLÉ SOUS SEUIL */
@@ -873,9 +874,7 @@ async function handleStreamingRequest(
           const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
           const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
           if (qaResult) { finish(); return; }
-          sendDirect(match.answer, "kb");
-          finish();
-          return;
+          kbFallback = match.answer;
         }
 
         /* PAS D'IA */
@@ -900,23 +899,58 @@ async function handleStreamingRequest(
           const clientDocs = await db.prisma.clientDocument.findMany({
             where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
           });
+
+          /* Reformulation de la requête pour meilleur matching */
+          const ragKeyEntry = await resolveApiKey(client);
+          const ragProviderInfo = detectProvider(ragKeyEntry?.key || "");
+          const ragModel = ragKeyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
+          const searchQuery = ragKeyEntry?.key ? await reformulateQuery(message, ragKeyEntry.key, ragProviderInfo.id, ragModel) : message;
+          if (searchQuery !== message) {
+            console.log(`[Query Reformulation] "${message.slice(0, 60)}" → "${searchQuery.slice(0, 60)}" (${client.name})`);
+          }
+
           let topChunks: ChunkMeta[] = [];
           const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const apiKey = activeKey?.key || client.hfApiKey;
+
+          /* Recherche vectorielle (si activée) */
+          const vectorResults: ChunkMeta[] = [];
           if (client.useVectorRag && apiKey) {
-            try { const embedding = await generateEmbedding(message, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] vector search results:", topChunks.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
+            try { const embedding = await generateEmbedding(searchQuery, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); vectorResults.push(...results.map((r) => r.chunk)); console.log("[Nova Chat] vector search results:", vectorResults.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
             if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
           }
-          if (topChunks.length === 0) {
-            const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
+
+          /* Recherche keyword (toujours, sur site + documents, avec requête reformulée) */
+          const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
+          const allChunks = [...siteChunks, ...docChunks];
+          const keywordResults = findBestChunks(searchQuery, allChunks, client.topNChunks ?? 7, ragThreshold);
+
+          /* Fusion : priorité vectorielle, puis keyword pour combler */
+          const seen = new Set<string>();
+          const merged: ChunkMeta[] = [];
+          for (const c of vectorResults) {
+            const key = c.content.slice(0, 120);
+            if (!seen.has(key)) { seen.add(key); merged.push(c); }
           }
-          addStep("rag_search", { chunks: topChunks.length, useVector: client.useVectorRag && !!apiKey });
+          for (const c of keywordResults) {
+            if (merged.length >= (client.topNChunks ?? 7)) break;
+            const key = c.content.slice(0, 120);
+            if (!seen.has(key)) { seen.add(key); merged.push(c); }
+          }
+          topChunks = merged;
+          addStep("rag_search", { chunks: topChunks.length, vector: vectorResults.length, keyword: keywordResults.length, useVector: client.useVectorRag && !!apiKey });
           if (topChunks.length > 0) {
             const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
             const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
             if (result) { finish(); return; }
           }
+          /* RAG n'a rien donné → si une réponse KB brute était disponible, la renvoyer */
+          if (kbFallback) { sendDirect(kbFallback, "kb"); finish(); return; }
+        } else if (kbFallback) {
+          /* Pas de document disponible → renvoyer la réponse KB brute */
+          sendDirect(kbFallback, "kb");
+          finish();
+          return;
         }
 
         /* NIVEAU 3 : ESCALADE */
