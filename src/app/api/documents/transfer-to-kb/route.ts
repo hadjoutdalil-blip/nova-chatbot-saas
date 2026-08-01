@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
+import { autoIndexKBEntry } from "@/lib/vector-store";
+import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 
 function extractKeywords(text: string): string {
   const stopWords = new Set([
@@ -104,5 +106,25 @@ export async function POST(req: NextRequest) {
   if (newEntries.length > 0) {
     await db.prisma.kBEntry.createMany({ data: newEntries });
   }
+
+  /* Indexation vectorielle automatique des nouvelles entrées pour le RAG */
+  if (client.useVectorRag) {
+    const ak = await getActiveEmbeddingKey(client.id);
+    const apiKey = ak?.key || client.hfApiKey;
+    if (apiKey) {
+      for (const e of newEntries) {
+        autoIndexKBEntry(client.id, {
+          id: e.id,
+          tag: e.tag || null,
+          question: e.question,
+          alt_questions: e.alt_questions || null,
+          answer: e.answer,
+          source_url: e.source_url || null,
+          valid_until: e.valid_until || null,
+        }).catch(() => {});
+      }
+    }
+  }
+
   return NextResponse.json({ success: true, created });
 }

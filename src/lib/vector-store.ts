@@ -1,7 +1,8 @@
 import { Pool } from "pg";
 import { chunkDocument, ChunkMeta } from "./rag-utils";
 import { generateEmbeddings, getEmbeddingDimension } from "./embeddings";
-import { trackEmbeddingUsage } from "./embedding-keys";
+import { trackEmbeddingUsage, getActiveEmbeddingKey } from "./embedding-keys";
+import { db } from "./db";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
@@ -131,6 +132,45 @@ export async function syncDocumentChunks(
 export async function deleteDocChunks(docId: string) {
   await ensureTable();
   await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [docId]);
+}
+
+export type KBEntryInput = {
+  id: string;
+  tag?: string | null;
+  question: string;
+  alt_questions?: string | null;
+  answer: string;
+  source_url?: string | null;
+  valid_until?: string | null;
+};
+
+/* Indexe automatiquement une entrée KB si le client utilise le RAG vectoriel.
+   Fire-and-forget : ne bloque jamais la requête principale. */
+export async function autoIndexKBEntry(clientId: string, kb: KBEntryInput) {
+  try {
+    const client = await db.prisma.client.findUnique({ where: { id: clientId } });
+    if (!client?.useVectorRag) return;
+
+    const activeKey = await getActiveEmbeddingKey(clientId);
+    const apiKey = activeKey?.key || client.hfApiKey;
+    const provider = activeKey?.provider || client.embeddingProvider;
+    if (!apiKey) return;
+
+    await syncKBEntry(clientId, kb, apiKey, provider, activeKey?.id);
+  } catch (err) {
+    console.error("[Vector KB Sync] Erreur d'indexation:", err);
+  }
+}
+
+/* Désindexe automatiquement une entrée KB si le client utilise le RAG vectoriel. */
+export async function autoDeleteKBEntry(clientId: string, kbId: string) {
+  try {
+    const client = await db.prisma.client.findUnique({ where: { id: clientId } });
+    if (!client?.useVectorRag) return;
+    await deleteDocChunks(kbId);
+  } catch (err) {
+    console.error("[Vector KB Sync] Erreur de suppression:", err);
+  }
 }
 
 /* Indexe une entrée KB entière en un SEUL chunk (question + variantes + réponse complète) */

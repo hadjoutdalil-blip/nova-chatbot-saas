@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { findClientBySlug } from "@/lib/auth";
+import { autoIndexKBEntry } from "@/lib/vector-store";
 
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
@@ -62,9 +63,10 @@ export async function POST(req: NextRequest) {
         nq.includes(norm(k.question))
       );
       if (!exists) {
+        const kbId = randomUUID();
         await db.prisma.kBEntry.create({
           data: {
-            id: randomUUID(),
+            id: kbId,
             tag: "auto-rag",
             question,
             alt_questions: "",
@@ -81,6 +83,18 @@ export async function POST(req: NextRequest) {
             clientId: client.id,
           },
         });
+
+        /* Indexation vectorielle automatique pour le RAG */
+        autoIndexKBEntry(client.id, {
+          id: kbId,
+          tag: "auto-rag",
+          question,
+          alt_questions: null,
+          answer: response,
+          source_url: null,
+          valid_until: null,
+        }).catch(() => {});
+
         console.log(`[Feedback] KB auto-créée depuis RAG: "${question.slice(0, 80)}"`);
       }
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
+import { autoIndexKBEntry } from "@/lib/vector-store";
 
 function verifyImportKey(req: NextRequest): boolean {
   const key = req.headers.get("x-import-key");
@@ -25,9 +26,10 @@ export async function POST(req: NextRequest) {
   if (!proposal) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (action === "approve") {
+    const kbId = `kb_auto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     await db.prisma.kBEntry.create({
       data: {
-        id: `kb_auto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        id: kbId,
         clientId: proposal.clientId,
         question: proposal.question,
         answer: proposal.answer,
@@ -36,6 +38,17 @@ export async function POST(req: NextRequest) {
         source: "auto_improvement",
       },
     });
+
+    /* Indexation vectorielle automatique pour le RAG */
+    autoIndexKBEntry(proposal.clientId, {
+      id: kbId,
+      tag: "auto_improved",
+      question: proposal.question,
+      alt_questions: null,
+      answer: proposal.answer,
+      source_url: null,
+      valid_until: null,
+    }).catch(() => {});
   }
 
   await db.prisma.pendingKBEntry.update({

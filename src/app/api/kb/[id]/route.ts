@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
+import { autoIndexKBEntry, autoDeleteKBEntry } from "@/lib/vector-store";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = getAuthUser(req);
@@ -18,6 +19,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     where: { id },
     data: { ...clean, updatedAt: new Date().toISOString() },
   });
+
+  /* Re-indexation vectorielle après modification */
+  autoIndexKBEntry(existing.clientId, {
+    id: updated.id,
+    tag: updated.tag || null,
+    question: updated.question,
+    alt_questions: updated.alt_questions || null,
+    answer: updated.answer,
+    source_url: updated.source_url || null,
+    valid_until: updated.valid_until || null,
+  }).catch(() => {});
+
   return NextResponse.json(updated);
 }
 
@@ -32,5 +45,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   await db.prisma.kBEntry.delete({ where: { id } });
+
+  /* Suppression des chunks vectoriels associés */
+  autoDeleteKBEntry(existing.clientId, id).catch(() => {});
+
   return NextResponse.json({ message: "Entrée supprimée" });
 }

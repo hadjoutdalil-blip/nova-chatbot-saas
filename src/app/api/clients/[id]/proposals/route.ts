@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
+import { autoIndexKBEntry } from "@/lib/vector-store";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = getAuthUser(req);
@@ -75,6 +76,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     await db.prisma.publicProposal.update({ where: { id: proposalId }, data: { status: "approved" } });
+
+    /* Indexation vectorielle automatique pour le RAG */
+    autoIndexKBEntry(id, {
+      id: kbEntry.id,
+      tag: kbEntry.category || null,
+      question: kbEntry.question,
+      alt_questions: null,
+      answer: kbEntry.answer,
+      source_url: kbEntry.source_url || null,
+      valid_until: kbEntry.valid_until || null,
+    }).catch(() => {});
 
     return NextResponse.json({ kbEntry });
   }

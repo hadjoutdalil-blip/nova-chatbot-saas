@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
+import { autoIndexKBEntry } from "@/lib/vector-store";
 
 export async function POST(req: NextRequest) {
   const user = getAuthUser(req);
@@ -55,5 +56,22 @@ export async function POST(req: NextRequest) {
   });
 
   await db.prisma.kBEntry.createMany({ data: newEntries });
+
+  /* Indexation vectorielle automatique pour le RAG */
+  const client = await db.prisma.client.findUnique({ where: { id: targetClientId } });
+  if (client?.useVectorRag) {
+    for (const e of newEntries) {
+      autoIndexKBEntry(targetClientId, {
+        id: e.id,
+        tag: e.tag || null,
+        question: e.question,
+        alt_questions: e.alt_questions || null,
+        answer: e.answer,
+        source_url: e.source_url || null,
+        valid_until: e.valid_until || null,
+      }).catch(() => {});
+    }
+  }
+
   return NextResponse.json({ imported: newEntries.length });
 }

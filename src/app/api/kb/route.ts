@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
+import { autoIndexKBEntry } from "@/lib/vector-store";
 
 function getTargetClientId(req: NextRequest, user: { userId: string; clientId: string; role: string }): string {
   const url = new URL(req.url);
@@ -49,5 +50,17 @@ export async function POST(req: NextRequest) {
       valid_until: body.valid_until || "",
     },
   });
+
+  /* Indexation vectorielle automatique pour le RAG */
+  autoIndexKBEntry(clientId, {
+    id: entry.id,
+    tag: entry.tag || null,
+    question: entry.question,
+    alt_questions: entry.alt_questions || null,
+    answer: entry.answer,
+    source_url: entry.source_url || null,
+    valid_until: entry.valid_until || null,
+  }).catch(() => {});
+
   return NextResponse.json(entry, { status: 201 });
 }
