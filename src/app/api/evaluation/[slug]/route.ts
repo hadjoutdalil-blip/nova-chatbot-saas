@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const client = await findClientBySlug(slug);
+  const client =
+    (await findClientBySlug(slug)) ||
+    (await db.prisma.client.findUnique({ where: { id: slug } }));
   if (!client) {
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
