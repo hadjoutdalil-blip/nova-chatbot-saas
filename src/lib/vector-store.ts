@@ -133,6 +133,74 @@ export async function deleteDocChunks(docId: string) {
   await pool.query('DELETE FROM document_chunks WHERE "docId" = $1', [docId]);
 }
 
+/* Indexe une entrée KB entière en un SEUL chunk (question + variantes + réponse complète) */
+export async function syncKBEntry(
+  clientId: string,
+  kb: {
+    id: string;
+    tag?: string | null;
+    question: string;
+    alt_questions?: string | null;
+    answer: string;
+    source_url?: string | null;
+    valid_until?: string | null;
+  },
+  hfApiKey: string,
+  embeddingProvider = "nomic",
+  embeddingKeyId?: string,
+) {
+  await ensureTable();
+
+  const content = [
+    `Question: ${kb.question}`,
+    kb.alt_questions ? `Variantes: ${kb.alt_questions}` : "",
+    `Réponse: ${kb.answer}`,
+  ].filter(Boolean).join("\n");
+  if (!content.trim()) return;
+
+  /* Garde-fou : si l'entrée dépasse la limite raisonnable d'un embedding, on la découpe
+     pour ne pas tronquer la réponse. Sinon, indexer l'entrée entière en un seul chunk. */
+  const MAX_KB_CHARS = 8000;
+  if (content.length > MAX_KB_CHARS) {
+    await syncDocumentChunks(
+      kb.id,
+      clientId,
+      content,
+      `KB: ${kb.tag || kb.question.slice(0, 50)}`,
+      kb.source_url || "",
+      kb.valid_until || null,
+      MAX_KB_CHARS / 2,
+      hfApiKey,
+      embeddingProvider,
+      embeddingKeyId,
+    );
+    return;
+  }
+
+  const [embedding] = await generateEmbeddings([content], hfApiKey, embeddingProvider);
+  const padded = padEmbeddings([embedding], embeddingProvider)[0];
+  if (embeddingKeyId) {
+    trackEmbeddingUsage(embeddingKeyId).catch(() => {});
+  }
+
+  const source = `KB: ${kb.tag || kb.question.slice(0, 50)}`;
+
+  await deleteDocChunks(kb.id);
+
+  const rowId = `${kb.id}__kb__0`;
+  const embeddingStr = `[${padded.join(",")}]`;
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
+      [rowId, clientId, kb.id, `kb_${kb.id}`, content, source, "", [], kb.source_url || "", kb.valid_until || "", embeddingStr]
+    );
+  } finally {
+    client.release();
+  }
+}
+
 export async function searchChunks(
   clientId: string,
   questionEmbedding: number[],

@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { extractKeywords } from "./chunk-utils";
-import { syncDocumentChunks } from "./vector-store";
+import { syncKBEntry } from "./vector-store";
 import { getActiveEmbeddingKey } from "./embedding-keys";
 
 export interface CaptureEscaladeParams {
@@ -235,17 +235,19 @@ async function indexKBEntry(clientId: string, question: string, answer: string) 
     const provider = activeKey?.provider || client.embeddingProvider;
     if (!apiKey) return;
 
-    const content = `Question: ${question}\nRéponse: ${answer}`;
     const docId = `kg-${randomUUID()}`;
 
-    await syncDocumentChunks(
-      docId,
+    await syncKBEntry(
       clientId,
-      content,
-      `knowledge-gap-${question.slice(0, 50)}`,
-      "",
-      null,
-      client.chunkSize || 500,
+      {
+        id: docId,
+        tag: "knowledge-gap",
+        question,
+        alt_questions: null,
+        answer,
+        source_url: "",
+        valid_until: null,
+      },
       apiKey,
       provider,
       activeKey?.id,
