@@ -24,6 +24,88 @@ export function norm(s: string): string {
     .trim();
 }
 
+/* Dictionnaire bilingue FR↔EN (clés sans accents) pour matcher une question
+   française contre des documents anglophones (et inversement). */
+const BILINGUAL_TERMS: Record<string, string[]> = {
+  objectif: ["objective", "objectives", "goal", "goals", "aim", "aims", "purpose", "target"],
+  objectifs: ["objectives", "goals", "aims", "targets"],
+  specialite: ["specialization", "specialization", "speciality", "specialisation", "major", "stream"],
+  formation: ["training", "education", "program", "curriculum", "programme"],
+  cours: ["course", "courses", "class", "classes", "lecture", "module"],
+  programme: ["program", "programme", "curriculum", "syllabus"],
+  ingenieur: ["engineer", "engineering", "graduate", "graduates"],
+  diplome: ["degree", "diploma", "certificate", "certification"],
+  universite: ["university", "school", "institution", "college"],
+  ecole: ["school", "college", "institution"],
+  semestre: ["semester", "term", "semesters"],
+  examen: ["exam", "examination", "assessment", "test", "exams"],
+  module: ["module", "modules", "subject", "course"],
+  enseignant: ["teacher", "teacher", "professor", "instructor", "faculty", "lecturer"],
+  etudiant: ["student", "students", "learner", "learners"],
+  etudiants: ["students", "learners"],
+  recherche: ["research", "studies"],
+  apprentissage: ["learning", "training", "machine learning"],
+  domaine: ["field", "domain", "area", "fields"],
+  secteur: ["sector", "sectors", "industry", "industries"],
+  secteurs: ["sectors", "industries"],
+  marche: ["market", "markets", "job market", "employment"],
+  emploi: ["job", "jobs", "employment", "career", "careers", "profession"],
+  carriere: ["career", "careers", "profession", "jobs"],
+  competences: ["skills", "competencies", "competences", "abilities", "skillset"],
+  competence: ["skill", "competency", "ability"],
+  connaissances: ["knowledge", "know-how", "understanding"],
+  principe: ["principle", "principles", "fundamentals", "basics"],
+  principal: ["main", "primary", "principal", "key", "main objective", "core"],
+  evaluation: ["assessment", "evaluation", "evaluations", "exam"],
+  annee: ["year", "years", "academic year"],
+  annees: ["years"],
+  credit: ["credit", "credits", "ects"],
+  credits: ["credits", "ects"],
+  these: ["thesis", "project", "final year project", "pfe"],
+  stage: ["internship", "internships", "placement", "training", "work placement"],
+  intelligence: ["intelligence"],
+  artificielle: ["artificial"],
+  donnees: ["data", "datasets", "data science"],
+  science: ["science", "sciences"],
+  reseaux: ["networks", "network", "networking"],
+  securite: ["security", "safety"],
+  machine: ["machine"],
+  base: ["database", "databases", "base"],
+  cloud: ["cloud"],
+  systemes: ["systems", "system"],
+  analyse: ["analysis", "analytics", "analytical"],
+  statistiques: ["statistics", "statistical", "stats"],
+  traitement: ["processing", "treatment"],
+  image: ["image", "images", "imaging"],
+  langage: ["language", "languages", "programming language"],
+  programmation: ["programming", "coding", "code"],
+  algorithmes: ["algorithms", "algorithm"],
+  optimisation: ["optimization", "optimisation"],
+  logique: ["logic", "logical"],
+  prevision: ["prediction", "forecasting", "forecast", "predictive"],
+  decision: ["decision", "decision-making", "decisions"],
+  professionnel: ["professional", "professionals", "career"],
+  "ia": ["ai", "artificial intelligence"],
+  "ds": ["data science"],
+  "ai": ["ia", "intelligence artificielle"],
+  "big data": ["big data"],
+};
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/* Nombre de mots de la question (avec équivalents anglais) trouvés dans le contenu */
+function bilingualHitCount(qWords: string[], nc: string): number {
+  let hits = 0;
+  for (const w of qWords) {
+    if (w.length <= 2 && w !== "ia" && w !== "ds") continue;
+    const variants = [w, ...(BILINGUAL_TERMS[w] || [])];
+    if (new RegExp("\\b(" + variants.map(escapeRegex).join("|") + ")", "i").test(nc)) hits++;
+  }
+  return hits;
+}
+
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
   const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
@@ -276,22 +358,29 @@ export function parseChunks(siteContext: string): ChunkMeta[] {
 }
 
 export function findBestChunks(question: string, chunks: ChunkMeta[], topN: number, threshold: number) {
-  const scored = chunks.map(c => ({
-    ...c,
-    score: calcSimilarity(question, c.content) * 0.5
+  const qNorm = norm(question);
+  const qWords = qNorm.split(" ").filter(w => w.length > 1);
+  const scored = chunks.map(c => {
+    const nc = norm(c.content);
+    const base = calcSimilarity(question, c.content) * 0.5
       + calcSimilarity(question, c.section) * 0.2
-      + keywordMatch(question, c.keywords) * 0.3,
-  }));
+      + keywordMatch(question, c.keywords) * 0.3;
+    /* Boost bilingue : une question française matche un document anglais (et inversement) */
+    const bilingual = bilingualHitCount(qWords, nc) / Math.max(qWords.length, 1);
+    return {
+      ...c,
+      score: Math.min(base + bilingual * 0.45, 1),
+    };
+  });
   let sorted = scored.sort((a, b) => b.score - a.score);
   let results = sorted.filter(c => c.score * 100 >= threshold).slice(0, topN);
 
-  /* Fallback mot-clé : si pas assez de chunks, chercher par mots de la question */
+  /* Fallback mot-clé : si pas assez de chunks, chercher par mots de la question (bilingue) */
   if (results.length < Math.max(1, topN / 2)) {
-    const qWords = norm(question).split(" ").filter(w => w.length > 2);
     const keywordHits = chunks.map(c => {
       const nc = norm(c.content);
-      const hits = qWords.filter(w => new RegExp("\\b" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(nc)).length;
-      return { ...c, score: hits / Math.max(qWords.length, 1) };
+      const hits = bilingualHitCount(qWords, nc) / Math.max(qWords.length, 1);
+      return { ...c, score: hits };
     }).filter(c => c.score > 0).sort((a, b) => b.score - a.score).slice(0, topN);
     if (keywordHits.length > results.length) {
       results = keywordHits;
