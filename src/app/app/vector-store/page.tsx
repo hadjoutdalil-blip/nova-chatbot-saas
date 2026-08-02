@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2, Loader2, Upload, FileText } from "lucide-react";
+import { Database, Search, ChevronLeft, ChevronRight, Eye, TestTube2, Loader2, Upload, FileText, Trash2 } from "lucide-react";
 
 interface ChunkRow {
   id: string;
@@ -53,6 +53,29 @@ export default function ClientVectorStorePage() {
   const [migrateResult, setMigrateResult] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+
+  async function handleDeleteDoc(docId: string) {
+    if (!confirm("Supprimer ce document et tous ses chunks de la base vectorielle ?")) return;
+    setDeletingDocId(docId);
+    try {
+      const res = await fetch("/api/vector-store", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ docId }),
+      });
+      if (res.ok) {
+        loadData(1, "");
+        setPage(1);
+      } else {
+        const data = await res.json();
+        alert(`Erreur: ${data.error || "échec de la suppression"}`);
+      }
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    }
+    setDeletingDocId(null);
+  }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -270,6 +293,9 @@ export default function ClientVectorStorePage() {
                       <span className="text-emerald-600 font-medium">{d.chunks} chunks</span>
                       <button onClick={handleMigrate} disabled={migrating} className="text-gray-400 hover:text-emerald-600 p-1" title="Re-indexer">
                         <Database size={13} />
+                      </button>
+                      <button onClick={() => handleDeleteDoc(d.docId)} disabled={deletingDocId === d.docId} className="text-gray-400 hover:text-red-500 p-1" title="Supprimer document + chunks">
+                        {deletingDocId === d.docId ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                       </button>
                     </div>
                   </div>

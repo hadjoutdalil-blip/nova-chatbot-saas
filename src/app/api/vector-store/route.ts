@@ -3,6 +3,8 @@ import { Pool } from "pg";
 import { getAuthUser } from "@/lib/api-auth";
 import { generateEmbedding } from "@/lib/embeddings";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
+import { db } from "@/lib/db";
+import { removeDocument } from "@/lib/doc-manager";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
@@ -93,6 +95,51 @@ export async function GET(req: NextRequest) {
     page,
     limit,
   });
+}
+
+export async function DELETE(req: NextRequest) {
+  const user = getAuthUser(req);
+  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  const { docId, clientId: reqClientId } = await req.json();
+  if (!docId) return NextResponse.json({ error: "docId requis" }, { status: 400 });
+
+  const targetClientId = reqClientId || (user.role !== "admin" ? user.clientId : null);
+  if (!targetClientId) return NextResponse.json({ error: "clientId requis" }, { status: 400 });
+  if (user.role !== "admin" && user.clientId !== targetClientId) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+  }
+
+  /* 1. Purge de TOUS les chunks de cette source */
+  await pool.query('DELETE FROM document_chunks WHERE "docId" = $1 AND "clientId" = $2', [docId, targetClientId]);
+
+  /* 2. Suppression de la source associée (pour éviter une ré-indexation) */
+  const doc = await db.prisma.clientDocument.findUnique({ where: { id: docId } });
+  if (doc) {
+    await db.prisma.clientDocument.delete({ where: { id: docId } }).catch(() =>
+      db.prisma.clientDocument.update({ where: { id: docId }, data: { status: "archived" } })
+    );
+    return NextResponse.json({ message: "Document et chunks supprimés", deleted: "clientDocument" });
+  }
+
+  const localDoc = await db.prisma.clientLocalDoc.findUnique({ where: { id: docId } });
+  if (localDoc) {
+    const client = await db.prisma.client.findUnique({ where: { id: targetClientId } });
+    if (client) {
+      await removeDocument(docId, client.slug, localDoc.fileName);
+    } else {
+      await db.prisma.clientLocalDoc.delete({ where: { id: docId } }).catch(() => {});
+    }
+    return NextResponse.json({ message: "Document local et chunks supprimés", deleted: "clientLocalDoc" });
+  }
+
+  const kb = await db.prisma.kBEntry.findUnique({ where: { id: docId } });
+  if (kb) {
+    await db.prisma.kBEntry.delete({ where: { id: docId } }).catch(() => {});
+    return NextResponse.json({ message: "Entrée KB et chunks supprimés", deleted: "kb" });
+  }
+
+  return NextResponse.json({ message: "Chunks supprimés (import direct)", deleted: "chunks-only" });
 }
 
 export async function POST(req: NextRequest) {
