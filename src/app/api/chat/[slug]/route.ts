@@ -662,6 +662,51 @@ export async function OPTIONS() {
   return NextResponse.json(null, { headers: corsHeaders });
 }
 
+/* Récupère tous les documents textuels d'un client (uploads + web-import + import local)
+   normalisés pour le chunking. Couvre les deux tables ClientDocument et ClientLocalDoc. */
+async function getAllClientDocs(clientId: string): Promise<any[]> {
+  const now = new Date();
+  const [cdocs, ldocs] = await Promise.all([
+    db.prisma.clientDocument.findMany({
+      where: {
+        clientId,
+        status: { not: "archived" },
+        AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }],
+      },
+    }),
+    db.prisma.clientLocalDoc.findMany({
+      where: { clientId, status: "active" },
+    }),
+  ]);
+  return [
+    ...cdocs.map((d: any) => ({
+      id: d.id,
+      content: d.content || "",
+      originalName: d.originalName,
+      source_url: d.source_url || "",
+      valid_until: d.valid_until,
+      version: d.version ?? 1,
+    })),
+    ...ldocs.map((d: any) => ({
+      id: d.id,
+      content: d.content || "",
+      originalName: d.fileName || d.originalName || "document",
+      source_url: d.sourceUrl || "",
+      valid_until: null,
+      version: 1,
+    })),
+  ].filter((d) => (d.content || "").trim().length > 0);
+}
+
+async function hasAnyClientDoc(clientId: string): Promise<boolean> {
+  const now = new Date();
+  const [c, l] = await Promise.all([
+    db.prisma.clientDocument.count({ where: { clientId, status: { not: "archived" } } }),
+    db.prisma.clientLocalDoc.count({ where: { clientId, status: "active" } }),
+  ]);
+  return c > 0 || l > 0;
+}
+
 /* ── STREAMING HANDLER ──────────────────────────────── */
 async function handleStreamingRequest(
   req: NextRequest,
@@ -855,10 +900,7 @@ async function handleStreamingRequest(
           const positionedRagOnly = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
           const ragOnlyQuery = positionedRagOnly.query;
           const siteChunks = parseChunks(client.siteContext || "");
-          const now = new Date();
-          const clientDocs = await db.prisma.clientDocument.findMany({
-            where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
-          });
+          const clientDocs = await getAllClientDocs(client.id);
           let topChunks: ChunkMeta[] = [];
           const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
@@ -934,14 +976,11 @@ async function handleStreamingRequest(
 
         /* NIVEAU 2 : RAG */
         const hasSiteContext = !!(client.siteContext?.trim());
-        const hasClientDoc = !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+        const hasClientDoc = await hasAnyClientDoc(client.id);
         const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag;
         if (score < 100 && hasAnyDoc) {
           const siteChunks = parseChunks(client.siteContext || "");
-          const now = new Date();
-          const clientDocs = await db.prisma.clientDocument.findMany({
-            where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
-          });
+          const clientDocs = await getAllClientDocs(client.id);
 
           /* Positionnement + reformulation de la requête pour meilleur matching */
           const ragKeyEntry = await resolveApiKey(client);
@@ -1197,17 +1236,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const positionedRagOnly = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
     const ragOnlyQuery = positionedRagOnly.query;
     const siteChunks = parseChunks(client.siteContext || "");
-    const now = new Date();
-    const clientDocs = await db.prisma.clientDocument.findMany({
-      where: {
-        clientId: client.id,
-        status: { not: "archived" },
-        AND: [
-          { OR: [{ valid_until: null }, { valid_until: { gte: now } }] },
-          { OR: [{ valid_from: null }, { valid_from: { lte: now } }] },
-        ],
-      },
-    });
+    const clientDocs = await getAllClientDocs(client.id);
     let topChunks: ChunkMeta[] = [];
     const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
     const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
@@ -1394,21 +1423,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   /* ── NIVEAU 2 : RAG — recherche documentaire (sauf si réponse KB exacte) ── */
   const hasSiteContext = !!(client.siteContext?.trim());
-  const hasClientDoc = !!(await db.prisma.clientDocument.findFirst({ where: { clientId: client.id, status: { not: "archived" } }, select: { id: true } }));
+  const hasClientDoc = await hasAnyClientDoc(client.id);
   const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag;
   if (score < 100 && hasAnyDoc) {
     const siteChunks = parseChunks(client.siteContext || "");
-    const now = new Date();
-    const clientDocs = await db.prisma.clientDocument.findMany({
-      where: {
-        clientId: client.id,
-        status: { not: "archived" },
-        AND: [
-          { OR: [{ valid_until: null }, { valid_until: { gte: now } }] },
-          { OR: [{ valid_from: null }, { valid_from: { lte: now } }] },
-        ],
-      },
-    });
+    const clientDocs = await getAllClientDocs(client.id);
     let topChunks: ChunkMeta[] = [];
 
     /* Positionnement + reformulation de la requête pour meilleur matching */

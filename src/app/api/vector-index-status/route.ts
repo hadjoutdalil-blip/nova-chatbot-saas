@@ -34,6 +34,17 @@ export async function GET(req: NextRequest) {
     indexed: indexedDocIds.has(d.id),
   }));
 
+  // Fichiers locaux / web-import (ClientLocalDoc)
+  const localDocs = await db.prisma.clientLocalDoc.findMany({
+    where: { clientId, status: "active" },
+    select: { id: true, fileName: true, originalName: true, updatedAt: true },
+  });
+  const localDocsWithStatus = localDocs.map((d) => ({
+    id: d.id,
+    name: d.fileName || d.originalName || "document",
+    indexed: indexedDocIds.has(d.id),
+  }));
+
   // KB entries
   const kbEntries = await db.prisma.kBEntry.findMany({
     where: { clientId },
@@ -52,6 +63,7 @@ export async function GET(req: NextRequest) {
     totalKB: kbEntries.length,
     indexedKB: kbWithStatus.filter((k) => k.indexed).length,
     docs: docsWithStatus,
+    localDocs: localDocsWithStatus,
     kb: kbWithStatus,
   });
 }
