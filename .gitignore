@@ -47,5 +47,3 @@ next-env.d.ts
 
 # local data (documents, imports)
 /data/
-nul
-run-migrate.cjs

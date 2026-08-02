@@ -333,39 +333,3 @@ export async function searchChunks(
     score: parseFloat(row.score) || 0,
   }));
 }
-
-/* Recherche vectorielle multilingue : embed chaque variante de la requête (FR/EN/AR…),
-   lance une recherche par variante et fusionne les résultats en gardant le meilleur score
-   par chunk (dédupliqué sur le contenu). */
-export async function searchChunksMultilingual(
-  clientId: string,
-  queries: string[],
-  topN: number,
-  provider = "nomic",
-  apiKey: string,
-  filterMetadata?: Record<string, any>,
-): Promise<ChunkMeta[]> {
-  const variants = [...new Set(queries.map((q) => (q || "").trim()).filter(Boolean))];
-  if (variants.length === 0) return [];
-
-  const embeddings = await generateEmbeddings(variants, apiKey, provider);
-
-  const perVariant = await Promise.all(
-    embeddings.map((emb) => searchChunks(clientId, emb, topN * 2, provider, filterMetadata))
-  );
-
-  /* Fusion : meilleur score par chunk (clé = contenu tronqué), puis tri desc. */
-  const best = new Map<string, { chunk: ChunkMeta; score: number }>();
-  for (const results of perVariant) {
-    for (const r of results) {
-      const key = r.chunk.content.slice(0, 120) || r.chunk.id;
-      const prev = best.get(key);
-      if (!prev || r.score > prev.score) best.set(key, { chunk: r.chunk, score: r.score });
-    }
-  }
-
-  return [...best.values()]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topN)
-    .map((b) => ({ ...b.chunk, score: b.score }));
-}

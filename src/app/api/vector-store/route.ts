@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 import { getAuthUser } from "@/lib/api-auth";
-import { generateEmbeddings } from "@/lib/embeddings";
+import { generateEmbedding } from "@/lib/embeddings";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
 import { db } from "@/lib/db";
 import { removeDocument } from "@/lib/doc-manager";
-import { selectApiKey, detectProvider } from "@/lib/api-keys";
-import { translateQueryVariants } from "@/lib/query-translate";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
@@ -165,64 +163,28 @@ export async function POST(req: NextRequest) {
   }
   if (!apiKey) return NextResponse.json({ error: "Clé API embedding non configurée" }, { status: 400 });
 
-  /* Recherche vectorielle pour une liste de requêtes (variantes de langue), avec fusion
-     par meilleur score (dédupliqué sur le contenu). */
-  async function runSearch(queries: string[]): Promise<any[]> {
-    const embeddings = await generateEmbeddings(queries, apiKey, provider);
-    const all: any[] = [];
-    for (const emb of embeddings) {
-      const embeddingStr = `[${emb.join(",")}]`;
-      let where = "";
-      const params: any[] = [embeddingStr];
-      if (clientId) {
-        params.push(clientId);
-        where = `WHERE dc."clientId" = $2`;
-      }
-      params.push(topN);
-      const { rows } = await pool.query(
-        `SELECT dc.*, c.name AS client_name,
-          1 - (dc.embedding <=> $1::vector) AS score
-        FROM document_chunks dc
-        JOIN "Client" c ON c.id = dc."clientId"
-        ${where}
-        ORDER BY dc.embedding <=> $1::vector
-        LIMIT $${params.length}`,
-        params
-      );
-      all.push(...rows);
-    }
-    const best = new Map<string, any>();
-    for (const r of all) {
-      const key = (r.content || "").slice(0, 120);
-      if (!best.has(key) || parseFloat(r.score) > parseFloat(best.get(key).score)) best.set(key, r);
-    }
-    return [...best.values()]
-      .sort((a, b) => parseFloat(b.score) - parseFloat(a.score))
-      .slice(0, topN);
-  }
-
-  let rows: any[] = [];
-  if (clientId) {
-    /* Multilingue : d'abord dans la langue d'origine ; si score faible, traduit FR/EN/AR. */
-    const base = await runSearch([question]);
-    if (parseFloat(base[0]?.score || 0) < 0.55) {
-      const client = await db.prisma.client.findUnique({ where: { id: clientId } });
-      const aiKey = client ? await selectApiKey(clientId, client.aiProvider || "groq") : null;
-      if (aiKey?.key) {
-        const aiProvider = detectProvider(aiKey.key);
-        const aiModel = aiKey?.model || client?.aiModel || "openai/gpt-oss-20b";
-        const variants = await translateQueryVariants(question, aiKey.key, aiProvider.id, aiModel);
-        rows = await runSearch(variants);
-      } else {
-        rows = base;
-      }
-    } else {
-      rows = base;
-    }
-  } else {
-    rows = await runSearch([question]);
-  }
+  const embedding = await generateEmbedding(question, apiKey, provider);
   if (embedKeyId) trackEmbeddingUsage(embedKeyId).catch(() => {});
+  const embeddingStr = `[${embedding.join(",")}]`;
+
+  let where = "";
+  const params: any[] = [embeddingStr];
+  if (clientId) {
+    params.push(clientId);
+    where = `WHERE dc."clientId" = $2`;
+  }
+  params.push(topN);
+
+  const { rows } = await pool.query(
+    `SELECT dc.*, c.name AS client_name,
+      1 - (dc.embedding <=> $1::vector) AS score
+    FROM document_chunks dc
+    JOIN "Client" c ON c.id = dc."clientId"
+    ${where}
+    ORDER BY dc.embedding <=> $1::vector
+    LIMIT $${params.length}`,
+    params
+  );
 
   return NextResponse.json({
     query: question,

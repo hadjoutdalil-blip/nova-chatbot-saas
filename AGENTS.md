@@ -96,11 +96,3 @@ CREATE INDEX IF NOT EXISTS "PublicProposal_createdAt_idx" ON "PublicProposal"("c
   node node_modules/tsx/dist/cli.mjs scripts/reindex-pdfs.ts --kb
   ```
 - **Recherche filtrée** : `searchChunks(..., filterMetadata)` filtre par `metadata->>'docType'`, `metadata->>'page'`, etc.
-
-## 2026-08-02 — Recherche vectorielle multilingue FR / EN / AR
-- **Principe** : la recherche vectorielle traduit la question si nécessaire. D'abord, recherche dans la langue d'origine ; si le meilleur score < 0.55, la question est traduite en FR/EN/AR (une seule requête LLM, `src/lib/query-translate.ts`) puis chaque variante est embedée avec le MÊME fournisseur embedding et les résultats sont fusionnés (`searchChunksMultilingual` dans `vector-store.ts`, meilleur score par chunk dédupliqué sur le contenu)
-- **Traduction** : clé IA du client (`selectApiKey` / `resolveApiKey`), prompt JSON `{"fr":"...","en":"...","ar":"..."}`, sigles préservés. Sans clé IA → recherche mono-langue
-- **Arabic** : `norm()` préserve `[\u0600-\u06FF]` ; `extractKeywords`/`keywordMatch`/`bilingualHitCount` matchent par tokens (le `\b` JS est incompatible avec l'arabe, non-`\w`)
-- **Dictionnaire bilingue FR↔EN** dans `rag-utils.ts` (`BILINGUAL_TERMS`) : boost dans `findBestChunks` pour matcher une question française contre des docs anglais (et inversement)
-- **Endpoints mis à jour** : `chat/[slug]` (4 chemins RAG : streaming/non-streaming × normal/ragOnly), `client-documents/test-rag`, `vector-store` POST (test recherche)
-- Le `norm()` accepte désormais les lettres unicode (`\p{L}`)

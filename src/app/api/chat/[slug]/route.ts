@@ -5,7 +5,8 @@ import { randomUUID } from "crypto";
 import { extractIP, lookupGeo } from "@/lib/geo";
 import { norm, calcSimilarity, ChunkMeta, chunkDocument, parseChunks, findBestChunks } from "@/lib/rag-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
-import { searchChunksMultilingual } from "@/lib/vector-store";
+import { generateEmbedding } from "@/lib/embeddings";
+import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
 import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
 import { sseEvent } from "@/lib/stream-utils";
@@ -564,78 +565,6 @@ async function resolveApiKey(client: any): Promise<{ id: string; key: string; mo
   return null;
 }
 
-/* Traduit la question en FR / EN / AR (une seule requête LLM), pour une recherche
-   vectorielle multilingue. En cas d'échec, retourne uniquement la question d'origine. */
-async function translateQueryVariants(
-  question: string,
-  apiKey: string,
-  providerId: string,
-  model: string,
-): Promise<string[]> {
-  try {
-    const provider = PROVIDERS[providerId];
-    if (!provider) return [question];
-    const resp = await fetch(provider.endpoint, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: `Traduis la question du client dans exactement trois langues : français (clé "fr"), anglais (clé "en") et arabe (clé "ar"). Conserve les sigles (IA, AI, DS, RAG, ML, NLP...), les noms propres, les chiffres et la ponctuation. Réponds UNIQUEMENT en JSON sans balises, au format : {"fr":"...","en":"...","ar":"..."}`,
-          },
-          { role: "user", content: question },
-        ],
-        temperature: 0,
-        max_tokens: 250,
-      }),
-    });
-    if (!resp.ok) return [question];
-    const data = await resp.json();
-    const raw = (data.choices?.[0]?.message?.content || "").trim();
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return [question];
-    const parsed = JSON.parse(jsonMatch[0]);
-    const variants = [question, parsed.fr, parsed.en, parsed.ar]
-      .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
-      .map((v) => v.trim());
-    return [...new Set(variants)];
-  } catch {
-    return [question];
-  }
-}
-
-/* Recherche vectorielle multilingue : d'abord dans la langue d'origine ; si le meilleur
-   score est faible, traduit la question (FR/EN/AR) et relance une recherche fusionnée. */
-async function multilingualVectorSearch(
-  clientId: string,
-  query: string,
-  embedApiKey: string,
-  embedProvider: string,
-  topN: number,
-  aiApiKey: string | undefined,
-  aiProviderId: string,
-  aiModel: string,
-  filterMetadata?: Record<string, any>,
-): Promise<ChunkMeta[]> {
-  try {
-    const base = await searchChunksMultilingual(clientId, [query], topN, embedProvider, embedApiKey, filterMetadata);
-    const bestScore = base[0]?.score || 0;
-    if (bestScore >= 0.55 || !aiApiKey) {
-      console.log(`[Nova Chat] multilingual vector search: mono-langue, best=${bestScore.toFixed(3)} → ${base.length} chunks`);
-      return base;
-    }
-    const variants = await translateQueryVariants(query, aiApiKey, aiProviderId, aiModel);
-    const chunks = await searchChunksMultilingual(clientId, variants, topN, embedProvider, embedApiKey, filterMetadata);
-    console.log(`[Nova Chat] multilingual vector search: ${variants.length} variante(s) → ${chunks.length} chunks (best=${(chunks[0]?.score || 0).toFixed(3)})`);
-    return chunks;
-  } catch (err) {
-    console.error("[Nova Chat] multilingual vector search error:", err);
-    return [];
-  }
-}
-
 async function saveUsage(clientId: string, provider: string, model: string, usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {
   try {
     const data = {
@@ -976,7 +905,7 @@ async function handleStreamingRequest(
           const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
           if (client.useVectorRag && embedApiKey) {
-            try { topChunks = await multilingualVectorSearch(client.id, ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider, client.topNChunks ?? 7, apiKey, providerInfo.id, model); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
+            try { const embedding = await generateEmbedding(ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
             if (embedKeyEntry?.id) trackEmbeddingUsage(embedKeyEntry.id).catch(() => {});
           }
           if (topChunks.length === 0) {
@@ -1067,10 +996,10 @@ async function handleStreamingRequest(
           const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const apiKey = activeKey?.key || client.hfApiKey;
 
-          /* Recherche vectorielle multilingue (si activée) */
+          /* Recherche vectorielle (si activée) */
           const vectorResults: ChunkMeta[] = [];
           if (client.useVectorRag && apiKey) {
-            try { vectorResults.push(...await multilingualVectorSearch(client.id, searchQuery, apiKey, activeKey?.provider || client.embeddingProvider, client.topNChunks ?? 7, ragKeyEntry?.key || undefined, ragProviderInfo.id, ragModel)); console.log("[Nova Chat] vector search results:", vectorResults.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
+            try { const embedding = await generateEmbedding(searchQuery, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); vectorResults.push(...results.map((r) => r.chunk)); console.log("[Nova Chat] vector search results:", vectorResults.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
             if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
           }
 
@@ -1313,7 +1242,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
     if (client.useVectorRag && embedApiKey) {
       try {
-        topChunks = await multilingualVectorSearch(client.id, ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider, client.topNChunks ?? 7, apiKey, providerInfo.id, model);
+        const embedding = await generateEmbedding(ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
+        topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
       }
@@ -1509,11 +1440,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const activeKey = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
     const embedApiKey = activeKey?.key || client.hfApiKey;
 
-    /* Recherche vectorielle multilingue (si activée) */
+    /* Recherche vectorielle (si activée) */
     const vectorResults: ChunkMeta[] = [];
     if (client.useVectorRag && embedApiKey) {
       try {
-        vectorResults.push(...await multilingualVectorSearch(client.id, searchQuery, embedApiKey, activeKey?.provider || client.embeddingProvider, client.topNChunks ?? 7, apiKey, providerInfo.id, model));
+        const embedding = await generateEmbedding(searchQuery, embedApiKey, activeKey?.provider || client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
+        vectorResults.push(...results.map((r) => r.chunk));
       } catch (err) {
         console.error("[Vector RAG] error:", err);
       }

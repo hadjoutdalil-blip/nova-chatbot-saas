@@ -19,7 +19,7 @@ export function norm(s: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\u0600-\u06ff\s]/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -91,22 +91,17 @@ const BILINGUAL_TERMS: Record<string, string[]> = {
   "big data": ["big data"],
 };
 
-/* Nombre de mots de la question (avec équivalents anglais) trouvés dans le contenu.
-   Matching par tokens (pas de \b, incompatible avec l'arabe : caractères non-\w). */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/* Nombre de mots de la question (avec équivalents anglais) trouvés dans le contenu */
 function bilingualHitCount(qWords: string[], nc: string): number {
-  const tokens = new Set(nc.split(" ").filter(Boolean));
   let hits = 0;
   for (const w of qWords) {
     if (w.length <= 2 && w !== "ia" && w !== "ds") continue;
     const variants = [w, ...(BILINGUAL_TERMS[w] || [])];
-    for (const v of variants) {
-      if (v.includes(" ")) {
-        if (nc.includes(v)) { hits++; break; }
-      } else if (tokens.has(v)) {
-        hits++;
-        break;
-      }
-    }
+    if (new RegExp("\\b(" + variants.map(escapeRegex).join("|") + ")", "i").test(nc)) hits++;
   }
   return hits;
 }
