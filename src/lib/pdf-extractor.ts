@@ -28,9 +28,29 @@ function cleanPdfText(text: string): string {
     .trim();
 }
 
+/* Détecte un texte réellement lisible vs du binaire/glifs non décodés (PDF scanné ou police cassée).
+   Les PDF scannés donnent des suites de caractères bizarres sans mots ni espaces. */
+export function isReadableText(text: string): boolean {
+  if (!text.trim()) return false;
+  let letters = 0;
+  let whitespace = 0;
+  let control = 0;
+  const total = text.length;
+  const letterRe = /[\p{L}\p{N}]/u;
+  for (const ch of text) {
+    if (letterRe.test(ch)) letters++;
+    else if (/\s/.test(ch)) whitespace++;
+    else if (/[\u0000-\u001F\u007F-\u009F]/.test(ch)) control++;
+  }
+  const letterRatio = letters / total;
+  const controlRatio = control / total;
+  const spaceRatio = whitespace / total;
+  return letterRatio > 0.35 && spaceRatio > 0.01 && controlRatio < 0.03;
+}
+
 /**
  * Extrait le texte d'un PDF page par page.
- * Les pages vides sont ignorées.
+ * Les pages vides ou illisibles (binaire/scanné) sont ignorées.
  */
 export async function extractPdfPages(
   data: Buffer | Uint8Array | ArrayBuffer,
@@ -40,7 +60,7 @@ export async function extractPdfPages(
   const pages = Array.isArray(text) ? text : [text as string];
   return pages
     .map((t, i) => ({ page: i + 1, text: cleanPdfText(t || "") }))
-    .filter((p) => p.text.length > 0);
+    .filter((p) => p.text.length > 0 && isReadableText(p.text));
 }
 
 /**
