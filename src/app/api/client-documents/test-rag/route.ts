@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { chunkDocument, parseChunks, findBestChunks, ChunkMeta } from "@/lib/rag-utils";
-import { generateEmbedding } from "@/lib/embeddings";
-import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
+import { searchChunksMultilingual } from "@/lib/vector-store";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
+import { selectApiKey, detectProvider } from "@/lib/api-keys";
+import { translateQueryVariants } from "@/lib/query-translate";
 
 /* ── Recherche par mots-clés en fallback ── */
 function keywordSearch(question: string, chunks: any[]): any[] {
@@ -66,9 +67,24 @@ export async function POST(req: NextRequest) {
 
   if (client.useVectorRag && apiKey) {
     try {
-      const embedding = await generateEmbedding(question, apiKey, provider);
-      const results = await pgSearchChunks(client.id, embedding, topNChunks, provider);
-      topChunks = results.map((r) => r.chunk);
+      /* Recherche multilingue : d'abord dans la langue de la question ; si le score est
+         faible, on traduit (FR/EN/AR) et on fusionne les résultats. */
+      let variants = [question];
+      const aiKey = await selectApiKey(client.id, client.aiProvider || "groq");
+      const aiApiKey = aiKey?.key || client.apiKey || undefined;
+      const aiProvider = aiKey ? detectProvider(aiKey.key) : detectProvider(aiApiKey || "");
+      const aiModel = aiKey?.model || client.aiModel || "openai/gpt-oss-20b";
+      if (aiApiKey) {
+        const base = await searchChunksMultilingual(client.id, [question], topNChunks, provider, apiKey);
+        if ((base[0]?.score || 0) < 0.55) {
+          variants = await translateQueryVariants(question, aiApiKey, aiProvider.id, aiModel);
+        } else {
+          topChunks = base;
+        }
+      }
+      if (variants.length > 0 && topChunks.length === 0) {
+        topChunks = await searchChunksMultilingual(client.id, variants, topNChunks, provider, apiKey);
+      }
     } catch (err) {
       console.error("[Vector RAG test] error, falling back to keyword:", err);
     }

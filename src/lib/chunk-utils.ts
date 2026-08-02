@@ -13,7 +13,8 @@ export function extractKeywords(text: string, maxKeywords = 8): string[] {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .split(/\W+/)
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
     .filter(w => w.length > 3 && !FRENCH_STOPWORDS.has(w));
   const freq = new Map<string, number>();
   for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
@@ -29,12 +30,15 @@ export function keywordMatch(question: string, keywords: string[]): number {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+  const qTokens = new Set(nq.split(" ").filter(Boolean));
+  /* Matching par tokens (pas de \b : incompatible avec l'arabe, caractères non-\w). */
   const hits = keywords.filter(kw => {
-    const nkw = kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return new RegExp("\\b" + nkw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(nq);
+    const nkw = kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (nkw.includes(" ")) return nq.includes(nkw);
+    return qTokens.has(nkw);
   }).length;
   return hits / Math.max(keywords.length, 1);
 }
