@@ -20,6 +20,12 @@ function padToDim(vec: number[], dim: number): number[] {
   return [...vec, ...new Array(dim - vec.length).fill(0)];
 }
 
+/* PostgreSQL refuse les octets nuls (0x00) et certains caractères de contrôle dans TEXT.
+   Filet de sécurité appliqué avant tout INSERT, quelle que soit la source du contenu. */
+export function sanitizeText(text: string): string {
+  return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+}
+
 let tableEnsured = false;
 
 async function ensureTable() {
@@ -116,6 +122,8 @@ export async function syncDocumentChunks(
 ) {
   await ensureTable();
   await deleteDocChunks(docId);
+
+  content = sanitizeText(content);
 
   const chunks = chunkDocument(
     { id: docId, content, source_url: sourceUrl, valid_until: validUntil, originalName: source },
@@ -225,11 +233,11 @@ export async function syncKBEntry(
 ) {
   await ensureTable();
 
-  const content = [
+  const content = sanitizeText([
     `Question: ${kb.question}`,
     kb.alt_questions ? `Variantes: ${kb.alt_questions}` : "",
     `Réponse: ${kb.answer}`,
-  ].filter(Boolean).join("\n");
+  ].filter(Boolean).join("\n"));
   if (!content.trim()) return;
 
   /* Garde-fou : si l'entrée dépasse la limite raisonnable d'un embedding, on la découpe

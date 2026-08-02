@@ -19,6 +19,9 @@ export function isPdfName(fileName: string): boolean {
 function cleanPdfText(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    /* Supprime les octets nuls (0x00) et caractères de contrôle : PostgreSQL les refuse dans TEXT */
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
     .replace(/[ \t]+/g, " ")
     .replace(/ +\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
