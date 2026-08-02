@@ -6,6 +6,7 @@ import { syncDocumentChunks } from "@/lib/vector-store";
 import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 import { upsertDocument } from "@/lib/doc-manager";
 import { importKBEntries, KBImportEntry } from "@/lib/kb-import";
+import { isPdfName, extractPdfText } from "@/lib/pdf-extractor";
 
 function verifyImportKey(req: NextRequest): boolean {
   const key = req.headers.get("x-import-key");
@@ -164,21 +165,35 @@ export async function POST(req: NextRequest) {
         continue;
       }
       const buffer = Buffer.from(await res.arrayBuffer());
-      const ext = doc.url.split(".").pop() || "bin";
+      const urlPath = doc.url.split("/");
+      const fileName = urlPath.pop() || `doc-${Date.now()}.bin`;
+      const ext = fileName.split(".").pop() || "bin";
       const mimeType = ext === "pdf" ? "application/pdf" : ext === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : `application/${ext}`;
+
+      /* PDF : extraire le vrai texte pour l'indexation (pas seulement le titre) */
+      let content = doc.title || "";
+      if (isPdfName(fileName) || ext === "pdf") {
+        try {
+          const extracted = await extractPdfText(buffer);
+          if (extracted.trim()) content = extracted;
+          else errors.push(`PDF sans texte extractible: ${doc.url}`);
+        } catch (err: any) {
+          errors.push(`PDF extraction error ${doc.url}: ${err.message}`);
+        }
+      }
 
       await upsertDocument({
         clientId,
         clientSlug: client.slug,
-        fileName: doc.url.split("/").pop() || `doc-${Date.now()}.${ext}`,
-        originalName: doc.url.split("/").pop() || `doc.${ext}`,
+        fileName,
+        originalName: fileName,
         mimeType,
         data: buffer,
         sourceUrl: doc.url,
         title: doc.title || "",
         description: doc.description || "",
         topics: doc.topics || "",
-        content: doc.title || "",
+        content,
       });
       docsCount++;
     } catch (err: any) {

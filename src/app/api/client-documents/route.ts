@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 import { syncDocumentChunks } from "@/lib/vector-store";
 import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
+import { isPdfMime, isPdfName, extractPdfText } from "@/lib/pdf-extractor";
 
 function getTargetClientId(req: NextRequest, user: { userId: string; clientId: string; role: string }): string {
   const url = new URL(req.url);
@@ -63,19 +64,40 @@ export async function POST(req: NextRequest) {
   const file = form.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "Fichier requis" }, { status: 400 });
 
-  const MAX_SIZE = 5 * 1024 * 1024;
-  if (file.size > MAX_SIZE) return NextResponse.json({ error: "Fichier trop volumineux (max 5 Mo)" }, { status: 400 });
+  const MAX_SIZE = 20 * 1024 * 1024;
+  if (file.size > MAX_SIZE) return NextResponse.json({ error: "Fichier trop volumineux (max 20 Mo)" }, { status: 400 });
 
+  const isPdf = isPdfMime(file.type || "") || isPdfName(file.name);
   const allowedTypes = ["text/plain", "text/csv", "application/json", "text/markdown"];
-  if (!allowedTypes.includes(file.type) && !file.name.endsWith(".txt") && !file.name.endsWith(".csv") && !file.name.endsWith(".json") && !file.name.endsWith(".md")) {
-    return NextResponse.json({ error: "Format non supporté. Utilisez .txt, .csv, .json ou .md" }, { status: 400 });
+  if (
+    !isPdf &&
+    !allowedTypes.includes(file.type) &&
+    !file.name.endsWith(".txt") &&
+    !file.name.endsWith(".csv") &&
+    !file.name.endsWith(".json") &&
+    !file.name.endsWith(".md")
+  ) {
+    return NextResponse.json({ error: "Format non supporté. Utilisez .txt, .csv, .json, .md ou .pdf" }, { status: 400 });
   }
 
-  let raw = await file.text();
-  raw = raw.replace(/^\uFEFF/, "");
-  if (!raw.trim()) return NextResponse.json({ error: "Fichier vide" }, { status: 400 });
+  let raw: string;
+  let mimeType = file.type || "text/plain";
+  if (isPdf) {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    try {
+      raw = await extractPdfText(buffer);
+    } catch (e: any) {
+      return NextResponse.json({ error: "Impossible de lire le PDF : " + (e?.message || "erreur inconnue") }, { status: 422 });
+    }
+    if (!raw.trim()) return NextResponse.json({ error: "PDF sans texte extractible (peut-être scanné/images)" }, { status: 422 });
+    mimeType = "application/pdf";
+  } else {
+    raw = await file.text();
+    raw = raw.replace(/^\uFEFF/, "");
+    if (!raw.trim()) return NextResponse.json({ error: "Fichier vide" }, { status: 400 });
+  }
 
-  const isJson = file.type === "application/json" || file.name.endsWith(".json");
+  const isJson = !isPdf && (file.type === "application/json" || file.name.endsWith(".json"));
   let content = raw;
   if (isJson) {
     try { content = JSON.stringify(JSON.parse(raw), null, 2); }
@@ -95,7 +117,7 @@ export async function POST(req: NextRequest) {
       id: docId,
       clientId,
       originalName: file.name,
-      mimeType: file.type || "text/plain",
+      mimeType,
       content,
       fileSize: file.size,
       description,

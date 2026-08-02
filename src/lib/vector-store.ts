@@ -8,6 +8,13 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 
 const TABLE_DIM = getEmbeddingDimension("nomic"); // 768 — supports both Cohere (padded) and Nomic
 
+/* halfvec (pgvector ≥ 0.7, dispo sur Neon) : stockage 2x plus compact pour la même dimension.
+   Activer via PG_VECTOR_HALF=1 puis relancer une migration complète (recreateTable). */
+const USE_HALF = process.env.PG_VECTOR_HALF === "1";
+const VEC_TYPE = USE_HALF ? "halfvec" : "vector";
+const VEC_CAST = USE_HALF ? "::halfvec" : "::vector";
+const COSINE_OPS = USE_HALF ? "halfvec_cosine_ops" : "vector_cosine_ops";
+
 function padToDim(vec: number[], dim: number): number[] {
   if (vec.length >= dim) return vec;
   return [...vec, ...new Array(dim - vec.length).fill(0)];
@@ -32,15 +39,22 @@ async function ensureTable() {
         keywords TEXT NOT NULL DEFAULT '',
         source_url TEXT NOT NULL DEFAULT '',
         valid_until TEXT NOT NULL DEFAULT '',
-        embedding vector(${TABLE_DIM})
+        metadata JSONB NOT NULL DEFAULT '{}',
+        embedding ${VEC_TYPE}(${TABLE_DIM})
       )
     `);
+    /* Rétro-compatibilité : ajoute la colonne metadata sur les tables créées avant cette version */
+    await client.query(`ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'`);
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_metadata ON document_chunks USING gin (metadata)');
+    /* HNSW : se construit sur table vide, pas de tuning lists, meilleur rappel que ivfflat */
     try {
-      await client.query("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)");
+      await client.query(
+        `CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING hnsw (embedding ${COSINE_OPS}) WITH (m = 16, ef_construction = 64)`
+      );
     } catch {
-      // ivfflat requires existing rows; safe to ignore on empty table
+      // hnsw peut échouer sur très vieilles versions de pgvector (< 0.5) ; on garde le scan séquentiel
     }
   } finally {
     client.release();
@@ -64,13 +78,17 @@ export async function recreateTable() {
         keywords TEXT NOT NULL DEFAULT '',
         source_url TEXT NOT NULL DEFAULT '',
         valid_until TEXT NOT NULL DEFAULT '',
-        embedding vector(${TABLE_DIM})
+        metadata JSONB NOT NULL DEFAULT '{}',
+        embedding ${VEC_TYPE}(${TABLE_DIM})
       )
     `);
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_metadata ON document_chunks USING gin (metadata)');
     try {
-      await client.query("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)");
+      await client.query(
+        `CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING hnsw (embedding ${COSINE_OPS}) WITH (m = 16, ef_construction = 64)`
+      );
     } catch {}
     tableEnsured = true;
   } finally {
@@ -114,14 +132,30 @@ export async function syncDocumentChunks(
 
   const client = await pool.connect();
   try {
-    for (let i = 0; i < chunks.length; i++) {
-      const c = chunks[i];
-      const rowId = `${docId}__${i}`;
-      const embeddingStr = `[${embeddings[i].join(",")}]`;
+    const BATCH = 100;
+    for (let offset = 0; offset < chunks.length; offset += BATCH) {
+      const batch = chunks.slice(offset, offset + BATCH);
+      const params: any[] = [];
+      const rows: string[] = [];
+      let p = 1;
+      for (let j = 0; j < batch.length; j++) {
+        const c = batch[j];
+        const globalIdx = offset + j;
+        const rowId = `${docId}__${globalIdx}`;
+        const embeddingStr = `[${embeddings[globalIdx].join(",")}]`;
+        params.push(
+          rowId, clientId, docId, c.id, c.content, c.source, c.section,
+          c.keywords.join(", "), sourceUrl, validUntil || "",
+          JSON.stringify(c.metadata || {}), embeddingStr
+        );
+        rows.push(
+          `($${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}${VEC_CAST})`
+        );
+      }
       await client.query(
-        `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
-        [rowId, clientId, docId, c.id, c.content, c.source, c.section, c.keywords.join(", "), sourceUrl, validUntil || "", embeddingStr]
+        `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, metadata, embedding)
+         VALUES ${rows.join(", ")}`,
+        params
       );
     }
   } finally {
@@ -229,12 +263,13 @@ export async function syncKBEntry(
 
   const rowId = `${kb.id}__kb__0`;
   const embeddingStr = `[${padded.join(",")}]`;
+  const metadata = JSON.stringify({ docType: "kb", tag: kb.tag || "" });
   const client = await pool.connect();
   try {
     await client.query(
-      `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, embedding)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)`,
-      [rowId, clientId, kb.id, `kb_${kb.id}`, content, source, "", [], kb.source_url || "", kb.valid_until || "", embeddingStr]
+      `INSERT INTO document_chunks (id, "clientId", "docId", "chunkId", content, source, section, keywords, source_url, valid_until, metadata, embedding)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12${VEC_CAST})`,
+      [rowId, clientId, kb.id, `kb_${kb.id}`, content, source, "", [], kb.source_url || "", kb.valid_until || "", metadata, embeddingStr]
     );
   } finally {
     client.release();
@@ -246,18 +281,32 @@ export async function searchChunks(
   questionEmbedding: number[],
   topN: number,
   provider = "nomic",
+  filterMetadata?: Record<string, any>,
 ): Promise<{ chunk: ChunkMeta; score: number }[]> {
   await ensureTable();
   const queryVec = padToDim(questionEmbedding, TABLE_DIM);
   const embeddingStr = `[${queryVec.join(",")}]`;
+
+  let whereClause = `WHERE "clientId" = $2`;
+  const params: any[] = [embeddingStr, clientId];
+
+  if (filterMetadata && Object.keys(filterMetadata).length > 0) {
+    let condIdx = 3;
+    for (const [k, v] of Object.entries(filterMetadata)) {
+      whereClause += ` AND metadata->>'${k.replace(/'/g, "''")}' = $${condIdx}`;
+      params.push(String(v));
+      condIdx++;
+    }
+  }
+
   const { rows } = await pool.query(
     `SELECT *,
-       1 - (embedding <=> $1::vector) AS score
+       1 - (embedding <=> $1${VEC_CAST}) AS score
      FROM document_chunks
-     WHERE "clientId" = $2
-     ORDER BY embedding <=> $1::vector
-     LIMIT $3`,
-    [embeddingStr, clientId, topN]
+     ${whereClause}
+     ORDER BY embedding <=> $1${VEC_CAST}
+     LIMIT $${params.length + 1}`,
+    [...params, topN]
   );
 
   return rows.map((row: any) => ({
@@ -271,6 +320,7 @@ export async function searchChunks(
       docId: row.docId || undefined,
       source_url: row.source_url || "",
       valid_until: row.valid_until || "",
+      metadata: row.metadata || undefined,
     },
     score: parseFloat(row.score) || 0,
   }));

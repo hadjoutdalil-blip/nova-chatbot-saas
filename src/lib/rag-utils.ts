@@ -11,6 +11,7 @@ export interface ChunkMeta {
   version?: number;
   source_url?: string;
   valid_until?: string;
+  metadata?: Record<string, any>;
 }
 
 export function norm(s: string): string {
@@ -91,34 +92,137 @@ export function calcSimilarity(a: string, b: string): number {
   return Math.min(wo * 0.35 + bo * 0.35 + fs * 0.30 + 0.02, 1);
 }
 
+const PAGE_MARKER_RE = /^={2,}\s*PAGE\s*(\d+)\s*={2,}$/i;
+const HEADING_RE = /^(#{1,3})\s+(.*)$/;
+
+interface Block {
+  text: string;
+  section: string;
+}
+
+/* Découpe le texte en blocs sémantiques : pages (===== PAGE N =====), titres markdown, paragraphes */
+function splitIntoBlocks(text: string): Block[] {
+  const blocks: Block[] = [];
+  const lines = text.split("\n");
+  let buf: string[] = [];
+  let section = "";
+
+  const flush = () => {
+    const t = buf.join("\n").trim();
+    if (t) blocks.push({ text: t, section });
+    buf = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      flush();
+      continue;
+    }
+    const pm = line.match(PAGE_MARKER_RE);
+    if (pm) {
+      flush();
+      section = `Page ${pm[1]}`;
+      continue;
+    }
+    const hm = line.match(HEADING_RE);
+    if (hm) {
+      flush();
+      section = hm[2].trim();
+      buf.push(line);
+      continue;
+    }
+    buf.push(line);
+  }
+  flush();
+  return blocks;
+}
+
+/* Coupe au niveau d'un mot pour ne pas tronquer en plein milieu d'un mot */
+function sliceAtWord(text: string, start: number, maxChars: number): string {
+  let end = Math.min(start + maxChars, text.length);
+  if (end < text.length) {
+    const nextSpace = text.indexOf(" ", end);
+    const prevSpace = text.lastIndexOf(" ", end);
+    const after = nextSpace !== -1 ? nextSpace - end : Infinity;
+    const before = prevSpace > start ? end - prevSpace : Infinity;
+    if (after < before && after <= 20) end = nextSpace + 1;
+    else if (before < after && before <= 40) end = prevSpace + 1;
+  }
+  return text.slice(start, end).trim();
+}
+
+function buildChunkMeta(
+  idx: number,
+  doc: any,
+  content: string,
+  section: string,
+  keywords: string[],
+  metadata: Record<string, any>,
+): ChunkMeta {
+  return {
+    id: `chunk_${String(idx + 1).padStart(3, "0")}`,
+    source: doc.originalName,
+    section,
+    keywords,
+    content,
+    docId: doc.id,
+    version: doc.version ?? 1,
+    source_url: doc.source_url || "",
+    valid_until: doc.valid_until || null,
+    metadata,
+  };
+}
+
 export function chunkDocument(doc: any, maxChars = 600): ChunkMeta[] {
   const chunks: ChunkMeta[] = [];
   const text = doc.content;
   if (!text) return chunks;
-  const overlap = Math.round(maxChars * 0.2);
-  const sections = text.split(/\n{2,}|\n(?=#{1,3}\s)/);
+
+  const overlap = Math.round(maxChars * 0.15);
+  const step = Math.max(1, maxChars - overlap);
+
+  const blocks = splitIntoBlocks(text);
+
   let idx = 0;
-  for (const section of sections) {
-    const trimmed = section.trim();
-    if (!trimmed) continue;
-    const sectionTitle = trimmed.startsWith("#")
-      ? trimmed.split("\n")[0].replace(/^#+\s*/, "")
-      : "";
-    const keywords = extractKeywords(trimmed);
-    if (trimmed.length <= maxChars) {
-      chunks.push({ id: `chunk_${String(idx + 1).padStart(3, "0")}`, source: doc.originalName, section: sectionTitle, keywords, content: trimmed, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
-      idx++;
-    } else {
-      const step = maxChars - overlap;
-      for (let i = 0; i < trimmed.length; i += step) {
-        const content = trimmed.slice(i, i + maxChars).trim();
+  let buf: string[] = [];
+  let bufLen = 0;
+  let curSection = "";
+
+  const flush = () => {
+    if (buf.length === 0) return;
+    const content = buf.join("\n\n").trim();
+    const metadata: Record<string, any> = { docType: "document" };
+    const pageMatch = curSection.match(/^Page\s+(\d+)$/i);
+    if (pageMatch) metadata.page = parseInt(pageMatch[1], 10);
+    chunks.push(buildChunkMeta(idx++, doc, content, curSection, extractKeywords(content), metadata));
+    buf = [];
+    bufLen = 0;
+  };
+
+  for (const block of blocks) {
+    if (block.text.length > maxChars) {
+      flush();
+      const metadata: Record<string, any> = { docType: "document" };
+      const pageMatch = block.section.match(/^Page\s+(\d+)$/i);
+      if (pageMatch) metadata.page = parseInt(pageMatch[1], 10);
+      const keywords = extractKeywords(block.text);
+      for (let i = 0; i < block.text.length; i += step) {
+        const content = sliceAtWord(block.text, i, maxChars);
         if (content) {
-          chunks.push({ id: `chunk_${String(idx + 1).padStart(3, "0")}`, source: doc.originalName, section: sectionTitle, keywords, content, docId: doc.id, version: doc.version ?? 1, source_url: doc.source_url || "", valid_until: doc.valid_until || null });
-          idx++;
+          chunks.push(buildChunkMeta(idx++, doc, content, block.section, keywords, metadata));
         }
       }
+      continue;
     }
+    if (buf.length > 0 && bufLen + block.text.length > maxChars) {
+      flush();
+    }
+    if (block.section) curSection = block.section;
+    buf.push(block.text);
+    bufLen += block.text.length + 2;
   }
+  flush();
   return chunks;
 }
 

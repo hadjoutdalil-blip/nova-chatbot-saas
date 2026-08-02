@@ -6,6 +6,7 @@ import { getActiveEmbeddingKey } from "./embedding-keys";
 import { syncDocumentChunks, deleteDocChunks } from "./vector-store";
 import { upsertKBFromJSON, upsertKBFromText, removeKBBySource } from "./kb-import";
 import { isLocalEnvironment, getLocalImportDir } from "./storage";
+import { extractPdfText } from "./pdf-extractor";
 
 export interface ScanResult {
   added: number;
@@ -47,16 +48,24 @@ export async function scanLocalImport(clientId: string, clientSlug: string): Pro
     const filePath = path.join(importDir, fileName);
     const ext = path.extname(fileName).toLowerCase();
 
-    if (![".txt", ".json", ".md"].includes(ext)) {
+    if (![".txt", ".json", ".md", ".pdf"].includes(ext)) {
       result.errors.push(`Format non supporté: ${fileName}`);
       continue;
     }
 
     let content: string;
     try {
-      content = await fs.readFile(filePath, "utf-8");
+      const buffer = await fs.readFile(filePath);
+      content = ext === ".pdf"
+        ? await extractPdfText(buffer)
+        : buffer.toString("utf-8");
     } catch (err: any) {
       result.errors.push(`Erreur lecture ${fileName}: ${err.message}`);
+      continue;
+    }
+
+    if (!content.trim()) {
+      result.errors.push(`Contenu vide: ${fileName}`);
       continue;
     }
 

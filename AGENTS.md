@@ -80,3 +80,19 @@ CREATE INDEX IF NOT EXISTS "PublicProposal_createdAt_idx" ON "PublicProposal"("c
 - **FIX** : `chatUrl` est maintenant absolu (`${origin}/api/chat/${slug}`) où `origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin`
 - Même correctif appliqué à `/api/feedback` (feedback widget) : stocké dans `var FU` dans le script
 - **Configuration recommandée** : définir `NEXT_PUBLIC_APP_URL` dans les env vars Vercel (ex: `https://nova.app.com`) pour les cas où `req.nextUrl.origin` ne reflète pas l'URL publique (reverse proxy, CDN, etc.)
+
+## 2026-08-02 — Vectorisation PDF + base vectorielle optimisée
+- **PDF supportés** : upload via `client-documents` (accepte `application/pdf`, max 20 Mo), import web (`web-import`), et dossier local (file-watcher). Extraction du texte page par page via `unpdf` (`src/lib/pdf-extractor.ts`), texte stocké avec marqueurs `===== PAGE N =====`
+- **Chunking amélioré** (`rag-utils.ts`) : découpage par pages / titres markdown / paragraphes, coupe aux limites de mots, overlap 15%
+- **Index HNSW** remplace ivfflat (`m=16, ef_construction=64`) — se construit sur table vide, meilleur rappel
+- **Colonne `metadata` JSONB** ajoutée automatiquement par `ensureTable()` (rétro-compatible). Contient `{docType, page}` pour les documents, `{docType:"kb", tag}` pour les KB
+- **Insertions par lots** (100 lignes/requête) — ~10x plus rapide
+- **halfvec optionnel** : `PG_VECTOR_HALF=1` dans l'env → stockage 2x compact (nécessite pgvector ≥ 0.7 / Neon). Après activation, relancer une migration complète
+- **Ré-indexation des données existantes** :
+  ```
+  node node_modules/tsx/dist/cli.mjs scripts/reindex-pdfs.ts            # PDFs + docs re-vectorisés
+  node node_modules/tsx/dist/cli.mjs scripts/reindex-pdfs.ts --client=<id>
+  node node_modules/tsx/dist/cli.mjs scripts/reindex-pdfs.ts --pdfs-only
+  node node_modules/tsx/dist/cli.mjs scripts/reindex-pdfs.ts --kb
+  ```
+- **Recherche filtrée** : `searchChunks(..., filterMetadata)` filtre par `metadata->>'docType'`, `metadata->>'page'`, etc.

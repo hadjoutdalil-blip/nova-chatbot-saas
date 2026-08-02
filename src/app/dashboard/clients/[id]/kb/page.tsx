@@ -491,10 +491,10 @@ export default function ClientKBPage() {
               </div>
               <label className="flex items-center gap-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer transition-colors">
                 <Upload size={14} /> {uploading ? "Upload..." : "Ajouter un fichier"}
-                <input type="file" accept=".txt,.csv,.json,.md" className="hidden" onChange={handleUpload} disabled={uploading} />
+                <input type="file" accept=".txt,.csv,.json,.md,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
               </label>
             </div>
-            <p className="text-xs text-gray-400">Formats supportés : .txt, .csv, .json, .md (max 5 Mo).</p>
+            <p className="text-xs text-gray-400">Formats supportés : .txt, .csv, .json, .md, .pdf (max 20 Mo).</p>
             {documents.length === 0 ? (
               <p className="text-sm text-gray-400 italic">Aucun document uploadé.</p>
             ) : (
