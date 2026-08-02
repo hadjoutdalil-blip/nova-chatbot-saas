@@ -102,7 +102,10 @@ export default function AppKBPage() {
   function loadDocuments() {
     fetch("/api/client-documents", { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json())
-      .then(setDocuments);
+      .then((data) => {
+        if (Array.isArray(data)) setDocuments(data);
+        else setDocuments(data.docs || []);
+      });
   }
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import KBModal from "@/components/admin/KBModal";
-import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X, Database, Loader2, Zap } from "lucide-react";
+import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X, Database, Loader2, Zap, Globe } from "lucide-react";
 
 interface KBEntry {
   id: string;
@@ -66,6 +66,7 @@ export default function ClientKBPage() {
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [documents, setDocuments] = useState<any[]>([]);
+  const [localDocs, setLocalDocs] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [transferring, setTransferring] = useState(false);
   const [contextChunks, setContextChunks] = useState<{ name: string; index: number; content: string }[]>([]);
@@ -113,7 +114,10 @@ export default function ClientKBPage() {
   function loadDocuments() {
     fetch(`/api/client-documents?clientId=${id}`, { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json())
-      .then(setDocuments);
+      .then((data) => {
+        if (Array.isArray(data)) { setDocuments(data); setLocalDocs([]); }
+        else { setDocuments(data.docs || []); setLocalDocs(data.localDocs || []); }
+      });
   }
 
   useEffect(() => {
@@ -236,12 +240,21 @@ export default function ClientKBPage() {
   }
 
   async function handleDeleteDoc(docId: string) {
-    if (!confirm("Supprimer ce document ?")) return;
+    if (!confirm("Supprimer ce document et tous ses chunks de la base vectorielle ?")) return;
     const res = await fetch(`/api/client-documents/${docId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token()}` },
     });
     if (res.ok) setDocuments((prev) => prev.filter((d) => d.id !== docId));
+  }
+
+  async function handleDeleteLocalDoc(docId: string) {
+    if (!confirm("Supprimer ce fichier importé et tous ses chunks de la base vectorielle ?")) return;
+    const res = await fetch(`/api/client-documents/local/${docId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token()}` },
+    });
+    if (res.ok) setLocalDocs((prev) => prev.filter((d) => d.id !== docId));
   }
 
   async function handleTestRag() {
@@ -541,6 +554,35 @@ export default function ClientKBPage() {
                 <BookOpen size={15} /> {transferring ? "Transfert..." : "Transférer vers la KB"}
               </button>
             </div>
+          </div>
+
+          {/* Fichiers importés (web / local) */}
+          <div className="bg-white backdrop-blur-xl border border-white/20 rounded-2xl shadow-elevated p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
+              <Globe size={16} className="text-indigo-600" />
+              <h2 className="font-semibold text-gray-900">Fichiers importés (web / dossier local)</h2>
+            </div>
+            {localDocs.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">Aucun fichier importé.</p>
+            ) : (
+              <div className="space-y-2">
+                {localDocs.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Globe size={15} className="text-indigo-500 shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">{doc.originalName}</span>
+                      {doc.fileSize > 0 && <span className="text-xs text-gray-400 shrink-0">{(doc.fileSize / 1024).toFixed(1)} Ko</span>}
+                      {doc.source_url && <a href={doc.source_url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline shrink-0 truncate max-w-[200px]">{doc.source_url}</a>}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <button onClick={() => handleDeleteLocalDoc(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Supprimer source + chunks">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Indexation documents */}

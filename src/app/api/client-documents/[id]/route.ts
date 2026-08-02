@@ -180,15 +180,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
   }
 
-  await db.prisma.clientDocument.update({
-    where: { id },
-    data: { status: "archived" },
+  /* Supprime TOUJOURS les chunks vectoriels de la source (même si le RAG est désactivé) */
+  await deleteDocChunks(id);
+
+  await db.prisma.clientDocument.delete({ where: { id } }).catch(() => {
+    // en cas de dépendance (versioning), on archive au lieu de supprimer
+    return db.prisma.clientDocument.update({ where: { id }, data: { status: "archived" } });
   });
 
-  const client = await db.prisma.client.findUnique({ where: { id: existing.clientId } });
-  if (client?.useVectorRag) {
-    deleteDocChunks(id).catch((err) => console.error("[Vector Delete]", err));
-  }
-
-  return NextResponse.json({ message: "Document archivé" });
+  return NextResponse.json({ message: "Document et chunks supprimés" });
 }

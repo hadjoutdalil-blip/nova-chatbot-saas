@@ -40,6 +40,21 @@ export async function GET(req: NextRequest) {
       updatedAt: true,
     },
   });
+  const localDocs = await db.prisma.clientLocalDoc.findMany({
+    where: { clientId, status: "active" },
+    select: {
+      id: true,
+      fileName: true,
+      originalName: true,
+      mimeType: true,
+      fileSize: true,
+      sourceUrl: true,
+      title: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
   const mapped = docs.map((d) => ({
     ...d,
     fileSize: d.fileSize || 0,
@@ -53,7 +68,25 @@ export async function GET(req: NextRequest) {
     valid_until: d.valid_until || null,
     source_url: d.source_url || "",
   }));
-  return NextResponse.json(mapped);
+  const mappedLocal = localDocs.map((d) => ({
+    id: d.id,
+    originalName: d.originalName || d.fileName,
+    mimeType: d.mimeType || "",
+    content: "",
+    fileSize: d.fileSize || 0,
+    description: "",
+    tags: "",
+    category: "",
+    author: "",
+    version: 1,
+    status: d.status || "active",
+    valid_from: null,
+    valid_until: null,
+    source_url: d.sourceUrl || "",
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+  }));
+  return NextResponse.json({ docs: mapped, localDocs: mappedLocal });
 }
 
 export async function POST(req: NextRequest) {
