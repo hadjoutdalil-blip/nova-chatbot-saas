@@ -197,7 +197,7 @@ ${question}`;
   return { system, user };
 }
 
-function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string, lang: string = "fr") {
+function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, isVisitor: boolean, pageUrl?: string, pageTitle?: string, lang: string = "fr", theme: string = "") {
   const docMap = new Map<string, { chunks: ChunkMeta[]; maxScore: number }>();
   for (const c of chunks) {
     const key = c.source;
@@ -231,9 +231,10 @@ function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, isVi
     ? `- Si un extrait a un lien PDF disponible dans ses métadonnées, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`
     : `- Si un extrait a un Lien disponible dans ses métadonnées, inclus un lien cliquable markdown : [Télécharger le fichier](URL)`;
   const adminFooter = isVisitor ? "" : `\n- Termine par : [Source documentaire : ${chunks.map(c => c.source).join(", ")}]\n- Ajoute : "Cette réponse est basée sur la documentation disponible. Pour confirmation officielle, contactez un expert."`;
+  const themeLine = theme ? `\n- Thème identifié de la question : ${theme}` : "";
 
   const system = `Tu es l'assistant officiel de ${client.name}.
-Tu réponds en te basant UNIQUEMENT sur les extraits de documentation ci-dessous.${buildContext(client, pageUrl, pageTitle)}
+Tu réponds en te basant UNIQUEMENT sur les extraits de documentation ci-dessous.${buildContext(client, pageUrl, pageTitle)}${themeLine}
 
 RÈGLES ABSOLUES :
 - Ne réponds qu'à partir des extraits fournis
@@ -384,8 +385,40 @@ async function translateKbAnswer(text: string, lang: string, client: any): Promi
   } catch { return text; }
 }
 
-/* ── QUERY EXPANSION / REFORMULATION ──────────────── */
-async function reformulateQuery(question: string, apiKey: string, providerId: string, model: string): Promise<string> {
+/* ── CARTE KB + POSITIONNEMENT / REFORMULATION ─────── */
+function buildKbMap(KB: { tag: string; question: string; alt_questions: string; answer: string; category: string; keywords: string; priority: number }[]): string {
+  try {
+    const byCat = new Map<string, { count: number; questions: string[] }>();
+    for (const e of KB) {
+      const cat = (e.category || "Général").trim() || "Général";
+      if (!byCat.has(cat)) byCat.set(cat, { count: 0, questions: [] });
+      const entry = byCat.get(cat)!;
+      entry.count++;
+      const q = (e.question || "").trim().slice(0, 90);
+      if (q && entry.questions.length < 5 && !entry.questions.includes(q)) entry.questions.push(q);
+    }
+    const lines = [...byCat.entries()]
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 10)
+      .map(([cat, info]) =>
+        `- ${cat} (${info.count} entrées)${info.questions.length ? ` : ${info.questions.join(" | ")}` : ""}`
+      );
+    return lines.join("\n");
+  } catch {
+    return "";
+  }
+}
+
+async function positionAndReformulate(
+  question: string,
+  KB: { tag: string; question: string; alt_questions: string; answer: string; category: string; keywords: string; priority: number }[],
+  apiKey: string,
+  providerId: string,
+  model: string,
+): Promise<{ theme: string; query: string }> {
+  const fallback = { theme: "", query: question };
+  const kbMap = buildKbMap(KB);
+  if (!kbMap || kbMap.length < 10) return fallback;
   try {
     const resp = await fetch(PROVIDERS[providerId]?.endpoint || "https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -393,20 +426,28 @@ async function reformulateQuery(question: string, apiKey: string, providerId: st
       body: JSON.stringify({
         model,
         messages: [
-          { role: "system", content: "Extrais les mots-clés et reformule cette question en une requête de recherche concise (max 15 mots). Garde les termes techniques, sigles et noms propres. Réponds UNIQUEMENT par la requête reformulée, sans introduction ni ponctuation superflue." },
+          {
+            role: "system",
+            content: `Voici la vue d'ensemble de la base de connaissances d'un assistant client (thèmes → exemples de questions) :\n${kbMap}\n\nTâche : positionne la question du client dans le bon thème puis reformule-la en une requête de recherche concise (max 15 mots), en gardant les termes techniques, sigles et noms propres.\nRéponds UNIQUEMENT en JSON au format : {"theme": "<nom exact du thème ou chaîne vide>", "query": "<requête de recherche>"}`,
+          },
           { role: "user", content: question },
         ],
         temperature: 0,
-        max_tokens: 60,
+        max_tokens: 120,
       }),
     });
-    if (!resp.ok) return question;
+    if (!resp.ok) return fallback;
     const data = await resp.json();
-    const text = (data.choices?.[0]?.message?.content || "").trim();
-    if (!text || text.length < 3 || text.length > 150) return question;
-    return text;
+    const raw = (data.choices?.[0]?.message?.content || "").trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return fallback;
+    const parsed = JSON.parse(jsonMatch[0]);
+    const theme = typeof parsed.theme === "string" ? parsed.theme.trim().slice(0, 80) : "";
+    const query = typeof parsed.query === "string" ? parsed.query.trim() : "";
+    if (!query || query.length < 3 || query.length > 150) return fallback;
+    return { theme, query };
   } catch {
-    return question;
+    return fallback;
   }
 }
 
@@ -811,6 +852,8 @@ async function handleStreamingRequest(
           const apiKey = keyEntry.key;
           const providerInfo = detectProvider(apiKey);
           const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
+          const positionedRagOnly = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
+          const ragOnlyQuery = positionedRagOnly.query;
           const siteChunks = parseChunks(client.siteContext || "");
           const now = new Date();
           const clientDocs = await db.prisma.clientDocument.findMany({
@@ -820,16 +863,16 @@ async function handleStreamingRequest(
           const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
           if (client.useVectorRag && embedApiKey) {
-            try { const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
+            try { const embedding = await generateEmbedding(ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
             if (embedKeyEntry?.id) trackEmbeddingUsage(embedKeyEntry.id).catch(() => {});
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-            topChunks = findBestChunks(message, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
+            topChunks = findBestChunks(ragOnlyQuery, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
           }
-          addStep("rag_only_search", { chunks: topChunks.length, useVector: client.useVectorRag && !!embedApiKey });
+          addStep("rag_only_search", { chunks: topChunks.length, useVector: client.useVectorRag && !!embedApiKey, theme: positionedRagOnly.theme || null });
           if (topChunks.length > 0) {
-            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
+            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang, positionedRagOnly.theme);
             const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
             if (result) { finish(); return; }
           }
@@ -900,11 +943,12 @@ async function handleStreamingRequest(
             where: { clientId: client.id, status: { not: "archived" }, AND: [{ OR: [{ valid_until: null }, { valid_until: { gte: now } }] }, { OR: [{ valid_from: null }, { valid_from: { lte: now } }] }] },
           });
 
-          /* Reformulation de la requête pour meilleur matching */
+          /* Positionnement + reformulation de la requête pour meilleur matching */
           const ragKeyEntry = await resolveApiKey(client);
           const ragProviderInfo = detectProvider(ragKeyEntry?.key || "");
           const ragModel = ragKeyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
-          const searchQuery = ragKeyEntry?.key ? await reformulateQuery(message, ragKeyEntry.key, ragProviderInfo.id, ragModel) : message;
+          const positioned = ragKeyEntry?.key ? await positionAndReformulate(message, KB, ragKeyEntry.key, ragProviderInfo.id, ragModel) : { theme: "", query: message };
+          const searchQuery = positioned.query;
           if (searchQuery !== message) {
             console.log(`[Query Reformulation] "${message.slice(0, 60)}" → "${searchQuery.slice(0, 60)}" (${client.name})`);
           }
@@ -940,7 +984,7 @@ async function handleStreamingRequest(
           topChunks = merged;
           addStep("rag_search", { chunks: topChunks.length, vector: vectorResults.length, keyword: keywordResults.length, useVector: client.useVectorRag && !!apiKey });
           if (topChunks.length > 0) {
-            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
+            const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang, positioned.theme);
             const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
             if (result) { finish(); return; }
           }
@@ -1150,6 +1194,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const apiKey = keyEntry.key;
     const providerInfo = detectProvider(apiKey);
     const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
+    const positionedRagOnly = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
+    const ragOnlyQuery = positionedRagOnly.query;
     const siteChunks = parseChunks(client.siteContext || "");
     const now = new Date();
     const clientDocs = await db.prisma.clientDocument.findMany({
@@ -1167,7 +1213,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
     if (client.useVectorRag && embedApiKey) {
       try {
-        const embedding = await generateEmbedding(message, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider);
+        const embedding = await generateEmbedding(ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider);
         const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
@@ -1178,10 +1224,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (topChunks.length === 0) {
       const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
       const allChunks = [...siteChunks, ...docChunks];
-      topChunks = findBestChunks(message, allChunks, client.topNChunks ?? 7, ragThreshold);
+      topChunks = findBestChunks(ragOnlyQuery, allChunks, client.topNChunks ?? 7, ragThreshold);
     }
     if (topChunks.length > 0) {
-      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
+      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang, positionedRagOnly.theme);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, 0, geoPromise, trace);
@@ -1365,8 +1411,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     });
     let topChunks: ChunkMeta[] = [];
 
-    /* Reformulation de la requête pour meilleur matching */
-    const searchQuery = await reformulateQuery(message, apiKey, providerInfo.id, model);
+    /* Positionnement + reformulation de la requête pour meilleur matching */
+    const positioned = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
+    const searchQuery = positioned.query;
     if (searchQuery !== message) {
       console.log(`[Query Reformulation] "${message.slice(0, 60)}" → "${searchQuery.slice(0, 60)}" (${client.name})`);
     }
@@ -1411,7 +1458,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     addStep("rag_search", { chunks: topChunks.length, vector: vectorResults.length, keyword: keywordResults.length, useVector: client.useVectorRag && !!embedApiKey });
 
     if (topChunks.length > 0) {
-      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang);
+      const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang, positioned.theme);
       try {
         const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempRAG ?? 0.10, history || []);
         saveConversation(client, history || [], message, text, "rag", providerInfo.label, score, geoPromise, trace);
