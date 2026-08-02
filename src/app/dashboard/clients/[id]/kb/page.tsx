@@ -206,6 +206,8 @@ export default function ClientKBPage() {
     if (res.ok) {
       const data = await res.json();
       setDocuments((prev) => [...prev, data]);
+      if (data.vectorized) alert(`✓ ${data.originalName} importé et vectorisé (${data.chunksCount} chunk(s)).`);
+      else alert(`✓ ${data.originalName} importé. Activez le RAG vectoriel pour l'indexer.`);
     } else {
       const err = await res.json();
       alert(err.error || "Erreur d'upload");

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 import { syncDocumentChunks } from "@/lib/vector-store";
+import { chunkDocument } from "@/lib/rag-utils";
 import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 import { isPdfMime, isPdfName, extractPdfText } from "@/lib/pdf-extractor";
 
@@ -134,11 +135,16 @@ export async function POST(req: NextRequest) {
   });
 
   const client = await db.prisma.client.findUnique({ where: { id: clientId } });
+  let chunksCount = 0;
   if (client?.useVectorRag) {
     const activeKey = await getActiveEmbeddingKey(clientId);
     const apiKey = activeKey?.key || client.hfApiKey;
     const provider = activeKey?.provider || client.embeddingProvider;
     if (apiKey) {
+      chunksCount = chunkDocument(
+        { id: docId, content, originalName: file.name, source_url: doc.source_url, version: 1 },
+        client.chunkSize || 500,
+      ).length;
       syncDocumentChunks(doc.id, clientId, content, file.name, doc.source_url, valid_until || null, client.chunkSize || 500, apiKey, provider, activeKey?.id).catch((err) => console.error("[Vector Sync]", err));
     }
   }
@@ -155,5 +161,7 @@ export async function POST(req: NextRequest) {
     source_url: doc.source_url,
     valid_from: doc.valid_from,
     valid_until: doc.valid_until,
+    chunksCount,
+    vectorized: chunksCount > 0,
   }, { status: 201 });
 }
