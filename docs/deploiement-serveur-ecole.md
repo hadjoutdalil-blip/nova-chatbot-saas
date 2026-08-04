@@ -138,6 +138,27 @@ npx prisma migrate deploy
 
 > Utiliser `migrate deploy` (pas `db push`) pour un suivi d'historique en production.
 
+### 4.4.bis Synchronisation du schéma (OBLIGATOIRE)
+
+Le dossier `prisma/migrations` ne couvre que les tables historiques. Les tables
+ajoutées ensuite dans `schema.prisma` (ClientLocalDoc, ClientDocument, ApiKey,
+ActivityReport, QualityAlert, KnowledgeGap, PendingKBEntry, PublicProposal,
+AIUsageLog, MessageFeedback, LocalImportFile) ainsi que certaines colonnes
+(Client.siteUrl/useVectorRag/hfApiKey, WidgetConfig.greetingMsg/button*/widget*,
+Conversation.title/ipAddress/country/city/updatedAt) ne sont PAS gérées par
+`migrate deploy`. Elles sont appliquées en dev via `prisma db push`.
+
+Sans elles, la VM lève des erreurs `P2021` : `The table "public.X" does not exist`.
+
+Exécuter le script idempotent fourni dans le repo :
+
+```bash
+PGPASSWORD='motdepassefort' psql -U nova_user -h localhost -d nova_chatbot -f scripts/sync-schema.sql
+```
+
+> Ce script est sûr à relancer (tout est en `IF NOT EXISTS`). Il doit être
+> ré-exécuté après chaque `git pull` qui ajoute de nouveaux modèles/colonnes.
+
 ### 4.5 Données initiales (seed)
 
 ```bash
