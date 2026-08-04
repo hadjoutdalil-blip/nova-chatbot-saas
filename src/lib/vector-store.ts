@@ -290,6 +290,7 @@ export async function searchChunks(
   topN: number,
   provider = "nomic",
   filterMetadata?: Record<string, any>,
+  query?: string,
 ): Promise<{ chunk: ChunkMeta; score: number }[]> {
   await ensureTable();
   const queryVec = padToDim(questionEmbedding, TABLE_DIM);
@@ -314,10 +315,10 @@ export async function searchChunks(
      ${whereClause}
      ORDER BY embedding <=> $1${VEC_CAST}
      LIMIT $${params.length + 1}`,
-    [...params, topN]
+    [...params, query ? Math.max(topN * 4, 24) : topN]
   );
 
-  return rows.map((row: any) => ({
+  const mapped = rows.map((row: any) => ({
     chunk: {
       id: row.chunkId || row.id,
       source: row.source || "",
@@ -332,4 +333,18 @@ export async function searchChunks(
     },
     score: parseFloat(row.score) || 0,
   }));
+
+  /* Re-ranking hybride : cosine + correspondance mots-clés + similarité textuelle */
+  if (query && mapped.length > 0) {
+    const { keywordMatch } = await import("@/lib/chunk-utils");
+    const { calcSimilarity } = await import("@/lib/rag-utils");
+    mapped.sort((a, b) => {
+      const sa = a.score * 0.55 + keywordMatch(query, a.chunk.keywords || []) * 0.25 + calcSimilarity(query, a.chunk.content) * 0.20;
+      const sb = b.score * 0.55 + keywordMatch(query, b.chunk.keywords || []) * 0.25 + calcSimilarity(query, b.chunk.content) * 0.20;
+      return sb - sa;
+    });
+    return mapped.slice(0, topN);
+  }
+
+  return mapped;
 }

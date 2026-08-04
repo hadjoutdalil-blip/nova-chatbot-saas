@@ -3,7 +3,7 @@ import { findClientBySlug } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { extractIP, lookupGeo } from "@/lib/geo";
-import { norm, calcSimilarity, ChunkMeta, chunkDocument, parseChunks, findBestChunks } from "@/lib/rag-utils";
+import { norm, calcSimilarity, ChunkMeta, chunkDocument, parseChunks, findBestChunks, expandSearchQuery } from "@/lib/rag-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
 import { generateEmbedding } from "@/lib/embeddings";
 import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
@@ -25,6 +25,57 @@ function providerLabel(id: string): string {
   return PROVIDERS[id]?.label || id;
 }
 
+/* Mots-clés trop génériques : un seul match ne doit PAS déclencher un QA/NIVEAU 1b
+   (ex: "module", "thèmes", "quels" → faux positifs qui court-circuitent le RAG) */
+const GENERIC_KEYWORDS = new Set([
+  "module", "modules", "thème", "thèmes", "theme", "themes",
+  "question", "questions", "cours", "formation", "formations",
+  "programme", "programmes", "semestre", "semestres", "spécialité", "spécialités",
+  "specialite", "specialites", "ia", "nlp", "master", "masters",
+  "école", "ecole", "contenu", "sujet", "sujets", "introduction",
+  "le", "la", "les", "de", "du", "des", "un", "une", "et", "ou", "est",
+  "ce", "que", "qui", "dans", "en", "pour", "pas", "ne", "sur", "je",
+  "tu", "il", "elle", "nous", "vous", "ils", "elles", "se", "son", "sa",
+  "ses", "avec", "plus", "cette", "tout", "mais", "comme", "aussi",
+  "peut", "faire", "dit", "a", "ai", "ont", "etre", "avoir", "mon",
+  "ma", "mes", "leur", "leurs", "y", "ca", "comment", "pourquoi",
+  "quand", "quel", "quelle", "quels", "quelles", "combien", "ou",
+  "aux", "au", "par", "tout", "toute", "tous", "toutes", "moi", "toi",
+  "lui", "eux", "elles", "en", "dans", "sur", "sous", "entre", "vers",
+  "chez", "depuis", "jusqu", "via", "selon", "chaque", "son", "ses",
+  "sont", "sera", "été", "être", "cette", "cet", "ces", "celui", "celle",
+  "ceux", "celles", "autre", "autres", "même", "même", "peu", "bien",
+  "très", "fort", "non", "oui", "merci", "bonjour", "salut", "bonsoir",
+]);
+
+function isGenericKeyword(kw: string): boolean {
+  const k = kw.toLowerCase().trim();
+  if (!k) return true;
+  if (k.includes(" ")) return false; /* phrase multi-mots → distinctive */
+  if (k.length < 4) return true;
+  return GENERIC_KEYWORDS.has(k);
+}
+
+function isAiRefusal(text: string): boolean {
+  let t = text.trim().toLowerCase();
+  if (!t) return true;
+  t = t
+    .split("\n")
+    .filter((line) => !/^\[source\s*:/.test(line.trim()))
+    .join("\n")
+    .trim();
+  if (!t || t === "no_match") return true;
+  if (t.startsWith("no_match")) return true;
+  if (/diff[ée]rente? de la r[ée]ponse officielle/.test(t)) return true;
+  if (/ne (correspond|concorde) pas (à|avec) (la|ta) question/.test(t)) return true;
+  if (/ne r[ée]pond pas (à|a) (la|ta|votre) question/.test(t)) return true;
+  if (/n'est pas (en|une) r[ée]ponse/.test(t)) return true;
+  if (/je (ne )?(peux|puis|pourrais) pas r[ée]pondre/.test(t)) return true;
+  if (/pas de r[ée]ponse (à|disponible)/.test(t)) return true;
+  if (/hors du p[ée]rim[ée]tre|hors de mon domaine/.test(t)) return true;
+  if (/question.*ne (correspond|concerne) pas/.test(t)) return true;
+  return false;
+}
 
 
 function findBestMatch(
@@ -51,8 +102,11 @@ function findBestMatch(
         const kwRegex = new RegExp("\\b" + nkw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
         const qRegex = new RegExp("\\b" + nq.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
         if (kwRegex.test(nq) || qRegex.test(nkw)) {
-          const sk = 0.6;
-          if (sk > bestScore || (sk === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sk; best = e; isKeyword = true; }
+          const generic = isGenericKeyword(kw);
+          if (!generic) {
+            const sk = 0.6;
+            if (sk > bestScore || (sk === bestScore && e.priority > (best?.priority ?? 0))) { bestScore = sk; best = e; isKeyword = true; }
+          }
         }
       }
     }
@@ -849,7 +903,7 @@ async function handleStreamingRequest(
         }
 
         /* ── Helper: stream a buffered AI response to client ── */
-        async function streamAIResponse(system: string, userMsg: string, temperature: number, source: string, maxTokens?: number): Promise<string | null> {
+        async function streamAIResponse(system: string, userMsg: string, temperature: number, source: string, maxTokens?: number, strictNoMatch = false): Promise<string | null> {
           const keyEntry = await resolveApiKey(client);
           if (!keyEntry?.key) return null;
           const apiKey = keyEntry.key;
@@ -860,7 +914,7 @@ async function handleStreamingRequest(
           try {
             const aiStream = await callAIStream(apiKey, providerInfo.id, model, system, userMsg, temperature, history || [], maxTokens);
             const text = await consumeAIStream(aiStream);
-            if (!text || text.trim().toUpperCase() === "NO_MATCH") return null;
+            if (strictNoMatch ? isAiRefusal(text) : (!text || text.trim().toUpperCase() === "NO_MATCH")) return null;
             const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, text);
             send("metadata", { messageId, source, provider: provObj.label, score, docLinks });
             send("token", { content: enrichedText });
@@ -898,14 +952,14 @@ async function handleStreamingRequest(
           const providerInfo = detectProvider(apiKey);
           const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
           const positionedRagOnly = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
-          const ragOnlyQuery = positionedRagOnly.query;
+          const ragOnlyQuery = expandSearchQuery(positionedRagOnly.query);
           const siteChunks = parseChunks(client.siteContext || "");
           const clientDocs = await getAllClientDocs(client.id);
           let topChunks: ChunkMeta[] = [];
           const embedKeyEntry = client.useVectorRag ? await getActiveEmbeddingKey(client.id) : null;
           const embedApiKey = embedKeyEntry?.key || client.hfApiKey;
           if (client.useVectorRag && embedApiKey) {
-            try { const embedding = await generateEmbedding(ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
+            try { const embedding = await generateEmbedding(ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider, undefined, ragOnlyQuery); topChunks = results.map((r) => r.chunk); console.log("[Nova Chat] rag-only vector search:", topChunks.length, "chunks"); } catch (err) { console.error("[Nova Chat] rag-only vector search error:", err); }
             if (embedKeyEntry?.id) trackEmbeddingUsage(embedKeyEntry.id).catch(() => {});
           }
           if (topChunks.length === 0) {
@@ -948,7 +1002,7 @@ async function handleStreamingRequest(
             return;
           }
           const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
-          const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
+          const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa", undefined, true);
           if (qaResult) { finish(); return; }
           /* AI returned NO_MATCH or failed → conserver la réponse brute et tenter RAG */
           kbFallback = match.answer;
@@ -957,7 +1011,7 @@ async function handleStreamingRequest(
         /* NIVEAU 1b : MATCH MOT-CLÉ SOUS SEUIL */
         if (aiMode && isKeyword && match?.answer && score >= 60 && score < kbThreshold) {
           const { system, user } = buildQAPrompt(client, match, score, message, isVisitor, pageUrl, pageTitle, lang);
-          const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa");
+          const qaResult = await streamAIResponse(system, user, client.tempQA ?? 0.05, "qa", undefined, true);
           if (qaResult) { finish(); return; }
           kbFallback = match.answer;
         }
@@ -987,7 +1041,7 @@ async function handleStreamingRequest(
           const ragProviderInfo = detectProvider(ragKeyEntry?.key || "");
           const ragModel = ragKeyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
           const positioned = ragKeyEntry?.key ? await positionAndReformulate(message, KB, ragKeyEntry.key, ragProviderInfo.id, ragModel) : { theme: "", query: message };
-          const searchQuery = positioned.query;
+          const searchQuery = expandSearchQuery(positioned.query);
           if (searchQuery !== message) {
             console.log(`[Query Reformulation] "${message.slice(0, 60)}" → "${searchQuery.slice(0, 60)}" (${client.name})`);
           }
@@ -999,7 +1053,7 @@ async function handleStreamingRequest(
           /* Recherche vectorielle (si activée) */
           const vectorResults: ChunkMeta[] = [];
           if (client.useVectorRag && apiKey) {
-            try { const embedding = await generateEmbedding(searchQuery, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider); vectorResults.push(...results.map((r) => r.chunk)); console.log("[Nova Chat] vector search results:", vectorResults.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
+            try { const embedding = await generateEmbedding(searchQuery, apiKey, activeKey?.provider || client.embeddingProvider); const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider, undefined, searchQuery); vectorResults.push(...results.map((r) => r.chunk)); console.log("[Nova Chat] vector search results:", vectorResults.length, "chunks for client", client.id); } catch (err) { console.error("[Nova Chat] vector search error:", err); }
             if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
           }
 
@@ -1234,7 +1288,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const providerInfo = detectProvider(apiKey);
     const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
     const positionedRagOnly = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
-    const ragOnlyQuery = positionedRagOnly.query;
+    const ragOnlyQuery = expandSearchQuery(positionedRagOnly.query);
     const siteChunks = parseChunks(client.siteContext || "");
     const clientDocs = await getAllClientDocs(client.id);
     let topChunks: ChunkMeta[] = [];
@@ -1243,7 +1297,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (client.useVectorRag && embedApiKey) {
       try {
         const embedding = await generateEmbedding(ragOnlyQuery, embedApiKey, embedKeyEntry?.provider || client.embeddingProvider);
-        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider, undefined, ragOnlyQuery);
         topChunks = results.map((r) => r.chunk);
       } catch (err) {
         console.error("[Vector RAG] error, falling back to keyword:", err);
@@ -1341,7 +1395,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const providerInfo = detectProvider(apiKey);
       const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
-      if (text.trim().toUpperCase() === "NO_MATCH") {
+      if (isAiRefusal(text)) {
         console.warn(`[Nova Chat] KB mismatch N1: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
         qaResponse = match.answer;
         qaProvider = "";
@@ -1369,7 +1423,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const providerInfo = detectProvider(apiKey);
       const model = keyEntry?.model || client.aiModel || "openai/gpt-oss-20b";
       const { text, usage } = await callAI(apiKey, providerInfo.id, model, system, user, client.tempQA ?? 0.05, history || []);
-      if (text.trim().toUpperCase() === "NO_MATCH") {
+      if (isAiRefusal(text)) {
         console.warn(`[Nova Chat] KB mismatch N1b: score=${score} tag=${match?.tag} msg="${message.slice(0, 80)}" (${client.name})`);
         qaResponse = match.answer;
         qaProvider = "";
@@ -1432,7 +1486,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
     /* Positionnement + reformulation de la requête pour meilleur matching */
     const positioned = await positionAndReformulate(message, KB, apiKey, providerInfo.id, model);
-    const searchQuery = positioned.query;
+    const searchQuery = expandSearchQuery(positioned.query);
     if (searchQuery !== message) {
       console.log(`[Query Reformulation] "${message.slice(0, 60)}" → "${searchQuery.slice(0, 60)}" (${client.name})`);
     }
@@ -1445,7 +1499,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (client.useVectorRag && embedApiKey) {
       try {
         const embedding = await generateEmbedding(searchQuery, embedApiKey, activeKey?.provider || client.embeddingProvider);
-        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider);
+        const results = await pgSearchChunks(client.id, embedding, client.topNChunks ?? 7, client.embeddingProvider, undefined, searchQuery);
         vectorResults.push(...results.map((r) => r.chunk));
       } catch (err) {
         console.error("[Vector RAG] error:", err);
