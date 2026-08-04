@@ -32,9 +32,17 @@ export function keywordMatch(question: string, keywords: string[]): number {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  /* Singularisation française légère : "chapitres"→"chapitre", "donnees"→"donnee", "universites"→"universite"
+     pour rapprocher les mots-clés (indexés au singulier) des pluriels présents dans la question. */
+  const singularize = (w: string) => {
+    if (w.length > 5 && w.endsWith("es") && !w.endsWith("sses") && !w.endsWith("ges") && !w.endsWith("ces") && !w.endsWith("des") && !w.endsWith("tes") && !w.endsWith("res") && !w.endsWith("ses")) return w.slice(0, -2) + "e";
+    if (w.length > 4 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1);
+    return w;
+  };
+  const qWords = new Set(nq.split(" ").map(singularize));
   const hits = keywords.filter(kw => {
-    const nkw = kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return new RegExp("\\b" + nkw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(nq);
+    const nkw = singularize(kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+    return qWords.has(nkw);
   }).length;
   return hits / Math.max(keywords.length, 1);
 }

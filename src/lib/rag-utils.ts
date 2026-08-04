@@ -14,24 +14,27 @@ export interface ChunkMeta {
   metadata?: Record<string, any>;
 }
 
+const acroPattern = (term: string): RegExp =>
+  new RegExp(`(?<![a-zA-Z0-9])${term}(?![a-zA-Z0-9&-])`, "i");
+
 const QUERY_EXPANSIONS: Array<{ pattern: RegExp; add: string }> = [
-  { pattern: /\bnlp\b/i, add: " traitement automatique du langage naturel taln" },
-  { pattern: /\btaln\b/i, add: " traitement automatique du langage naturel nlp" },
-  { pattern: /\bmachine learning\b/i, add: " apprentissage automatique" },
-  { pattern: /\bml\b/i, add: " machine learning apprentissage automatique" },
-  { pattern: /\bdeep learning\b/i, add: " apprentissage profond" },
-  { pattern: /\bdl\b/i, add: " deep learning apprentissage profond" },
-  { pattern: /\bllm\b/i, add: " grand modèle de langage large language model" },
-  { pattern: /\brag\b/i, add: " génération augmentée par récupération retrieval augmented generation" },
-  { pattern: /\brnn\b/i, add: " réseau de neurones récurrent réseaux récurrents" },
-  { pattern: /\bcnn\b/i, add: " réseau de neurones convolutif réseaux convolutifs" },
-  { pattern: /\btransformer\b/i, add: " transformers attention mécanisme d'attention" },
-  { pattern: /\bcomputer vision\b/i, add: " vision par ordinateur" },
-  { pattern: /\bdata science\b/i, add: " science des données" },
-  { pattern: /\bcybersecurity\b/i, add: " cybersécurité sécurité informatique" },
-  { pattern: /\bia\b/i, add: " intelligence artificielle artificial intelligence" },
-  { pattern: /\bai\b/i, add: " intelligence artificielle artificial intelligence" },
-  { pattern: /\bgénération augmentée par récupération\b/i, add: " retrieval augmented generation rag" },
+  { pattern: acroPattern("nlp"), add: " traitement automatique du langage naturel taln" },
+  { pattern: acroPattern("taln"), add: " traitement automatique du langage naturel nlp" },
+  { pattern: acroPattern("machine learning"), add: " apprentissage automatique" },
+  { pattern: acroPattern("ml"), add: " machine learning apprentissage automatique" },
+  { pattern: acroPattern("deep learning"), add: " apprentissage profond" },
+  { pattern: acroPattern("dl"), add: " deep learning apprentissage profond" },
+  { pattern: acroPattern("llm"), add: " grand modèle de langage large language model" },
+  { pattern: acroPattern("rag"), add: " génération augmentée par récupération retrieval augmented generation" },
+  { pattern: acroPattern("rnn"), add: " réseau de neurones récurrent réseaux récurrents" },
+  { pattern: acroPattern("cnn"), add: " réseau de neurones convolutif réseaux convolutifs" },
+  { pattern: acroPattern("transformer"), add: " transformers attention mécanisme d'attention" },
+  { pattern: acroPattern("computer vision"), add: " vision par ordinateur" },
+  { pattern: acroPattern("data science"), add: " science des données" },
+  { pattern: acroPattern("cybersecurity"), add: " cybersécurité sécurité informatique" },
+  { pattern: acroPattern("ia"), add: " intelligence artificielle artificial intelligence" },
+  { pattern: acroPattern("ai"), add: " intelligence artificielle artificial intelligence" },
+  { pattern: acroPattern("génération augmentée par récupération"), add: " retrieval augmented generation rag" },
 ];
 
 export function expandSearchQuery(query: string): string {

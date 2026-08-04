@@ -96,3 +96,14 @@ CREATE INDEX IF NOT EXISTS "PublicProposal_createdAt_idx" ON "PublicProposal"("c
   node node_modules/tsx/dist/cli.mjs scripts/reindex-pdfs.ts --kb
   ```
 - **Recherche filtrée** : `searchChunks(..., filterMetadata)` filtre par `metadata->>'docType'`, `metadata->>'page'`, etc.
+
+## 2026-08-04 — Fix expansion de sigles dans `QUERY_EXPANSIONS` (`src/lib/rag-utils.ts`)
+- **CAUSE RACINE** : `\bai\b` matche `"AI"` à l'intérieur d'un sigle composé comme `AI&DS` (le `&` est une frontière de mot `\b`) → `expandSearchQuery` ajoutait « intelligence artificielle artificial intelligence » → les chunks IA génériques envahissaient le top 10 et évinçaient les chunks de chapitres du module demandé (ex : question « chapitres du module NLP dans le programme AI&DS » → réponse limitée aux chapitres 4-5).
+- **FIX** : tous les patterns de `QUERY_EXPANSIONS` passent par `acroPattern(term)` = `(?<![a-zA-Z0-9])term(?![a-zA-Z0-9&-])` (insensible casse) au lieu de `\bterm\b` — un sigle n'est plus étendu quand il est collé à `&` ou `-` (`AI&DS`), mais l'est toujours s'il est isolé (`programme AI`, `module IA`).
+- **Vérifié** : question « Chapitres du module NLP dans le programme AI&DS » → 5 chunks TALN dans le top 10 hybride (objectifs, semestre, chapitres 1-3, 4-5, 7). Le Chapitre 6 (RAG, `chunk_410`) reste mal classé (cosine faible ~0.676, rank 190/500) — problème d'embedding distinct, non corrigé ici.
+
+## 2026-08-04 — Récupération des chapitres manquants via gap-filling + stemming pluriel
+- **CAUSE** : le Chapitre 6 (RAG, `chunk_410`) a un embedding faible (cosine ~0.676, rank 190/500) car son contenu (« Génération augmentée par récupération », « embeddings », « bases vectorielles ») ne partage aucun terme avec la requête « chapitres du module NLP ». Il n'entrait jamais dans les 40 candidats du re-ranking hybride.
+- **FIX 1 — Gap-filling structurel** (`src/lib/vector-store.ts`) : quand la requête contient `chapitre` et que le topN hybride contient ≥2 chunks consécutifs d'un même document (même `docId`, indices `chunk_N` à ≤4 d'écart), on interroge les chunks `Chapitre N` manquants à l'intérieur du run (fenêtre ±2) et on les insère avec un bonus `+0.03`. Détection limitée au topN hybride (pas aux 40 candidats) pour ne pas combler les runs d'autres modules.
+- **FIX 2 — Stemming pluriel dans `keywordMatch`** (`src/lib/chunk-utils.ts`) : singularisation légère (« chapitres »→« chapitre », « données »→« donnee ») pour que les mots-clés indexés au singulier matchent les pluriels de la question.
+- **Vérifié** : question « Quels sont les chapitres du module NLP dans le programme AI&DS ? » → 6 chunks TALN dans le top 10 couvrant les chapitres 1 à 7 (407 objectifs, 406 semestre, 409 chap 4-5, 408 chap 1-3, 411 chap 7, 410 chap 6). Question « Comment fonctionne le RAG dans le module NLP ? » → `chunk_410` au rank 2. Pas de régression sur « Qu'est-ce que le deep learning ? ».

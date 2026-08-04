@@ -318,7 +318,7 @@ export async function searchChunks(
     [...params, query ? Math.max(topN * 4, 24) : topN]
   );
 
-  const mapped = rows.map((row: any) => ({
+  const mapped: { score: number; chunk: ChunkMeta; _hyb?: number }[] = rows.map((row: any) => ({
     chunk: {
       id: row.chunkId || row.id,
       source: row.source || "",
@@ -338,13 +338,111 @@ export async function searchChunks(
   if (query && mapped.length > 0) {
     const { keywordMatch } = await import("@/lib/chunk-utils");
     const { calcSimilarity } = await import("@/lib/rag-utils");
-    mapped.sort((a, b) => {
-      const sa = a.score * 0.55 + keywordMatch(query, a.chunk.keywords || []) * 0.25 + calcSimilarity(query, a.chunk.content) * 0.20;
-      const sb = b.score * 0.55 + keywordMatch(query, b.chunk.keywords || []) * 0.25 + calcSimilarity(query, b.chunk.content) * 0.20;
-      return sb - sa;
-    });
-    return mapped.slice(0, topN);
+    const hybridScore = (m: { score: number; chunk: ChunkMeta }) =>
+      m.score * 0.55 + keywordMatch(query, m.chunk.keywords || []) * 0.25 + calcSimilarity(query, m.chunk.content) * 0.20;
+
+    const ranked: { score: number; chunk: ChunkMeta; _hyb?: number }[] = mapped.map((m) => ({ ...m, _hyb: hybridScore(m) }));
+    ranked.sort((a, b) => b._hyb! - a._hyb!);
+
+    /* Gap-filling structurel : quand la question liste des chapitres et que le topN contient
+       plusieurs chunks consécutifs d'un même document, on comble les trous (ex : Chapitre 6
+       entre les Chapitres 4-5 et 7) qui ont un faible cosine et ne seraient jamais récupérés. */
+    if (/chapitre/i.test(query)) {
+      try {
+        await fillChapterGaps(ranked, clientId, query, topN, queryVec, hybridScore);
+      } catch (err) {
+        console.error("[Vector RAG] gap-filling échoué:", err);
+      }
+    }
+
+    ranked.sort((a, b) => b._hyb! - a._hyb!);
+    return ranked.map(({ _hyb, ...m }) => ({ ...m, score: _hyb! })).slice(0, topN);
   }
 
   return mapped;
+}
+
+/* Repère les runs de chunks consécutifs (même doc, indices proches) dans le top et ajoute
+   les chunks "Chapitre N" manquants à l'intérieur de ces runs, avec un léger bonus. */
+async function fillChapterGaps(
+  mapped: { score: number; chunk: ChunkMeta; _hyb?: number }[],
+  clientId: string,
+  query: string,
+  topN: number,
+  queryVec: number[],
+  hybridScore: (m: { score: number; chunk: ChunkMeta }) => number,
+) {
+  const chunkIdx = (id: string) => {
+    const m = id.match(/^chunk_(\d+)$/);
+    return m ? parseInt(m[1], 10) : NaN;
+  };
+
+  const byDoc = new Map<string, number[]>();
+  for (const m of mapped.slice(0, topN)) {
+    const docId = m.chunk.docId;
+    const idx = chunkIdx(m.chunk.id || "");
+    if (!docId || isNaN(idx)) continue;
+    if (!byDoc.has(docId)) byDoc.set(docId, []);
+    byDoc.get(docId)!.push(idx);
+  }
+
+  const runs: { docId: string; min: number; max: number }[] = [];
+  for (const [docId, items] of byDoc) {
+    const sorted = [...new Set(items)].sort((a, b) => a - b);
+    let runStart = sorted[0], runEnd = sorted[0];
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] - runEnd <= 4) runEnd = sorted[i];
+      else {
+        if (runEnd - runStart >= 2) runs.push({ docId, min: Math.max(0, runStart - 2), max: runEnd + 2 });
+        runStart = runEnd = sorted[i];
+      }
+    }
+    if (runEnd - runStart >= 2) runs.push({ docId, min: Math.max(0, runStart - 2), max: runEnd + 2 });
+  }
+  if (runs.length === 0) return;
+
+  const embeddingStr = `[${queryVec.join(",")}]`;
+  const present = new Set(mapped.map((m) => m.chunk.id));
+  const addMap = new Map<string, { score: number; chunk: ChunkMeta }>();
+  for (const run of runs) {
+    const { rows } = await pool.query(
+      `SELECT "chunkId", "docId", content, source, section, keywords, source_url, valid_until, metadata,
+              1 - (embedding <=> $1${VEC_CAST}) AS score
+       FROM document_chunks
+       WHERE "clientId" = $2 AND "docId" = $3
+         AND "chunkId" ~ '^chunk_([0-9]+)$'
+         AND content ~* '^\\*{0,2}chapitre\\s*\\d+'
+       ORDER BY "chunkId"`,
+      [embeddingStr, clientId, run.docId]
+    );
+    for (const row of rows) {
+      const idx = chunkIdx(row.chunkId);
+      if (idx < run.min || idx > run.max) continue;
+      const key = row.chunkId;
+      if (present.has(key) || addMap.has(key)) continue;
+      addMap.set(key, {
+        score: parseFloat(row.score),
+        chunk: {
+          id: row.chunkId,
+          source: row.source || "",
+          section: row.section || "",
+          keywords: (row.keywords || "").split(", ").filter(Boolean),
+          content: row.content || "",
+          score: parseFloat(row.score) || 0,
+          docId: row.docId || undefined,
+          source_url: row.source_url || "",
+          valid_until: row.valid_until || "",
+          metadata: row.metadata || undefined,
+        },
+      });
+    }
+  }
+  if (addMap.size === 0) return;
+
+  const CHAP_BONUS = 0.03;
+  for (const extra of addMap.values()) {
+    const full = extra as { score: number; chunk: ChunkMeta; _hyb?: number };
+    full._hyb = hybridScore(extra) + CHAP_BONUS;
+    mapped.push(full);
+  }
 }
