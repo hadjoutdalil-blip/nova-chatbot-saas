@@ -130,22 +130,35 @@ export function calcSimilarity(a: string, b: string): number {
 const PAGE_MARKER_RE = /^={2,}\s*PAGE\s*(\d+)\s*={2,}$/i;
 const HEADING_RE = /^(#{1,3})\s+(.*)$/;
 
+/* En-têtes structurels des offres de formation (ex : ESTIN IA&DS).
+   Un module commence par ces lignes → frontière de chunk (jamais deux modules mélangés). */
+const MODULE_HEADER_RE =
+  /^\*\*\s*(Semestre\s*:|Unité\s+d['’]enseignement\s*:|Matière\s*\d+\s*:)/i;
+
+/* Sous-sections internes d'un module : définissent la section courante sans créer de frontière */
+const SECTION_HEADER_RE =
+  /^(?:\*\*|\*)\s*(Chapitre\s*[0-9]{1,2}\s*:|Objectifs du cours\b|Méthode d'évaluation\s*:|Références bibliographiques\b|Connaissances préalables recommandées\b)/i;
+
 interface Block {
   text: string;
   section: string;
+  moduleStart?: boolean;
 }
 
-/* Découpe le texte en blocs sémantiques : pages (===== PAGE N =====), titres markdown, paragraphes */
+/* Découpe le texte en blocs sémantiques : pages (===== PAGE N =====), titres markdown,
+   en-têtes de modules (Semestre/Unité/Matière = frontière de chunk) et paragraphes. */
 function splitIntoBlocks(text: string): Block[] {
   const blocks: Block[] = [];
   const lines = text.split("\n");
   let buf: string[] = [];
   let section = "";
+  let isModuleBuf = false;
 
   const flush = () => {
     const t = buf.join("\n").trim();
-    if (t) blocks.push({ text: t, section });
+    if (t) blocks.push({ text: t, section, moduleStart: isModuleBuf });
     buf = [];
+    isModuleBuf = false;
   };
 
   for (const rawLine of lines) {
@@ -164,6 +177,22 @@ function splitIntoBlocks(text: string): Block[] {
     if (hm) {
       flush();
       section = hm[2].trim();
+      buf.push(line);
+      continue;
+    }
+    const moduleM = line.match(MODULE_HEADER_RE);
+    if (moduleM) {
+      /* Les lignes d'en-tête consécutives (Semestre → Unité → Matière) restent dans le MÊME bloc module */
+      if (!isModuleBuf && buf.length > 0) flush();
+      section = line.replace(/\*\*/g, "").trim().slice(0, 120);
+      isModuleBuf = true;
+      buf.push(line);
+      continue;
+    }
+    const sectionM = line.match(SECTION_HEADER_RE);
+    if (sectionM) {
+      flush();
+      section = line.replace(/[*\s]+/g, " ").trim().slice(0, 120);
       buf.push(line);
       continue;
     }
@@ -236,6 +265,10 @@ export function chunkDocument(doc: any, maxChars = 600): ChunkMeta[] {
   };
 
   for (const block of blocks) {
+    /* Frontière de module : un nouveau Semestre/Unité/Matière démarre un chunk frais */
+    if (block.moduleStart && buf.length > 0) {
+      flush();
+    }
     if (block.text.length > maxChars) {
       flush();
       const metadata: Record<string, any> = { docType: "document" };
