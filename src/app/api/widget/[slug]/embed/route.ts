@@ -70,6 +70,7 @@ var LANG={
     sourceRag:"Documentation technique",
     sourceHuman:"📋 Contact humain",
     sourceHumanSub:"Notre équipe reste à votre écoute",
+    sourceLink:"Voir la source",
     copy:"Copier",
     copied:"Copié !",
     feedbackLabel:"Votre avis :",
@@ -114,6 +115,7 @@ var LANG={
     sourceRag:"Technical documentation",
     sourceHuman:"📋 Human contact",
     sourceHumanSub:"Our team is here for you",
+    sourceLink:"View source",
     copy:"Copy",
     copied:"Copied!",
     feedbackLabel:"Your feedback:",
@@ -158,6 +160,7 @@ var LANG={
     sourceRag:"الوثائق الفنية",
     sourceHuman:"📋 اتصال بشري",
     sourceHumanSub:"فريقنا في خدمتك",
+    sourceLink:"عرض المصدر",
     copy:"نسخ",
     copied:"تم النسخ!",
     feedbackLabel:"تقييمك:",
@@ -374,6 +377,8 @@ C+=".nsc{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;line
 C+=".nsc.green{background:#d1fae5;color:#065f46}.nsc.orange{background:#fef3c7;color:#92400e}.nsc.red{background:#fee2e2;color:#991b1b}";
 C+=".nsrc{font-size:11px;color:#64748b;line-height:1.4;font-style:italic}";
 C+=".nsrc.ai{color:"+e.aiColor+";font-weight:600;font-style:normal}";
+C+=".ncit{display:inline-block;min-width:15px;text-align:center;font-size:10px;font-weight:700;line-height:1.5;color:"+e.aiColor+";background:"+e.aiColor+"14;border:1px solid "+e.aiColor+"33;border-radius:4px;padding:0 3px;margin:0 1px;cursor:pointer;vertical-align:super}";
+C+=".ncit:hover{background:"+e.aiColor+"2e}";
 /* copy button */
 C+=".ncopy{background:none;border:1px solid #e2e8f0;border-radius:6px;padding:2px 7px;font-size:10px;color:#94a3b8;cursor:pointer;transition:all .15s;margin-left:auto}";
 C+=".ncopy:hover{background:#f1f5f9;color:#475569;border-color:#cbd5e1}";
@@ -577,8 +582,59 @@ function renderMarkdown(t){
     }catch(_){return m}
   });
   s=s.replace(/\\n{2,}/g,"</p><p>").replace(/\\n/g,"<br>");
+  s=renderCitations(s);
   if(!/^<[hup]/.test(s)) s="<p>"+s+"</p>";
   return s;
+}
+function renderCitations(s){
+  var cs=metaCitations;
+  if(!cs||!cs.length) return s;
+  return s.replace(/\[(\d+)\]/g,function(m,n){
+    var idx=parseInt(n,10)-1;
+    var c=cs[idx];
+    if(!c) return m;
+    var tipId="ctip-"+n;
+    return '<sup class="ncit" data-cn="'+n+'" data-cid="'+idx+'" title="'+escAttr(c.title)+'">['+n+']</sup>';
+  });
+}
+var metaCitations=[];
+function bindCitationTooltips(){
+  var box=document.getElementById("nm");
+  if(!box) return;
+  box.addEventListener("mouseover",function(ev){
+    var el=ev.target;
+    if(!el||!el.classList||!el.classList.contains("ncit")) return;
+    var idx=parseInt(el.getAttribute("data-cid")||"-1",10);
+    var c=metaCitations[idx];
+    if(!c) return;
+    var r=el.getBoundingClientRect();
+    var tip=document.getElementById("ncit-tip");
+    if(!tip){
+      tip=document.createElement("div");
+      tip.id="ncit-tip";
+      tip.className="nova-widget";
+      tip.style.cssText="position:fixed;z-index:2147483647;max-width:300px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:10px 12px;font-size:12px;line-height:1.5;color:#0d1b2a;pointer-events:none;display:none";
+      document.body.appendChild(tip);
+    }
+    var html='<div style="font-weight:700;font-size:12px;color:'+e.aiColor+';margin-bottom:4px">'+escHtml(c.title)+'</div>';
+    html+='<div style="font-size:12px;color:#334155;white-space:pre-wrap">'+escHtml(c.excerpt)+'</div>';
+    if(c.url){
+      html+='<div style="margin-top:6px"><a href="'+escAttr(c.url)+'" target="_blank" rel="noopener" style="color:'+e.primaryColor+';font-weight:600;text-decoration:underline;pointer-events:auto">'+tr("sourceLink")+'</a></div>';
+    }
+    tip.innerHTML=html;
+    tip.style.display="block";
+    var tw=tip.offsetWidth,th=tip.offsetHeight;
+    var x=Math.min(r.left,window.innerWidth-tw-8);
+    var y=(r.bottom+th+8>window.innerHeight)?(r.top-th-8):(r.bottom+8);
+    tip.style.left=Math.max(8,x)+"px";
+    tip.style.top=Math.max(8,y)+"px";
+  });
+  box.addEventListener("mouseout",function(ev){
+    var el=ev.target;
+    if(!el||!el.classList||!el.classList.contains("ncit")) return;
+    var tip=document.getElementById("ncit-tip");
+    if(tip) tip.style.display="none";
+  });
 }
 function escHtml(s){
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -647,6 +703,7 @@ card.setAttribute("aria-label","Chatbot");
 card.setAttribute("aria-modal","true");
 card.innerHTML='<div class="nh"><div class="na" id="na-av" aria-hidden="true">'+avatarHtml+'</div><div><h3>'+escHtml(e.name)+'</h3><p id="na-status">'+escHtml(e.welcomeSub)+'</p></div><div class="nh-actions"><button id="na-ai" class="na-ai'+(aiMode?" on":"")+'" title="'+tr("aiTitle")+'">'+ICONS.brain+'</button><button id="na-rag" class="na-rag'+(ragMode?" on":"")+'" title="'+tr("ragTitle")+'">'+ICONS.file+'</button><button id="na-lang" class="nh-btn" title="'+tr("langTitle")+'" style="font-size:11px;font-weight:700">'+(langLabel[lang]||"FR")+'</button><button id="na-max" class="nh-btn" title="'+tr("maxTitle")+'">'+ICONS.maximize+'</button><button id="na-reset" class="nh-btn" title="'+tr("resetTitle")+'">'+ICONS.reset+'</button><button id="na-close" class="nh-btn" title="'+tr("closeTitle")+'">'+ICONS.close+'</button></div></div><div class="n-off" id="n-off" role="alert">'+tr("disconnected")+'</div><div class="n-powered" id="na-pw"><span id="na-sb" style="display:'+(aiMode?"flex":"none")+'"><span class="n-ind" id="na-ind" style="display:'+(aiMode?"inline-flex":"none")+'">'+ICONS.brain+' '+tr("iaActive")+'</span></span><span class="n-ind" id="na-rag-ind" style="display:'+(ragMode?"inline-flex":"none")+';background:#059669" title="'+tr("ragTitleTooltip")+'">'+ICONS.file+' RAG</span><span id="na-sk" style="color:#6b7280">'+tr("modeDefault")+'</span></div><div class="n-views" id="n-views"><div class="n-page active" id="n-page-home"><div class="nv-home" id="nv-home">'+welcomeHtml+'</div></div><div class="n-page" id="n-page-msg"><div class="nm" id="nm" role="log" aria-live="polite"></div><div class="ni"><div class="nac" id="nac" role="listbox" aria-label="Suggestions"></div><div class="ni-inner'+(aiMode?" ai-focus":"")+'" id="na-iw"><textarea id="ni" placeholder="'+tr("placeholder")+'" rows="1" maxlength="'+e.maxMessageLength+'" aria-label="Message" aria-autocomplete="list" aria-controls="nac"></textarea><button id="ns" class="'+(aiMode?"ai-mode":"")+'" aria-label="Envoyer">'+ICONS.send+'</button></div><div class="n-ctr" id="n-ctr"></div></div></div><div class="n-page" id="n-page-help"><div class="nv-help" id="nv-help"></div></div></div><div class="nnav" id="nnav"><button class="nnav-btn active" data-page="home" title="Accueil">'+ICONS.home+'<span>Accueil</span></button><button class="nnav-btn" data-page="msg" title="Messages">'+ICONS.messageCircle+'<span>Messages</span></button><button class="nnav-btn" data-page="help" title="Aide">'+ICONS.book+'<span>Aide</span></button><button class="nnav-btn" onclick="window.location.href=e.proposalsUrl</div>'+(e.showBrand?'<div class="nf"><a href="https://nova-chatbot.vercel.app" target="_blank" rel="noopener" style="color:#9ca3af;text-decoration:none">Propuls\u00e9 par Nova Chat Platform</a></div>':"");
 document.body.appendChild(card);
+bindCitationTooltips();
 
 /* Navigation entre vues */
 var currentPage="home";
@@ -888,7 +945,8 @@ function submitFeedback(msgId,rating,question,response,source,score,provider){
   var slug=e.chatUrl.split("/").pop();
   xhr.send(JSON.stringify({slug:slug,messageId:msgId,rating:rating,question:question,response:response,source:source,score:score,provider:provider}));
 }
-function addMsg(text,role,source,provider,clientName,score,source_url,valid_until,documents,messageId){
+function addMsg(text,role,source,provider,clientName,score,source_url,valid_until,documents,messageId,citations){
+  if(citations&&citations.length) metaCitations=citations;
   var box=document.getElementById("nm"),row=document.createElement("div");
   var time=formatTime();
   if(role==="user"){
@@ -1120,6 +1178,7 @@ function sendMessage(text){
   text=(text||"").trim();
   if(!text||isLoading) return;
   hasInteracted=true;
+  metaCitations=[];
   if(!navigator.onLine){
     addMsg(tr("offline"),"bot","fallback");
     return;
@@ -1143,7 +1202,8 @@ function sendMessage(text){
       return res.json().then(function(resp){
         setLoading(false);
         if(resp.source==="skip") return;
-        addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until,resp.documents,resp.messageId);
+        if(resp.citations) metaCitations=resp.citations;
+        addMsg(resp.response,"bot",resp.source,resp.provider,resp.clientName,resp.score,resp.source_url,resp.valid_until,resp.documents,resp.messageId,resp.citations);
         chatHistory.push({role:"assistant",content:resp.response});
         if(chatHistory.length>e.maxHistoryLength) chatHistory=chatHistory.slice(-e.maxHistoryLength);
         addSuggestions(resp.suggestions);
@@ -1184,7 +1244,7 @@ function sendMessage(text){
         if(line.indexOf("data: ")===0){
           var rawData=line.slice(6);
           if(evType==="metadata"){
-            try{var md=JSON.parse(rawData);metaSource=md.source||"";metaProvider=md.provider||"";metaScore=md.score||0;metaMessageId=md.messageId||"";metaSuggestions=md.suggestions||null}catch(_){}
+            try{var md=JSON.parse(rawData);metaSource=md.source||"";metaProvider=md.provider||"";metaScore=md.score||0;metaMessageId=md.messageId||"";metaSuggestions=md.suggestions||null;if(md.citations)metaCitations=md.citations}catch(_){}
             streamingEl=createStreamingBubble();
             displayedText="";pendingBuffer="";streamDone=false;
             if(!typewriterTimer) typewriterTimer=setInterval(typewriterTick,20);

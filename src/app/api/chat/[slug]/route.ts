@@ -306,6 +306,7 @@ RÈGLES ABSOLUES :
 - Si les extraits ne répondent que partiellement, réponds avec les informations disponibles
 - En cas de contradiction entre extraits, privilégie le plus récent ou le plus spécifique
 - Les extraits sont classés par pertinence : l'extrait #1 est le plus important
+- CITE TES SOURCES : après chaque phrase fondée sur l'extrait #N, ajoute immédiatement la référence [N] (exemple : « Le module a lieu au semestre S4. [3] »). Cite plusieurs extraits si besoin : [2][5]
 ${noMatchRule}
 - N'invente JAMAIS d'information
 - ${langInstruction(lang)}, professionnel et concis
@@ -323,6 +324,17 @@ QUESTION DU CLIENT :
 ${question}`;
 
   return { system, user };
+}
+
+/* Construit la liste des citations [n] → { titre, extrait, url } pour le widget.
+   L'index n correspond à la position de l'extrait dans le prompt ([Extrait #N]). */
+function buildCitations(chunks: ChunkMeta[], isVisitor: boolean): { n: number; title: string; excerpt: string; url: string }[] {
+  return chunks.map((c, i) => ({
+    n: i + 1,
+    title: c.section ? `${c.source} — ${c.section}` : c.source,
+    excerpt: c.content.length > 200 ? c.content.slice(0, 200) + "…" : c.content,
+    url: !isVisitor || c.source_url?.toLowerCase().endsWith(".pdf") ? (c.source_url || "") : "",
+  }));
 }
 
 function findContactEntry(KB: any[]): string {
@@ -914,7 +926,7 @@ async function handleStreamingRequest(
         }
 
         /* ── Helper: stream a buffered AI response to client ── */
-        async function streamAIResponse(system: string, userMsg: string, temperature: number, source: string, maxTokens?: number, strictNoMatch = false): Promise<string | null> {
+        async function streamAIResponse(system: string, userMsg: string, temperature: number, source: string, maxTokens?: number, strictNoMatch = false, metaExtra?: any): Promise<string | null> {
           const keyEntry = await resolveApiKey(client);
           if (!keyEntry?.key) return null;
           const apiKey = keyEntry.key;
@@ -927,7 +939,7 @@ async function handleStreamingRequest(
             const text = await consumeAIStream(aiStream);
             if (strictNoMatch ? isAiRefusal(text) : (!text || text.trim().toUpperCase() === "NO_MATCH")) return null;
             const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, text);
-            send("metadata", { messageId, source, provider: provObj.label, score, docLinks });
+            send("metadata", { messageId, source, provider: provObj.label, score, docLinks, ...(metaExtra || {}) });
             send("token", { content: enrichedText });
             addStep("ai_response", { source, provider: provObj.label, model, chars: enrichedText.length });
             saveConversation(client, history || [], message, enrichedText, source, provObj.label, score, geoPromise, trace);
@@ -980,7 +992,7 @@ async function handleStreamingRequest(
           addStep("rag_only_search", { chunks: topChunks.length, useVector: client.useVectorRag && !!embedApiKey, theme: positionedRagOnly.theme || null });
           if (topChunks.length > 0) {
             const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang, positionedRagOnly.theme);
-            const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
+            const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag", undefined, false, { citations: buildCitations(topChunks, isVisitor) });
             if (result) { finish(); return; }
           }
           if (match && score >= kbThreshold) { sendDirect(match.answer, "kb"); finish(); return; }
@@ -1089,7 +1101,7 @@ async function handleStreamingRequest(
           addStep("rag_search", { chunks: topChunks.length, vector: vectorResults.length, keyword: keywordResults.length, useVector: client.useVectorRag && !!apiKey });
           if (topChunks.length > 0) {
             const { system, user } = buildRAGPrompt(client, topChunks, message, isVisitor, pageUrl, pageTitle, lang, positioned.theme);
-            const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag");
+            const result = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "rag", undefined, false, { citations: buildCitations(topChunks, isVisitor) });
             if (result) { finish(); return; }
           }
           /* RAG n'a rien donné → si une réponse KB brute était disponible, la renvoyer */
@@ -1334,7 +1346,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           source_url: c.source_url,
           valid_until: c.valid_until,
         })).filter((v, i, a) => a.findIndex(d => d.docId === v.docId) === i);
-        return NextResponse.json(filterResponse({ messageId, response: text, source: "rag", provider: providerInfo.label, score: 0, chunks: topChunks.map(c => c.source), documents: docMeta }, isVisitor), { headers: corsHeaders });
+        return NextResponse.json(filterResponse({ messageId, response: text, source: "rag", provider: providerInfo.label, score: 0, chunks: topChunks.map(c => c.source), documents: docMeta, citations: buildCitations(topChunks, isVisitor) }, isVisitor), { headers: corsHeaders });
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
       }
@@ -1485,6 +1497,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   let ragProvider = "";
   let ragChunks: any[] = [];
   let ragDocMeta: any[] = [];
+  let ragCitations: any[] = [];
 
   /* ── NIVEAU 2 : RAG — recherche documentaire (sauf si réponse KB exacte) ── */
   const hasSiteContext = !!(client.siteContext?.trim());
@@ -1559,6 +1572,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         ragProvider = providerInfo.label;
         ragChunks = topChunks.map(c => c.source);
         ragDocMeta = docMeta;
+        ragCitations = buildCitations(topChunks, isVisitor);
       } catch (err: any) {
         console.error("[Nova Chat] RAG error:", err);
       }
@@ -1570,7 +1584,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const heuristicWinner = compareWithHeuristic(qaResponse, ragResponse);
     if (heuristicWinner === "rag") {
       const { response: enrichedRag, docLinks } = await enrichWithDocLinks(client.id, message, ragResponse);
-      return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, docLinks }, isVisitor), { headers: corsHeaders });
+      return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, citations: ragCitations, docLinks }, isVisitor), { headers: corsHeaders });
     }
     if (heuristicWinner === "kb") {
       const { response: enrichedQa, docLinks } = await enrichWithDocLinks(client.id, message, qaResponse);
@@ -1580,7 +1594,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const aiWinner = await compareWithAI(message, qaResponse, ragResponse, apiKey, providerInfo.id, model);
       if (aiWinner === "rag") {
         const { response: enrichedRag, docLinks } = await enrichWithDocLinks(client.id, message, ragResponse);
-        return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, docLinks }, isVisitor), { headers: corsHeaders });
+        return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, citations: ragCitations, docLinks }, isVisitor), { headers: corsHeaders });
       }
     } catch { /* fallback to QA */ }
     const { response: enrichedQa, docLinks } = await enrichWithDocLinks(client.id, message, qaResponse);
@@ -1594,7 +1608,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   if (ragResponse) {
     const { response: enrichedRag, docLinks } = await enrichWithDocLinks(client.id, message, ragResponse);
-    return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, docLinks }, isVisitor), { headers: corsHeaders });
+    return NextResponse.json(filterResponse({ messageId, response: enrichedRag, source: "rag", provider: ragProvider, score, chunks: ragChunks, documents: ragDocMeta, citations: ragCitations, docLinks }, isVisitor), { headers: corsHeaders });
   }
 
   /* ── NIVEAU 3 : ESCALADE ── */
