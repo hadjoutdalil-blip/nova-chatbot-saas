@@ -589,11 +589,10 @@ function renderMarkdown(t){
 function renderCitations(s){
   var cs=metaCitations;
   if(!cs||!cs.length) return s;
-  return s.replace(/\[(\d+)\]/g,function(m,n){
+  return s.replace(/\\[(\\d+)\\]/g,function(m,n){
     var idx=parseInt(n,10)-1;
     var c=cs[idx];
     if(!c) return m;
-    var tipId="ctip-"+n;
     return '<sup class="ncit" data-cn="'+n+'" data-cid="'+idx+'" title="'+escAttr(c.title)+'">['+n+']</sup>';
   });
 }
