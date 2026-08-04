@@ -73,7 +73,7 @@ export async function compareWithAI(
           { role: "user", content: user },
         ],
         temperature: 0,
-        max_tokens: 10,
+        max_tokens: 300,
       }),
     });
 

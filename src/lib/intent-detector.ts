@@ -35,11 +35,11 @@ export function detectIntent(userMessage: string): IntentResult {
 
 function buildClassificationSystem(clientName: string): string {
   return (
-    "Tu es un classifieur d'intention. Réponds UNIQUEMENT par un seul mot : SALUTATION, HORS_SUJET, AVIS, ou METIER.\n\n" +
+    "Tu es un classifieur d'intention pour l'assistant de " + clientName + ". Réponds UNIQUEMENT par un seul mot : SALUTATION, HORS_SUJET, AVIS, ou METIER.\n\n" +
     "SALUTATION = salutations, remerciements, au revoir, small talk, comment ça va, qui es-tu\n" +
-    "HORS_SUJET = questions sans rapport avec les activités techniques, normes, essais, laboratoires\n" +
-    `AVIS = expression d'opinion sur ${clientName}, ses services, le chatbot (j'aime, je n'aime pas, c'est bien/nul)\n` +
-    `METIER = tout ce qui concerne ${clientName}, ses services techniques, essais, normes, certifications, formations, laboratoires, inspection, métrologie, géotechnique, organisation, direction, contact, informations générales`
+    "HORS_SUJET = questions clairement sans rapport avec " + clientName + " (ex: météo, sport, recette de cuisine, politique, jeux vidéo, divertissement)\n" +
+    "AVIS = expression d'opinion sur " + clientName + ", ses services ou le chatbot (j'aime, je n'aime pas, c'est bien/nul)\n" +
+    "METIER = tout ce qui concerne " + clientName + " : activités, produits, services, formations, programmes d'études, modules, semestres, matières, cours, filières, école, diplômes, examens, organisation, direction, contact, informations générales. Tout sujet d'enseignement, de cursus, de programme ou de métier en lien avec le domaine de " + clientName + " est METIER, y compris les concepts techniques du domaine."
   );
 }
 
@@ -60,7 +60,7 @@ export async function classifyIntentWithAI(
         { role: "user", content: `Message: "${message}"\n\nClassification :` },
       ],
       temperature: 0,
-      max_tokens: 10,
+      max_tokens: 300,
     }),
   });
 

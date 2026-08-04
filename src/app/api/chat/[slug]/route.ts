@@ -8,7 +8,7 @@ import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
 import { generateEmbedding } from "@/lib/embeddings";
 import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
 import { compareWithHeuristic, compareWithAI } from "@/lib/response-comparator";
-import { detectIntent, classifyIntentWithAI } from "@/lib/intent-detector";
+import { detectIntent, classifyIntentWithAI, type IntentResult } from "@/lib/intent-detector";
 import { sseEvent } from "@/lib/stream-utils";
 import { getActiveEmbeddingKey, trackEmbeddingUsage } from "@/lib/embedding-keys";
 import { findRelevantDocs } from "@/lib/doc-manager";
@@ -133,6 +133,17 @@ function findRelated(match: any | null, KB: any[], count: number): string[] {
   return out;
 }
 
+
+/* ── INTENT OVERRIDE GUARD ─────────────────────────── */
+/* Ne pas laisser une classification IA douteuse remplacer une intention
+   métier détectée par regex quand le client a du contenu documentaire :
+   la question sera tranchée par le RAG (qui retombe sur REQUETE_METIER). */
+function shouldOverrideIntent(regexIntent: IntentResult, aiIntent: IntentResult, client: any): boolean {
+  if (regexIntent.intent === aiIntent.intent) return false;
+  if (regexIntent.intent === "REQUETE_METIER" && aiIntent.intent === "HORS_SUJET") return false;
+  if (regexIntent.intent === "REQUETE_METIER" && aiIntent.confidence < regexIntent.confidence) return false;
+  return true;
+}
 
 function buildContext(client: any, pageUrl?: string, pageTitle?: string): string {
   const parts: string[] = [];
@@ -487,7 +498,7 @@ async function positionAndReformulate(
           { role: "user", content: question },
         ],
         temperature: 0,
-        max_tokens: 120,
+        max_tokens: 400,
       }),
     });
     if (!resp.ok) return fallback;
@@ -835,7 +846,7 @@ async function handleStreamingRequest(
               try {
                 const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
                 const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel, client.name);
-                if (aiIntent.intent !== intent.intent) { intent = aiIntent; addStep("intent_ai_override", { intent: intent.intent, confidence: intent.confidence }); }
+                if (aiIntent.intent !== intent.intent && shouldOverrideIntent(intent, aiIntent, client)) { intent = aiIntent; addStep("intent_ai_override", { intent: intent.intent, confidence: intent.confidence }); }
               } catch { /* keep regex intent */ }
             }
           }
@@ -876,13 +887,13 @@ async function handleStreamingRequest(
           /* aiMode : laisser l'IA répondre avec le prompt adapté à l'intention */
           const keyEntry = await resolveApiKey(client);
           if (keyEntry?.key) {
-            const providerId = client.aiProvider || detectProvider(keyEntry.key).id;
+            const providerId = detectProvider(keyEntry.key).id;
             const provider = PROVIDERS[providerId];
             if (provider) {
               const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
               const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle, lang);
               try {
-                const aiStream = await callAIStream(keyEntry.key, providerId, model, system, user, 0.30, history || [], 300);
+                const aiStream = await callAIStream(keyEntry.key, providerId, model, system, user, 0.30, history || [], 600);
                 const text = await consumeAIStream(aiStream);
                 send("metadata", { messageId, source: intent.intent.toLowerCase(), provider: provider.label, score: 0 });
                 send("token", { content: text });
@@ -1152,7 +1163,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         try {
           const aiModel = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
           const aiIntent = await classifyIntentWithAI(trimmed, keyEntry.key, provider.endpoint, aiModel, client.name);
-          if (aiIntent.intent !== intent.intent) {
+          if (aiIntent.intent !== intent.intent && shouldOverrideIntent(intent, aiIntent, client)) {
             console.log(`[Nova Chat] Intent override: regex=${intent.intent} → ai=${aiIntent.intent} message="${trimmed.slice(0, 80)}" (${client.name})`);
             intent = aiIntent;
           }
@@ -1215,13 +1226,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     /* aiMode : laisser l'IA répondre avec le prompt adapté à l'intention */
     const keyEntry = await resolveApiKey(client);
     if (keyEntry?.key) {
-      const providerId = client.aiProvider || detectProvider(keyEntry.key).id;
+      const providerId = detectProvider(keyEntry.key).id;
       const provider = PROVIDERS[providerId];
       if (provider) {
         const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
         const { system, user } = buildIntentPrompt(client, intent.intent, trimmed, pageUrl, pageTitle, lang);
         try {
-          const { text, usage } = await callAI(keyEntry.key, providerId, model, system, user, 0.30, history || [], 300);
+          const { text, usage } = await callAI(keyEntry.key, providerId, model, system, user, 0.30, history || [], 600);
           console.log(`[Nova Chat] AI ${intent.intent} response sent: "${text.slice(0, 80)}..."`);
           saveConversation(client, history || [], message, text, intent.intent.toLowerCase(), provider.label, 0, geoPromise, trace);
           saveUsage(client.id, providerId, model, usage);
