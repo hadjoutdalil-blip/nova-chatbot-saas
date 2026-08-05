@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { extractIP, lookupGeo } from "@/lib/geo";
 import { norm, calcSimilarity, ChunkMeta, chunkDocument, parseChunks, findBestChunks, expandSearchQuery } from "@/lib/rag-utils";
+import { extractKeywords } from "@/lib/chunk-utils";
 import { detectProvider, selectApiKey, trackKeyUsage } from "@/lib/api-keys";
 import { generateEmbedding } from "@/lib/embeddings";
 import { searchChunks as pgSearchChunks } from "@/lib/vector-store";
@@ -522,6 +523,19 @@ async function positionAndReformulate(
     const theme = typeof parsed.theme === "string" ? parsed.theme.trim().slice(0, 80) : "";
     const query = typeof parsed.query === "string" ? parsed.query.trim() : "";
     if (!query || query.length < 3 || query.length > 150) return fallback;
+    /* Garde-fou anti-hallucination : si la reformulation perd les mots-clés significatifs
+       de la question originale (ex: "multi-agents", "systems"), on la rejette pour éviter
+       que la recherche vectorielle rate le chunk pertinent. On garde le thème, mais la
+       requête de recherche reste la question brute. */
+    const qKeywords = extractKeywords(question, 6).filter((k) => k.length > 3);
+    const qNorm = norm(query);
+    if (qKeywords.length > 0) {
+      const kept = qKeywords.filter((k) => qNorm.includes(k));
+      if (kept.length / qKeywords.length < 0.6) {
+        console.log(`[Query Reformulation] rejetée (mots-clés perdus ${kept.length}/${qKeywords.length}): "${query.slice(0, 60)}" ← question brute`);
+        return { theme, query: question };
+      }
+    }
     return { theme, query };
   } catch {
     return fallback;
