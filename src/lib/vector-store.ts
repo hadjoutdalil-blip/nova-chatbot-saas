@@ -13,7 +13,6 @@ const TABLE_DIM = getEmbeddingDimension("nomic"); // 768 — supports both Coher
 const USE_HALF = process.env.PG_VECTOR_HALF === "1";
 const VEC_TYPE = USE_HALF ? "halfvec" : "vector";
 const VEC_CAST = USE_HALF ? "::halfvec" : "::vector";
-const COSINE_OPS = USE_HALF ? "halfvec_cosine_ops" : "vector_cosine_ops";
 
 function padToDim(vec: number[], dim: number): number[] {
   if (vec.length >= dim) return vec;
@@ -54,14 +53,9 @@ async function ensureTable() {
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_metadata ON document_chunks USING gin (metadata)');
-    /* HNSW : se construit sur table vide, pas de tuning lists, meilleur rappel que ivfflat */
-    try {
-      await client.query(
-        `CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING hnsw (embedding ${COSINE_OPS}) WITH (m = 16, ef_construction = 64)`
-      );
-    } catch {
-      // hnsw peut échouer sur très vieilles versions de pgvector (< 0.5) ; on garde le scan séquentiel
-    }
+    /* PAS d'index ANN (ivfflat/hnsw) : index approximatifs qui manquent le vrai plus proche
+       voisin (chunk cosinus #1 exclu des candidats pré-re-ranking → mauvaises réponses RAG).
+       Table petite (< 4k chunks) : le scan séquentiel exact est ~ms et garanti. */
   } finally {
     client.release();
   }
@@ -91,11 +85,7 @@ export async function recreateTable() {
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_client ON document_chunks ("clientId")');
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_doc ON document_chunks ("docId")');
     await client.query('CREATE INDEX IF NOT EXISTS idx_document_chunks_metadata ON document_chunks USING gin (metadata)');
-    try {
-      await client.query(
-        `CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING hnsw (embedding ${COSINE_OPS}) WITH (m = 16, ef_construction = 64)`
-      );
-    } catch {}
+    /* PAS d'index ANN (ivfflat/hnsw) : voir ensureTable — scan séquentiel exact */
     tableEnsured = true;
   } finally {
     client.release();

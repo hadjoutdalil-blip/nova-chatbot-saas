@@ -306,3 +306,14 @@ BEGIN
     ALTER TABLE "PublicProposal" ADD CONSTRAINT "PublicProposal_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   END IF;
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- Suppression de l'index ANN approximatif (ivfflat/hnsw) sur document_chunks
+-- ---------------------------------------------------------------------------
+-- CAUSE RACINE des mauvaises réponses RAG (ex : RL S5 répondait « aucune
+-- information » en citant la Références bibliographiques) : l'index ivfflat
+-- (lists=100, global multi-clients, filtre clientId appliqué APRÈS le scan ANN)
+-- est approximatif → il exclut parfois le vrai plus proche voisin (cosinus #1)
+-- des candidats pré-re-ranking. Table petite (< 4k chunks) : le scan séquentiel
+-- exact est ~ms et garanti. Le code (vector-store.ts) ne recrée plus cet index.
+DROP INDEX IF EXISTS idx_document_chunks_embedding;
