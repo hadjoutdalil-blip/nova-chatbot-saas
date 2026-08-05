@@ -549,29 +549,48 @@ async function callAI(apiKey: string, providerId: string, model: string, system:
 
   const msgHistory = (history || []).slice(-10).map((m: any) => ({ role: m.role, content: m.content }));
 
-  const resp = await fetch(provider.endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        ...msgHistory,
-        { role: "user", content: user },
-      ],
-      temperature,
-      max_tokens,
-    }),
-  });
+  let lastErr: any;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const resp = await fetch(provider.endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: system },
+            ...msgHistory,
+            { role: "user", content: user },
+          ],
+          temperature,
+          max_tokens,
+        }),
+      });
 
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data.error?.message || `Erreur ${resp.status}`);
-  const text = data.choices?.[0]?.message?.content || "";
-  const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-  return { text, usage };
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error?.message || `Erreur ${resp.status}`);
+      const text = data.choices?.[0]?.message?.content || "";
+      const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+      return { text, usage };
+    } catch (err: any) {
+      lastErr = err;
+      const msg = err?.message || String(err);
+      console.error(`[Nova Chat] callAI attempt ${attempt}/2 failed:`, msg, `(provider=${providerId}, model=${model})`);
+      if (attempt < 2) {
+        const delay = parseRetryDelay(msg);
+        if (delay > 0) {
+          console.log(`[Nova Chat] retrying callAI in ${delay}s (rate limit)...`);
+          await new Promise((r) => setTimeout(r, delay * 1000));
+        } else {
+          console.log(`[Nova Chat] retrying callAI...`);
+        }
+      }
+    }
+  }
+  throw lastErr;
 }
 
 async function callAIStream(apiKey: string, providerId: string, model: string, system: string, user: string, temperature: number, history: any[], max_tokens: number = 600): Promise<ReadableStream<Uint8Array>> {
@@ -642,6 +661,14 @@ async function callAIStream(apiKey: string, providerId: string, model: string, s
       }
     },
   });
+}
+
+/* Extrait le délai d'attente d'un message d'erreur 429 (ex: "Please try again in 6.44s.")
+   Retourne le délai en secondes (0 si absent). */
+function parseRetryDelay(message: string): number {
+  const m = /in (\d+(?:\.\d+)?)\s*s/i.exec(message);
+  if (m) return Math.min(parseFloat(m[1]) + 1, 10);
+  return 0;
 }
 
 async function resolveApiKey(client: any): Promise<{ id: string; key: string; model?: string | null } | null> {
@@ -948,18 +975,34 @@ async function handleStreamingRequest(
           const provObj = PROVIDERS[providerInfo.id];
           if (!provObj) return null;
           const model = keyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-          try {
-            const aiStream = await callAIStream(apiKey, providerInfo.id, model, system, userMsg, temperature, history || [], maxTokens);
-            const text = await consumeAIStream(aiStream);
-            if (strictNoMatch ? isAiRefusal(text) : (!text || text.trim().toUpperCase() === "NO_MATCH")) return null;
-            const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, text);
-            send("metadata", { messageId, source, provider: provObj.label, score, docLinks, ...(metaExtra || {}) });
-            send("token", { content: enrichedText });
-            addStep("ai_response", { source, provider: provObj.label, model, chars: enrichedText.length });
-            saveConversation(client, history || [], message, enrichedText, source, provObj.label, score, geoPromise, trace);
-            saveUsage(client.id, providerInfo.id, model, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
-            return enrichedText;
-          } catch { return null; }
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const aiStream = await callAIStream(apiKey, providerInfo.id, model, system, userMsg, temperature, history || [], maxTokens);
+              const text = await consumeAIStream(aiStream);
+              if (strictNoMatch ? isAiRefusal(text) : (!text || text.trim().toUpperCase() === "NO_MATCH")) return null;
+              const { response: enrichedText, docLinks } = await enrichWithDocLinks(client.id, message, text);
+              send("metadata", { messageId, source, provider: provObj.label, score, docLinks, ...(metaExtra || {}) });
+              send("token", { content: enrichedText });
+              addStep("ai_response", { source, provider: provObj.label, model, chars: enrichedText.length });
+              saveConversation(client, history || [], message, enrichedText, source, provObj.label, score, geoPromise, trace);
+              saveUsage(client.id, providerInfo.id, model, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+              return enrichedText;
+            } catch (err: any) {
+              const msg = err?.message || String(err);
+              console.error(`[Nova Chat] streamAIResponse ${source} attempt ${attempt}/2 failed:`, msg, `(provider=${providerInfo.id}, model=${model})`);
+              if (attempt < 2) {
+                const delay = parseRetryDelay(msg);
+                if (delay > 0) {
+                  console.log(`[Nova Chat] retrying ${source} call in ${delay}s (rate limit)...`);
+                  await new Promise((r) => setTimeout(r, delay * 1000));
+                } else {
+                  console.log(`[Nova Chat] retrying ${source} call...`);
+                }
+                continue;
+              }
+            }
+          }
+          return null;
         }
 
         /* ── Helper: send a direct (non-AI) response ── */
