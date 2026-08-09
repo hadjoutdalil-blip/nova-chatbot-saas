@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Script from "next/script";
 import Link from "next/link";
 
 export function DemoClient({ slug, name, primary, logo }: { slug: string; name: string; primary: string; logo: string }) {
-  const [origin, setOrigin] = useState("");
-  useEffect(() => { setOrigin(window.location.origin); }, []);
-
   const openChat = () => {
     const b = document.getElementById("nb") as HTMLButtonElement | null;
     if (b) b.click();
@@ -58,12 +54,6 @@ export function DemoClient({ slug, name, primary, logo }: { slug: string; name: 
           >
             Ouvrir le chatbot
           </button>
-          <a
-            href="#integration"
-            className="border border-gray-300 text-gray-700 px-8 py-3 rounded-xl font-semibold text-lg hover:bg-gray-50 transition"
-          >
-            Code d&apos;intégration
-          </a>
         </div>
       </section>
 
@@ -84,19 +74,6 @@ export function DemoClient({ slug, name, primary, logo }: { slug: string; name: 
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section id="integration" className="border-t border-gray-100 py-16">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-2">Intégration en une ligne</h2>
-          <p className="text-gray-500 text-center mb-8">Copiez ce script sur votre site web :</p>
-          <pre className="bg-gray-900 text-green-400 text-sm rounded-2xl p-6 overflow-x-auto leading-relaxed">
-{`<script src="${origin}/api/widget/${slug}/embed" defer></script>`}
-          </pre>
-          <p className="text-sm text-gray-400 text-center mt-4">
-            Ce script est servi sans authentification et fonctionne sur n&apos;importe quel site (HTTP(S)).
-          </p>
         </div>
       </section>
 
