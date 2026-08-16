@@ -563,7 +563,7 @@ function renderMarkdown(t){
   s=s.replace(/\\*\\*(.+?)\\*\\*/g,"<strong>$1</strong>");
   s=s.replace(/\\*(.+?)\\*/g,"<em>$1</em>");
   s=s.replace(/\`([^\`]+)\`/g,"<code>$1</code>");
-  s=s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,function(m,a,u){return isValidUrl(u)?'<img src="'+u+'" alt="'+a.replace(/"/g,"&quot;")+'" loading="lazy">':m;});
+  s=s.replace(/!\\[([^\\]]*)\\]\\(([^)]+)\\)/g,function(m,a,u){return isValidUrl(u)?'<img src="'+u+'" alt="'+a.replace(/"/g,"&quot;")+'" loading="lazy">':m;});
   s=s.replace(/\\[([^\\]]+)\\]\\((\\/[^\\)]+|https?:\\/\\/[^\\)]+)\\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
   s=s.replace(/^### (.+)$/gm,"<h3>$1</h3>");
   s=s.replace(/^## (.+)$/gm,"<h2>$1</h2>");
