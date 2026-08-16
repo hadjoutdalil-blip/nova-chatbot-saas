@@ -97,6 +97,18 @@ CREATE TABLE IF NOT EXISTS "Product" (
 );
 CREATE INDEX IF NOT EXISTS "Product_clientId_idx" ON "Product"("clientId");
 
+CREATE TABLE IF NOT EXISTS "ProductImage" (
+    "id" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "mime" TEXT NOT NULL DEFAULT 'image/png',
+    "data" BYTEA NOT NULL,
+    "size" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ProductImage_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "ProductImage_slug_idx" ON "ProductImage"("slug");
+
 CREATE TABLE IF NOT EXISTS "AIUsageLog" (
     "id" TEXT NOT NULL,
     "clientId" TEXT NOT NULL,
