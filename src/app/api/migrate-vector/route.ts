@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/api-auth";
-import { syncDocumentChunks, syncKBEntry, recreateTable } from "@/lib/vector-store";
+import { syncDocumentChunks, syncKBEntry, syncProductChunks, recreateTable } from "@/lib/vector-store";
 import { getActiveEmbeddingKey } from "@/lib/embedding-keys";
 
 export async function POST(req: NextRequest) {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        const log: any = { client: client.name || client.id, documents: 0, kbEntries: 0, errors: [] };
+        const log: any = { client: client.name || client.id, documents: 0, kbEntries: 0, products: 0, errors: [] };
         const chunkSize = client.chunkSize ?? 600;
 
         /* ── Documents ── */
@@ -77,6 +77,30 @@ export async function POST(req: NextRequest) {
               log.kbEntries++;
             } catch (err: any) {
               log.errors.push(`kb ${kb.id}: ${err.message}`);
+            }
+          }
+        }
+
+        /* ── Produits (catalogue) ── */
+        if (type === "all" || type === "products") {
+          const products = await db.prisma.product.findMany({
+            where: { clientId: client.id, active: true },
+          });
+          for (const p of products) {
+            try {
+              await syncProductChunks(client.id, {
+                id: p.id,
+                name: p.name,
+                description: p.description || null,
+                price: p.price || null,
+                category: p.category || null,
+                keywords: p.keywords || null,
+                imageUrl: p.imageUrl || null,
+                badge: p.badge || null,
+              }, apiKey, provider, embedKeyId);
+              log.products++;
+            } catch (err: any) {
+              log.errors.push(`product ${p.id}: ${err.message}`);
             }
           }
         }

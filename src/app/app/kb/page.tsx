@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Plus, Search, Download, Upload, Edit3, Trash2, X, FileText, BookOpen, Eye, Building2, Save } from "lucide-react";
+import { Plus, Search, Download, Upload, Edit3, Trash2, X, FileText, BookOpen, Eye, Building2, Save, Package } from "lucide-react";
+import ProductManager from "@/components/admin/ProductManager";
 
 interface KBEntry {
   id: string;
@@ -23,6 +24,7 @@ const ICONS = ["💬", "📦", "🚚", "💰", "🔧", "📞", "🏠", "📋", "
 const TABS = [
   { id: "kb", label: "KB Experte", icon: BookOpen },
   { id: "documents", label: "Documents contextuels", icon: FileText },
+  { id: "catalog", label: "Catalogue", icon: Package },
 ];
 
 function parseContextChunks(siteContext: string) {
@@ -295,7 +297,7 @@ export default function AppKBPage() {
           </button>
         )}
       </div>
-      <p className="text-gray-500 mb-4">{tab === "kb" ? "Ajoutez les questions que votre chatbot connaîtra automatiquement." : "Gérez les documents et le contexte entreprise utilisés par la RAG."}</p>
+      <p className="text-gray-500 mb-4">{tab === "kb" ? "Ajoutez les questions que votre chatbot connaîtra automatiquement." : tab === "catalog" ? "Gérez les produits que le chatbot propose aux visiteurs." : "Gérez les documents et le contexte entreprise utilisés par la RAG."}</p>
 
       <div className="flex gap-1 mb-6 bg-gray-100/80 rounded-xl p-1 w-fit">
         {TABS.map((t) => {
@@ -565,6 +567,8 @@ export default function AppKBPage() {
           </div>
         </div>
       )}
+
+      {tab === "catalog" && <ProductManager token={token} />}
 
       {viewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
