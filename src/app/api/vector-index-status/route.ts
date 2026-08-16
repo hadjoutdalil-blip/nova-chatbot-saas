@@ -56,28 +56,14 @@ export async function GET(req: NextRequest) {
     indexed: indexedDocIds.has(kb.id),
   }));
 
-  // Produits (catalogue)
-  const products = await db.prisma.product.findMany({
-    where: { clientId },
-    select: { id: true, name: true, updatedAt: true },
-  });
-  const productsWithStatus = products.map((p) => ({
-    id: p.id,
-    name: p.name,
-    indexed: indexedDocIds.has(p.id),
-  }));
-
   return NextResponse.json({
     indexedCount: indexedDocIds.size,
     totalDocs: docs.length,
     indexedDocs: docsWithStatus.filter((d) => d.indexed).length,
     totalKB: kbEntries.length,
     indexedKB: kbWithStatus.filter((k) => k.indexed).length,
-    totalProducts: products.length,
-    indexedProducts: productsWithStatus.filter((p) => p.indexed).length,
     docs: docsWithStatus,
     localDocs: localDocsWithStatus,
     kb: kbWithStatus,
-    products: productsWithStatus,
   });
 }

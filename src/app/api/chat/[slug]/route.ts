@@ -135,144 +135,6 @@ function findRelated(match: any | null, KB: any[], count: number): string[] {
 }
 
 
-/* ── CATALOGUE PRODUITS ────────────────────────────── */
-/* Promotion proactive du catalogue avec illustrations. Le chemin déterministe
-   (0 token LLM) est prioritaire : le serveur sélectionne les produits par mots-clés
-   et construit lui-même la réponse avec ![Nom](URL) — l'URL vient toujours de la base,
-   jamais de l'invention du modèle. Un bloc catalogue compact est injecté dans le
-   prompt RAG quand un extrait est de type "catalog" (buildRAGPrompt). */
-const CATALOG_KEYWORDS = [
-  "produit", "produits", "catalogue", "catalogue", "prix", "tarif", "tarifs",
-  "gamme", "gammes", "offre", "offres", "vente", "vendre", "acheter", "achat",
-  "commande", "commander", "livraison", "livrer", "disponible", "disponibilité",
-  "disponibilite", "marque", "marques", "article", "articles", "référence",
-  "reference", "promotion", "promos", "remise", "remises", "stock", "produit",
-  "marchandise", "boutique", "shop", "commander", "prix", "tarifs",
-];
-
-function detectCatalogKeyword(question: string): boolean {
-  const q = norm(question).toLowerCase();
-  for (const kw of CATALOG_KEYWORDS) {
-    if (kw.length < 3) continue;
-    const kwEsc = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp("\\b" + kwEsc + "\\b").test(q)) return true;
-  }
-  return false;
-}
-
-function isOpenProductQuestion(question: string): boolean {
-  return /recommande|recommande|sugg[eé]re|conseille|meilleur|lequel|besoin|adapt[ée]|adapte/.test(norm(question).toLowerCase());
-}
-
-/* Score les produits actifs par overlap avec la question (mots-clés + nom + catégorie). */
-function wordInQuery(word: string, q: string): boolean {
-  const esc = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp("(^|[\\s-])" + esc + "s?($|[\\s.,;:!?])", "i").test(q);
-}
-
-function scoreCatalogProducts(
-  products: any[],
-  question: string,
-): any[] {
-  const q = norm(question).toLowerCase();
-  const tokens = q.split(/[\s,;:|()\-]+/).filter((t) => t.length >= 3);
-  const scored = products
-    .map((p) => {
-      let s = 0;
-      const nameTokens = norm(p.name || "").toLowerCase().split(/\s+/).filter((t) => t.length >= 3);
-      const cat = norm(p.category || "").toLowerCase();
-      const kws = (p.keywords || "").split(",").map((k: string) => norm(k).toLowerCase().trim()).filter((k: string) => k.length >= 3);
-      for (const t of tokens) {
-        if (nameTokens.includes(t)) s += 2;
-        if (cat.includes(t)) s += 1;
-      }
-      for (const kw of kws) {
-        if (wordInQuery(kw, q)) s += 2;
-      }
-      if (cat && wordInQuery(cat, q)) s += 1.5;
-      return { p, s };
-    })
-    .filter((x) => x.s > 0)
-    .sort((a, b) => b.s - a.s)
-    .slice(0, 6)
-    .map((x) => x.p);
-  /* Fallback : aucun match sémantique mais intention produit → premiers produits */
-  return scored.length > 0 ? scored : products.slice(0, 6);
-}
-
-/* Convertit les produits en chunks "catalog" pour la recherche keyword (sans RAG vectoriel).
-   Le metadata.docType==="catalog" + imageUrl permet à buildRAGPrompt d'afficher l'illustration. */
-function productsToChunks(products: any[]): ChunkMeta[] {
-  return products.map((p) => ({
-    id: `prod_${p.id}`,
-    source: `Produit: ${p.name}`,
-    section: p.category || "",
-    keywords: (p.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean),
-    content: [`Produit: ${p.name}`, p.price ? `Prix: ${p.price}` : "", p.badge ? `Badge: ${p.badge}` : "", p.description || ""].filter(Boolean).join("\n"),
-    score: 0,
-    docId: p.id,
-    source_url: "",
-    valid_until: "",
-    metadata: { docType: "catalog", productId: p.id, imageUrl: p.imageUrl || "", price: p.price || "", category: p.category || "" },
-  }));
-}
-
-async function getActiveProducts(clientId: string): Promise<any[]> {
-  return db.prisma.product.findMany({
-    where: { clientId, active: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-  });
-}
-
-const CATALOG_INTRO: Record<string, string> = {
-  fr: "Voici quelques produits de notre catalogue qui pourraient vous intéresser :",
-  en: "Here are some products from our catalog that might interest you:",
-  ar: "إليك بعض المنتجات من كتالوجنا التي قد تهمك:",
-};
-
-/* Réponse déterministe construite côté serveur — AUCUN appel LLM. */
-function buildCatalogResponse(client: any, products: any[], lang: string): string {
-  const items = products
-    .map((p) => {
-      const img = p.imageUrl ? `![${(p.name || "").replace(/"/g, "\\\"")}](${p.imageUrl})\n` : "";
-      const badge = p.badge ? ` **${p.badge}**` : "";
-      const price = p.price ? `\n**Prix :** ${p.price}` : "";
-      const cat = p.category ? ` *(${p.category})*` : "";
-      const desc = p.description ? `\n${p.description}` : "";
-      return `${img}**${p.name}**${badge}${cat}${price}${desc}`;
-    })
-    .join("\n\n");
-  return `${CATALOG_INTRO[lang] || CATALOG_INTRO.fr}\n\n${items}\n\n_Souhaitez-vous plus de détails sur l'un de ces produits ?_`;
-}
-
-/* Chemin LLM optionnel pour les questions ouvertes (recommandation), bloc compact (~40 tok/produit). */
-function buildCatalogPrompt(client: any, products: any[], question: string, lang: string = "fr") {
-  const block = products
-    .map((p) => {
-      const parts = [`**${p.name}**`];
-      if (p.price) parts.push(`Prix: ${p.price}`);
-      if (p.badge) parts.push(`Badge: ${p.badge}`);
-      if (p.description) parts.push(p.description.slice(0, 120));
-      if (p.imageUrl) parts.push(`![${p.name}](${p.imageUrl})`);
-      return parts.join(" · ");
-    })
-    .join("\n");
-  const system = `Tu es l'assistant commercial officiel de ${client.name}.
-Tu présentes UNIQUEMENT les produits du catalogue fourni pour répondre à la question du client.
-RÈGLES ABSOLUES :
-- Présente les produits pertinents avec leur image au format markdown ![Nom](URL) — réutilise les URL EXACTES fournies, n'en invente JAMAIS
-- Ne mentionne aucun produit absent de la liste
-- Si aucun produit ne correspond, dis-le poliment et propose de contacter l'équipe
-- ${langInstruction(lang)}, professionnel et concis`;
-
-  const user = `CATALOGUE PRODUITS DISPONIBLES :
-${block}
-
-QUESTION DU CLIENT :
-${question}`;
-  return { system, user };
-}
-
 /* ── INTENT OVERRIDE GUARD ─────────────────────────── */
 /* Ne pas laisser une classification IA douteuse remplacer une intention
    métier détectée par regex quand le client a du contenu documentaire :
@@ -420,7 +282,6 @@ function buildRAGPrompt(client: any, chunks: ChunkMeta[], question: string, isVi
     const meta = [`Source : ${c.source}`];
     if (c.section) meta.push(`Section : ${c.section}`);
     if (c.keywords?.length) meta.push(`Mots-clés : ${c.keywords.join(", ")}`);
-    if (c.metadata?.docType === "catalog" && c.metadata?.imageUrl) meta.push(`Image : ${c.metadata.imageUrl}`);
     if (c.source_url) {
       if (!isVisitor || c.source_url.toLowerCase().endsWith(".pdf")) {
         meta.push(`Lien : ${c.source_url}`);
@@ -447,7 +308,6 @@ RÈGLES ABSOLUES :
 - En cas de contradiction entre extraits, privilégie le plus récent ou le plus spécifique
 - Les extraits sont classés par pertinence : l'extrait #1 est le plus important
 - CITE TES SOURCES : après chaque phrase fondée sur l'extrait #N, ajoute immédiatement la référence [N] (exemple : « Le module a lieu au semestre S4. [3] »). Cite plusieurs extraits si besoin : [2][5]
-- Si un extrait fournit une IMAGE (métadonnée « Image : <url> ») : présente le produit concerné avec son illustration au format markdown ![Nom du produit](URL) — réutilise l'URL EXACTE fournie, n'en invente JAMAIS
 ${noMatchRule}
 - N'invente JAMAIS d'information
 - ${langInstruction(lang)}, professionnel et concis
@@ -1154,40 +1014,6 @@ async function handleStreamingRequest(
           enrichWithDocLinks(client.id, message, response).catch(() => {});
         }
 
-        /* ── CATALOGUE : intention produit → promotion proactive ──
-           Chemin déterministe (0 token LLM) prioritaire : le serveur sélectionne les
-           produits et construit la réponse avec illustrations. Testé AVANT RAG/escalade
-           pour ne jamais gonfler le prompt (leçon LITAN/429).
-           Seul un match KB SEMANTIQUE fort (>= seuil, non mot-clé) prime sur le catalogue. */
-        const strongKbMatch = match && score >= kbThreshold && !isKeyword;
-        if (detectCatalogKeyword(trimmed) && !strongKbMatch) {
-          const catalogProducts = await db.prisma.product.findMany({
-            where: { clientId: client.id, active: true },
-            orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-          });
-          if (catalogProducts.length > 0) {
-            const products = scoreCatalogProducts(catalogProducts, trimmed);
-            addStep("catalog", { products: products.length, mode: "deterministic" });
-            if (isOpenProductQuestion(trimmed) && aiMode) {
-              /* Chemin LLM optionnel (recommandation ouverte) — bloc compact ≤ 6 produits */
-              const cKeyEntry = await resolveApiKey(client);
-              if (cKeyEntry?.key) {
-                const cProvider = PROVIDERS[detectProvider(cKeyEntry.key).id];
-                if (cProvider) {
-                  const cModel = cKeyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-                  const { system, user } = buildCatalogPrompt(client, products, trimmed, lang);
-                  const cResult = await streamAIResponse(system, user, client.tempRAG ?? 0.10, "catalog", 600);
-                  if (cResult) { finish(); return; }
-                }
-              }
-            }
-            const answer = buildCatalogResponse(client, products, lang);
-            sendDirect(answer, "catalog", { suggestions: products.map((p: any) => p.name) });
-            finish();
-            return;
-          }
-        }
-
         /* ── RAG ONLY MODE ── */
         if (ragOnly) {
           if (match && score === 100) {
@@ -1218,7 +1044,7 @@ async function handleStreamingRequest(
           }
           if (topChunks.length === 0) {
             const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-            topChunks = findBestChunks(ragOnlyQuery, [...siteChunks, ...docChunks, ...productsToChunks(await getActiveProducts(client.id))], client.topNChunks ?? 7, ragThreshold);
+            topChunks = findBestChunks(ragOnlyQuery, [...siteChunks, ...docChunks], client.topNChunks ?? 7, ragThreshold);
           }
           addStep("rag_only_search", { chunks: topChunks.length, useVector: client.useVectorRag && !!embedApiKey, theme: positionedRagOnly.theme || null });
           if (topChunks.length > 0) {
@@ -1285,8 +1111,7 @@ async function handleStreamingRequest(
         /* NIVEAU 2 : RAG */
         const hasSiteContext = !!(client.siteContext?.trim());
         const hasClientDoc = await hasAnyClientDoc(client.id);
-        const hasProduct = (await db.prisma.product.count({ where: { clientId: client.id, active: true } })) > 0;
-        const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag || hasProduct;
+        const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag;
         if (score < 100 && hasAnyDoc) {
           const siteChunks = parseChunks(client.siteContext || "");
           const clientDocs = await getAllClientDocs(client.id);
@@ -1312,9 +1137,9 @@ async function handleStreamingRequest(
             if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
           }
 
-          /* Recherche keyword (toujours, sur site + documents + produits, avec requête reformulée) */
+          /* Recherche keyword (toujours, sur site + documents, avec requête reformulée) */
           const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-          const allChunks = [...siteChunks, ...docChunks, ...productsToChunks(await getActiveProducts(client.id))];
+          const allChunks = [...siteChunks, ...docChunks];
           const keywordResults = findBestChunks(searchQuery, allChunks, client.topNChunks ?? 7, ragThreshold);
 
           /* Fusion : priorité vectorielle, puis keyword pour combler */
@@ -1505,56 +1330,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }, isVisitor), { headers: corsHeaders });
   }
 
-  /* ── CATALOGUE : intention produit → promotion proactive (0 token LLM prioritaire) ──
-     Seul un match KB SEMANTIQUE fort (>= seuil, non mot-clé) prime sur le catalogue. */
-  const strongKbMatch = match && score >= kbThreshold && !isKeyword;
-  if (detectCatalogKeyword(trimmed) && !strongKbMatch) {
-    const catalogProducts = await db.prisma.product.findMany({
-      where: { clientId: client.id, active: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-    });
-    if (catalogProducts.length > 0) {
-      const products = scoreCatalogProducts(catalogProducts, trimmed);
-      addStep("catalog", { products: products.length, mode: "deterministic" });
-      if (isOpenProductQuestion(trimmed) && aiMode) {
-        const cKeyEntry = await resolveApiKey(client);
-        if (cKeyEntry?.key) {
-          const cProviderId = detectProvider(cKeyEntry.key).id;
-          const cProvider = PROVIDERS[cProviderId];
-          if (cProvider) {
-            const cModel = cKeyEntry.model || client.aiModel || "openai/gpt-oss-20b";
-            const { system, user } = buildCatalogPrompt(client, products, trimmed, lang);
-            try {
-              const { text } = await callAI(cKeyEntry.key, cProviderId, cModel, system, user, client.tempRAG ?? 0.10, history || [], 600);
-              if (text) {
-                saveConversation(client, history || [], message, text, "catalog", cProvider.label, 0, geoPromise, trace);
-                return NextResponse.json(filterResponse({
-                  messageId,
-                  response: text,
-                  source: "catalog",
-                  provider: cProvider.label,
-                  score: 0,
-                  suggestions: products.map((p: any) => p.name),
-                }, isVisitor), { headers: corsHeaders });
-              }
-            } catch (err: any) {
-              console.error(`[Nova Chat] Catalog AI error:`, err?.message || err);
-            }
-          }
-        }
-      }
-      const answer = buildCatalogResponse(client, products, lang);
-      saveConversation(client, history || [], message, answer, "catalog", "", 0, geoPromise, trace);
-      return NextResponse.json(filterResponse({
-        messageId,
-        response: answer,
-        source: "catalog",
-        score: 0,
-        suggestions: products.map((p: any) => p.name),
-      }, isVisitor), { headers: corsHeaders });
-    }
-  }
-
   /* ── RAG ONLY MODE : skip KB, go directly to RAG ── */
   if (ragOnly) {
     /* Toujours respecter les matchs exacts KB */
@@ -1611,7 +1386,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
     if (topChunks.length === 0) {
       const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-      const allChunks = [...siteChunks, ...docChunks, ...productsToChunks(await getActiveProducts(client.id))];
+      const allChunks = [...siteChunks, ...docChunks];
       topChunks = findBestChunks(ragOnlyQuery, allChunks, client.topNChunks ?? 7, ragThreshold);
     }
     if (topChunks.length > 0) {
@@ -1784,8 +1559,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   /* ── NIVEAU 2 : RAG — recherche documentaire (sauf si réponse KB exacte) ── */
   const hasSiteContext = !!(client.siteContext?.trim());
   const hasClientDoc = await hasAnyClientDoc(client.id);
-  const hasProduct = (await db.prisma.product.count({ where: { clientId: client.id, active: true } })) > 0;
-  const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag || hasProduct;
+  const hasAnyDoc = hasSiteContext || hasClientDoc || client.useVectorRag;
   if (score < 100 && hasAnyDoc) {
     const siteChunks = parseChunks(client.siteContext || "");
     const clientDocs = await getAllClientDocs(client.id);
@@ -1814,9 +1588,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       if (activeKey?.id) trackEmbeddingUsage(activeKey.id).catch(() => {});
     }
 
-    /* Recherche keyword (toujours, sur site + documents + produits, avec requête reformulée) */
+    /* Recherche keyword (toujours, sur site + documents, avec requête reformulée) */
     const docChunks = clientDocs.flatMap((d: any) => chunkDocument(d, client.chunkSize ?? 600));
-    const allChunks = [...siteChunks, ...docChunks, ...productsToChunks(await getActiveProducts(client.id))];
+    const allChunks = [...siteChunks, ...docChunks];
     const keywordResults = findBestChunks(searchQuery, allChunks, client.topNChunks ?? 7, ragThreshold);
 
     /* Fusion : priorité vectorielle, puis keyword pour combler */

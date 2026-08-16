@@ -38,7 +38,6 @@ model Client {
   users              User[]
   widgetConfigs      WidgetConfig[]
   kbEntries          KBEntry[]
-  products           Product[]
   clientDocuments    ClientDocument[]
   clientLocalDocs    ClientLocalDoc[]
   localImportFiles   LocalImportFile[]
@@ -116,26 +115,6 @@ model KBEntry {
   updatedAt     DateTime @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-}
-
-model Product {
-  id          String   @id @default(uuid())
-  clientId    String
-  name        String
-  description String   @default("")
-  price       String   @default("")
-  category    String   @default("")
-  keywords    String   @default("")
-  imageUrl    String   @default("")
-  badge       String   @default("")
-  active      Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@index([clientId])
 }
 
 model ClientDocument {

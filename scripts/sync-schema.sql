@@ -79,24 +79,6 @@ CREATE TABLE IF NOT EXISTS "ClientDocument" (
     CONSTRAINT "ClientDocument_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE IF NOT EXISTS "Product" (
-    "id" TEXT NOT NULL,
-    "clientId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT NOT NULL DEFAULT '',
-    "price" TEXT NOT NULL DEFAULT '',
-    "category" TEXT NOT NULL DEFAULT '',
-    "keywords" TEXT NOT NULL DEFAULT '',
-    "imageUrl" TEXT NOT NULL DEFAULT '',
-    "badge" TEXT NOT NULL DEFAULT '',
-    "active" BOOLEAN NOT NULL DEFAULT true,
-    "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
-);
-CREATE INDEX IF NOT EXISTS "Product_clientId_idx" ON "Product"("clientId");
-
 CREATE TABLE IF NOT EXISTS "AIUsageLog" (
     "id" TEXT NOT NULL,
     "clientId" TEXT NOT NULL,
@@ -322,9 +304,6 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PublicProposal_clientId_fkey') THEN
     ALTER TABLE "PublicProposal" ADD CONSTRAINT "PublicProposal_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Product_clientId_fkey') THEN
-    ALTER TABLE "Product" ADD CONSTRAINT "Product_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   END IF;
 END $$;
 

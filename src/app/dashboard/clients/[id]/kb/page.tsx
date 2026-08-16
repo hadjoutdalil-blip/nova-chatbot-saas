@@ -4,8 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import KBModal from "@/components/admin/KBModal";
-import ProductManager from "@/components/admin/ProductManager";
-import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X, Database, Loader2, Zap, Globe, Package } from "lucide-react";
+import { Plus, Search, Download, Upload, Trash2, FileText, BookOpen, Eye, Building2, Save, X, Database, Loader2, Zap, Globe } from "lucide-react";
 
 interface KBEntry {
   id: string;
@@ -25,7 +24,6 @@ const TABS = [
   { id: "kb", label: "KB Experte", icon: BookOpen },
   { id: "documents", label: "Documents contextuels", icon: FileText },
   { id: "vectoriel", label: "Base Vectorielle", icon: Database },
-  { id: "catalog", label: "Catalogue", icon: Package },
 ];
 
 function parseContextChunks(siteContext: string) {
@@ -319,7 +317,7 @@ export default function ClientKBPage() {
         <h1 className="text-2xl font-bold">Base de connaissances</h1>
       </div>
 
-      <p className="text-gray-500 mb-4">{tab === "kb" ? "Gérez la base de connaissances experte." : tab === "vectoriel" ? "Importez du texte dans la base vectorielle et indexez les documents/KB existants." : tab === "catalog" ? "Gérez les produits que le chatbot propose aux visiteurs." : "Gérez les documents et le contexte entreprise utilisés par la RAG."}</p>
+      <p className="text-gray-500 mb-4">{tab === "kb" ? "Gérez la base de connaissances experte." : tab === "vectoriel" ? "Importez du texte dans la base vectorielle et indexez les documents/KB existants." : "Gérez les documents et le contexte entreprise utilisés par la RAG."}</p>
 
       <div className="flex gap-1 mb-6 bg-gray-100/80 rounded-xl p-1 w-fit">
         {TABS.map((t) => {
@@ -770,8 +768,6 @@ export default function ClientKBPage() {
           </div>
         </div>
       )}
-
-      {tab === "catalog" && <ProductManager token={token} clientId={id} />}
 
       {viewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
