@@ -5,9 +5,11 @@ import { put, list, del } from "@vercel/blob";
 const isVercel = !!process.env.VERCEL;
 const LOCAL_DATA_DIR = path.join(process.cwd(), "data");
 
+export type StorageSubDir = "docs" | "import" | "images";
+
 export async function saveFile(
   clientSlug: string,
-  subDir: "docs" | "import",
+  subDir: StorageSubDir,
   fileName: string,
   data: Buffer,
 ): Promise<{ storagePath: string; url?: string }> {
@@ -39,7 +41,7 @@ export async function readFile(
 
 export async function deleteFile(
   clientSlug: string,
-  subDir: "docs" | "import",
+  subDir: StorageSubDir,
   fileName: string,
 ): Promise<void> {
   const blobKey = `${subDir}/${clientSlug}/${fileName}`;
@@ -55,7 +57,7 @@ export async function deleteFile(
 
 export async function listFiles(
   clientSlug: string,
-  subDir: "docs" | "import",
+  subDir: StorageSubDir,
 ): Promise<{ name: string; size: number; path: string }[]> {
   if (isVercel) {
     const prefix = `${subDir}/${clientSlug}/`;
