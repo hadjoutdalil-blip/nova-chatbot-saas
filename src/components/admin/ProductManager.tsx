@@ -83,7 +83,7 @@ export default function ProductManager({ token, clientId }: Props) {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erreur d'upload"); return; }
-      setForm((f) => ({ ...f, imageUrl: data.imageUrl }));
+      setForm((f) => ({ ...f, imageUrl: data.url }));
     } catch {
       setError("Erreur d'upload de l'image");
     }
